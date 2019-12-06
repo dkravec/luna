@@ -1,15 +1,14 @@
-//
-//  AR1Tests.swift
-//  AR1Tests
+//  SpaceTests.swift
+//  LexiTests
 //
 //  Created by 46-1718 on 2019-12-01.
 //  Copyright © 2019 NOVA Productions. All rights reserved.
 //
 
 import XCTest
-@testable import AR1
+@testable import Space
 
-class AR1Tests: XCTestCase {
+class SpaceTests: XCTestCase {
 
     override func setUp() {
         // Put setup code here. This method is called before the invocation of each test method in the class.

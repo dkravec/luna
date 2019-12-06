@@ -1,6 +1,5 @@
-//
 //  SceneDelegate.swift
-//  AR1
+//  Lexi
 //
 //  Created by 46-1718 on 2019-12-01.
 //  Copyright © 2019 NOVA Productions. All rights reserved.
