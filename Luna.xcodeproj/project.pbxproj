@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7A18A5F623F1DF01002305C8 /* landmarkData.json in Resources */ = {isa = PBXBuildFile; fileRef = 7A18A5F523F1DF01002305C8 /* landmarkData.json */; };
 		87F4F41C2394655C00EDA388 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F4F41B2394655C00EDA388 /* AppDelegate.swift */; };
 		87F4F41E2394655C00EDA388 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F4F41D2394655C00EDA388 /* SceneDelegate.swift */; };
 		87F4F4202394655C00EDA388 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F4F41F2394655C00EDA388 /* ViewController.swift */; };
@@ -35,6 +36,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7A18A5F523F1DF01002305C8 /* landmarkData.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = landmarkData.json; path = ../../Landmarks/HandlingUserInput/StartingPoint/Landmarks/Landmarks/Resources/landmarkData.json; sourceTree = "<group>"; };
 		87F4F4182394655C00EDA388 /* Luna.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luna.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		87F4F41B2394655C00EDA388 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		87F4F41D2394655C00EDA388 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -103,6 +105,7 @@
 				87F4F41D2394655C00EDA388 /* SceneDelegate.swift */,
 				87F4F41F2394655C00EDA388 /* ViewController.swift */,
 				87F4F4212394655C00EDA388 /* Main.storyboard */,
+				7A18A5F523F1DF01002305C8 /* landmarkData.json */,
 				87F4F4242394656300EDA388 /* Assets.xcassets */,
 				87F4F4262394656300EDA388 /* LaunchScreen.storyboard */,
 				87F4F4292394656300EDA388 /* Info.plist */,
@@ -233,6 +236,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				87F4F4282394656300EDA388 /* LaunchScreen.storyboard in Resources */,
+				7A18A5F623F1DF01002305C8 /* landmarkData.json in Resources */,
 				87F4F4252394656300EDA388 /* Assets.xcassets in Resources */,
 				87F4F4232394655C00EDA388 /* Main.storyboard in Resources */,
 			);

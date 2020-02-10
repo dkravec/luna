@@ -2,6 +2,18 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:../School">
+   </FileRef>
+   <FileRef
+      location = "group:../Space">
+   </FileRef>
+   <FileRef
+      location = "group:../SpaceTests">
+   </FileRef>
+   <FileRef
+      location = "group:../SpaceUITests">
+   </FileRef>
+   <FileRef
       location = "self:/Users/a46-1920/Desktop/Space/Luna.xcodeproj">
    </FileRef>
 </Workspace>
