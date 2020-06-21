@@ -1,8 +1,9 @@
-//  AppDelegate.swift
-//  Lexi
 //
-//  Created by 46-1718 on 2019-12-01.
-//  Copyright © 2019 NOVA Productions. All rights reserved.
+//  AppDelegate.swift
+//  Space
+//
+//  Created by 46-1920 on 2020-06-21.
+//  Copyright © 2020 Devray Boutique. All rights reserved.
 //
 
 import UIKit
