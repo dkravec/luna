@@ -13,6 +13,9 @@
 		7A30FCDF249FD53A000F1522 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A30FCDE249FD53A000F1522 /* Assets.xcassets */; };
 		7A30FCE2249FD53A000F1522 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A30FCE1249FD53A000F1522 /* Preview Assets.xcassets */; };
 		7A30FCE5249FD53A000F1522 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 7A30FCE3249FD53A000F1522 /* LaunchScreen.storyboard */; };
+		7A30FCED249FD779000F1522 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A30FCEC249FD779000F1522 /* Settings.swift */; };
+		7A30FCEF249FD79E000F1522 /* ARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A30FCEE249FD79E000F1522 /* ARView.swift */; };
+		7A30FCF1249FD7B1000F1522 /* Information.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A30FCF0249FD7B1000F1522 /* Information.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +27,9 @@
 		7A30FCE1249FD53A000F1522 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		7A30FCE4249FD53A000F1522 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		7A30FCE6249FD53A000F1522 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7A30FCEC249FD779000F1522 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		7A30FCEE249FD79E000F1522 /* ARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARView.swift; sourceTree = "<group>"; };
+		7A30FCF0249FD7B1000F1522 /* Information.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Information.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +65,7 @@
 				7A30FCD8249FD532000F1522 /* AppDelegate.swift */,
 				7A30FCDA249FD532000F1522 /* SceneDelegate.swift */,
 				7A30FCDC249FD532000F1522 /* ContentView.swift */,
+				7A30FCF2249FD836000F1522 /* View */,
 				7A30FCDE249FD53A000F1522 /* Assets.xcassets */,
 				7A30FCE3249FD53A000F1522 /* LaunchScreen.storyboard */,
 				7A30FCE6249FD53A000F1522 /* Info.plist */,
@@ -73,6 +80,16 @@
 				7A30FCE1249FD53A000F1522 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		7A30FCF2249FD836000F1522 /* View */ = {
+			isa = PBXGroup;
+			children = (
+				7A30FCEE249FD79E000F1522 /* ARView.swift */,
+				7A30FCF0249FD7B1000F1522 /* Information.swift */,
+				7A30FCEC249FD779000F1522 /* Settings.swift */,
+			);
+			path = View;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -146,8 +163,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A30FCF1249FD7B1000F1522 /* Information.swift in Sources */,
+				7A30FCEF249FD79E000F1522 /* ARView.swift in Sources */,
 				7A30FCD9249FD532000F1522 /* AppDelegate.swift in Sources */,
 				7A30FCDB249FD532000F1522 /* SceneDelegate.swift in Sources */,
+				7A30FCED249FD779000F1522 /* Settings.swift in Sources */,
 				7A30FCDD249FD532000F1522 /* ContentView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -285,15 +305,17 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_ASSET_PATHS = "\"Space/Preview Content\"";
 				DEVELOPMENT_TEAM = VBY3L3W5ZA;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Space/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "Devray-Boutique.Space";
+				PRODUCT_BUNDLE_IDENTIFIER = "Devray-Boutique.Space1";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -305,15 +327,17 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_ASSET_PATHS = "\"Space/Preview Content\"";
 				DEVELOPMENT_TEAM = VBY3L3W5ZA;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Space/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "Devray-Boutique.Space";
+				PRODUCT_BUNDLE_IDENTIFIER = "Devray-Boutique.Space1";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
