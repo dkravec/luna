@@ -28,15 +28,7 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchScreen</key>
-	<dict>
-		<key>UIColorName</key>
-		<string>black</string>
-		<key>UITabBar</key>
-		<dict>
-			<key>UIImageName</key>
-			<string></string>
-		</dict>
-	</dict>
+	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>

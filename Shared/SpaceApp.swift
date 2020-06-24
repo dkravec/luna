@@ -1,5 +1,5 @@
 //
-//  LunaUniApp.swift
+//  SpaceApp.swift
 //  Shared
 //
 //  Created by 46-1920 on 2020-06-24.
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct LunaUniApp: App {
+struct SpaceApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
