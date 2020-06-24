@@ -11,51 +11,53 @@ import WebKit
 
 struct Settings: View {
     var body: some View {
-        List {
-            Section(header: Text("About")){
-                Text("Keen - School Manager")
-                    .font(.headline)
-                Text("NOVA Productions")
-                    .font(.subheadline)
-                Text("v1.0 (b12.15.2)")
-                    .font(.footnote)
+        NavigationView {
+            List {
+                Section(header: Text("About")){
+                    Text("Luna - View Space in AR")
+                        .font(.headline)
+                    Text("NOVA Productions")
+                        .font(.subheadline)
+                    Text("v1.0 (b13.3)")
+                        .font(.footnote)
+                }
+                Section(header: Text("More")) {
+                    VStack {
+                        NavigationLink(destination: AboutMePage()) {
+                            Text("About")
+                                .font(.headline)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    
+                    VStack {
+                        NavigationLink(destination: ContactMePage()) {
+                            Text("Contact")
+                                .font(.headline)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    
+                    VStack {
+                        NavigationLink(destination: WebPagePrivacy()) {
+                           Text("Privacy")
+                                .font(.headline)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    VStack {
+                        NavigationLink(destination: LegalPage()) {
+                            Text("Legal")
+                                .font(.headline)
+                        }
+                    }
+                        .buttonStyle(PlainButtonStyle())
+                }
             }
-            Section(header: Text("More")) {
-                VStack {
-                    NavigationLink(destination: AboutMePage()) {
-                        Text("About")
-                            .font(.headline)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                
-                VStack {
-                    NavigationLink(destination: ContactMePage()) {
-                        Text("Contact")
-                            .font(.headline)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                
-                VStack {
-                    NavigationLink(destination: WebPagePrivacy()) {
-                       Text("Privacy")
-                            .font(.headline)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                VStack {
-                    NavigationLink(destination: LegalPage()) {
-                        Text("Legal")
-                            .font(.headline)
-                    }
-                }
-                    .buttonStyle(PlainButtonStyle())
-            }
+            .listStyle(GroupedListStyle())
+                .environment(\.horizontalSizeClass, .regular)
+            .navigationBarTitle(Text("Settings"))
         }
-        .listStyle(GroupedListStyle())
-            .environment(\.horizontalSizeClass, .regular)
-        .navigationBarTitle(Text("Settings"))
     }
 }
 
@@ -200,7 +202,7 @@ struct LegalPage: View {
 struct WebPagePrivacy: View {
     var body: some View {
         VStack {
-            WebView(request: URLRequest(url: URL(string: "https://novapro.net/privacy.html")!))
+            WebView(request: URLRequest(url: URL(string: "https://novapro.net/privacy/")!))
         }
         .navigationBarTitle(Text("Privacy"), displayMode: .inline)
     }

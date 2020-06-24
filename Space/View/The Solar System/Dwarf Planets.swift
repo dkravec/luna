@@ -8,14 +8,18 @@
 
 import SwiftUI
 
-struct Dwarf_Planets: View {
+struct Pluto: View {
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        List {
+            VStack(alignment: .leading) {
+                Text("Pluto")
+                    .font(.headline)
+                Text("Info")
+            }
+        }
+        .listStyle(GroupedListStyle())
+        .environment(\.horizontalSizeClass, .regular)
+        .navigationBarTitle(Text("Pluto"))
     }
 }
 
-struct Dwarf_Planets_Previews: PreviewProvider {
-    static var previews: some View {
-        Dwarf_Planets()
-    }
-}

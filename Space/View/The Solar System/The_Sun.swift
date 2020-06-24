@@ -10,12 +10,18 @@ import SwiftUI
 
 struct The_Sun: View {
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
-    }
-}
-
-struct The_Sun_Previews: PreviewProvider {
-    static var previews: some View {
-        The_Sun()
+        List {
+            Section {
+                VStack(alignment: .leading) {
+                    Text("Sun")
+                        .font(.headline)
+                    Text("Info")
+                        .font(.subheadline)
+                }
+            }
+        }
+       // .listStyle(SidebarListStyle())
+       // .listStyle(GroupedListStyle())
+        .navigationBarTitle(Text("The Sun"))
     }
 }

@@ -16,10 +16,44 @@
 		7A30FCED249FD779000F1522 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A30FCEC249FD779000F1522 /* Settings.swift */; };
 		7A30FCEF249FD79E000F1522 /* ARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A30FCEE249FD79E000F1522 /* ARView.swift */; };
 		7A30FCF1249FD7B1000F1522 /* Information.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A30FCF0249FD7B1000F1522 /* Information.swift */; };
+		7A30FCF424A0318A000F1522 /* The_Sun.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A30FCF324A0318A000F1522 /* The_Sun.swift */; };
+		7A30FCF824A031CE000F1522 /* Planets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A30FCF724A031CE000F1522 /* Planets.swift */; };
+		7A30FCFA24A031F9000F1522 /* Dwarf Planets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A30FCF924A031F9000F1522 /* Dwarf Planets.swift */; };
+		7A66CA5124A19D090039EB37 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A66CA5024A19D090039EB37 /* WidgetKit.framework */; };
+		7A66CA5324A19D090039EB37 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A66CA5224A19D090039EB37 /* SwiftUI.framework */; };
+		7A66CA5624A19D090039EB37 /* LunaW.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A66CA5524A19D090039EB37 /* LunaW.swift */; };
+		7A66CA5924A19D0D0039EB37 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A66CA5824A19D0D0039EB37 /* Assets.xcassets */; };
+		7A66CA5B24A19D0D0039EB37 /* LunaW.intentdefinition in Sources */ = {isa = PBXBuildFile; fileRef = 7A66CA5724A19D090039EB37 /* LunaW.intentdefinition */; };
+		7A66CA5C24A19D0D0039EB37 /* LunaW.intentdefinition in Sources */ = {isa = PBXBuildFile; fileRef = 7A66CA5724A19D090039EB37 /* LunaW.intentdefinition */; };
+		7A66CA5F24A19D0D0039EB37 /* LunaWExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 7A66CA4E24A19D090039EB37 /* LunaWExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		7A66CA5D24A19D0D0039EB37 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7A30FCCD249FD532000F1522 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7A66CA4D24A19D090039EB37;
+			remoteInfo = LunaWExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7A66CA6024A19D0D0039EB37 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7A66CA5F24A19D0D0039EB37 /* LunaWExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
-		7A30FCD5249FD532000F1522 /* Space.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Space.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A30FCD5249FD532000F1522 /* Luna.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luna.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A30FCD8249FD532000F1522 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7A30FCDA249FD532000F1522 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		7A30FCDC249FD532000F1522 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -30,6 +64,16 @@
 		7A30FCEC249FD779000F1522 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		7A30FCEE249FD79E000F1522 /* ARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARView.swift; sourceTree = "<group>"; };
 		7A30FCF0249FD7B1000F1522 /* Information.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Information.swift; sourceTree = "<group>"; };
+		7A30FCF324A0318A000F1522 /* The_Sun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = The_Sun.swift; sourceTree = "<group>"; };
+		7A30FCF724A031CE000F1522 /* Planets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Planets.swift; sourceTree = "<group>"; };
+		7A30FCF924A031F9000F1522 /* Dwarf Planets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Dwarf Planets.swift"; sourceTree = "<group>"; };
+		7A66CA4E24A19D090039EB37 /* LunaWExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LunaWExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A66CA5024A19D090039EB37 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		7A66CA5224A19D090039EB37 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		7A66CA5524A19D090039EB37 /* LunaW.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaW.swift; sourceTree = "<group>"; };
+		7A66CA5724A19D090039EB37 /* LunaW.intentdefinition */ = {isa = PBXFileReference; lastKnownFileType = file.intentdefinition; path = LunaW.intentdefinition; sourceTree = "<group>"; };
+		7A66CA5824A19D0D0039EB37 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7A66CA5A24A19D0D0039EB37 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -40,6 +84,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7A66CA4B24A19D090039EB37 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A66CA5324A19D090039EB37 /* SwiftUI.framework in Frameworks */,
+				7A66CA5124A19D090039EB37 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -47,6 +100,8 @@
 			isa = PBXGroup;
 			children = (
 				7A30FCD7249FD532000F1522 /* Space */,
+				7A66CA5424A19D090039EB37 /* LunaW */,
+				7A66CA4F24A19D090039EB37 /* Frameworks */,
 				7A30FCD6249FD532000F1522 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,7 +109,8 @@
 		7A30FCD6249FD532000F1522 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				7A30FCD5249FD532000F1522 /* Space.app */,
+				7A30FCD5249FD532000F1522 /* Luna.app */,
+				7A66CA4E24A19D090039EB37 /* LunaWExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -88,29 +144,79 @@
 				7A30FCEE249FD79E000F1522 /* ARView.swift */,
 				7A30FCF0249FD7B1000F1522 /* Information.swift */,
 				7A30FCEC249FD779000F1522 /* Settings.swift */,
+				7A30FCF524A03191000F1522 /* The Solar System */,
 			);
 			path = View;
+			sourceTree = "<group>";
+		};
+		7A30FCF524A03191000F1522 /* The Solar System */ = {
+			isa = PBXGroup;
+			children = (
+				7A30FCF324A0318A000F1522 /* The_Sun.swift */,
+				7A30FCF724A031CE000F1522 /* Planets.swift */,
+				7A30FCF924A031F9000F1522 /* Dwarf Planets.swift */,
+			);
+			path = "The Solar System";
+			sourceTree = "<group>";
+		};
+		7A66CA4F24A19D090039EB37 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7A66CA5024A19D090039EB37 /* WidgetKit.framework */,
+				7A66CA5224A19D090039EB37 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7A66CA5424A19D090039EB37 /* LunaW */ = {
+			isa = PBXGroup;
+			children = (
+				7A66CA5524A19D090039EB37 /* LunaW.swift */,
+				7A66CA5724A19D090039EB37 /* LunaW.intentdefinition */,
+				7A66CA5824A19D0D0039EB37 /* Assets.xcassets */,
+				7A66CA5A24A19D0D0039EB37 /* Info.plist */,
+			);
+			path = LunaW;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		7A30FCD4249FD532000F1522 /* Space */ = {
+		7A30FCD4249FD532000F1522 /* Luna */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 7A30FCE9249FD53A000F1522 /* Build configuration list for PBXNativeTarget "Space" */;
+			buildConfigurationList = 7A30FCE9249FD53A000F1522 /* Build configuration list for PBXNativeTarget "Luna" */;
 			buildPhases = (
 				7A30FCD1249FD532000F1522 /* Sources */,
 				7A30FCD2249FD532000F1522 /* Frameworks */,
 				7A30FCD3249FD532000F1522 /* Resources */,
+				7A66CA6024A19D0D0039EB37 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7A66CA5E24A19D0D0039EB37 /* PBXTargetDependency */,
+			);
+			name = Luna;
+			productName = Space;
+			productReference = 7A30FCD5249FD532000F1522 /* Luna.app */;
+			productType = "com.apple.product-type.application";
+		};
+		7A66CA4D24A19D090039EB37 /* LunaWExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A66CA6324A19D0D0039EB37 /* Build configuration list for PBXNativeTarget "LunaWExtension" */;
+			buildPhases = (
+				7A66CA4A24A19D090039EB37 /* Sources */,
+				7A66CA4B24A19D090039EB37 /* Frameworks */,
+				7A66CA4C24A19D090039EB37 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = Space;
-			productName = Space;
-			productReference = 7A30FCD5249FD532000F1522 /* Space.app */;
-			productType = "com.apple.product-type.application";
+			name = LunaWExtension;
+			productName = LunaWExtension;
+			productReference = 7A66CA4E24A19D090039EB37 /* LunaWExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -118,16 +224,19 @@
 		7A30FCCD249FD532000F1522 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 1150;
-				LastUpgradeCheck = 1150;
+				LastSwiftUpdateCheck = 1200;
+				LastUpgradeCheck = 1200;
 				ORGANIZATIONNAME = "Devray Boutique";
 				TargetAttributes = {
 					7A30FCD4249FD532000F1522 = {
 						CreatedOnToolsVersion = 11.5;
 					};
+					7A66CA4D24A19D090039EB37 = {
+						CreatedOnToolsVersion = 12.0;
+					};
 				};
 			};
-			buildConfigurationList = 7A30FCD0249FD532000F1522 /* Build configuration list for PBXProject "Space" */;
+			buildConfigurationList = 7A30FCD0249FD532000F1522 /* Build configuration list for PBXProject "Luna" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -140,7 +249,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				7A30FCD4249FD532000F1522 /* Space */,
+				7A30FCD4249FD532000F1522 /* Luna */,
+				7A66CA4D24A19D090039EB37 /* LunaWExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -156,6 +266,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7A66CA4C24A19D090039EB37 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A66CA5924A19D0D0039EB37 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -165,14 +283,35 @@
 			files = (
 				7A30FCF1249FD7B1000F1522 /* Information.swift in Sources */,
 				7A30FCEF249FD79E000F1522 /* ARView.swift in Sources */,
+				7A30FCF424A0318A000F1522 /* The_Sun.swift in Sources */,
 				7A30FCD9249FD532000F1522 /* AppDelegate.swift in Sources */,
 				7A30FCDB249FD532000F1522 /* SceneDelegate.swift in Sources */,
+				7A30FCFA24A031F9000F1522 /* Dwarf Planets.swift in Sources */,
 				7A30FCED249FD779000F1522 /* Settings.swift in Sources */,
 				7A30FCDD249FD532000F1522 /* ContentView.swift in Sources */,
+				7A66CA5C24A19D0D0039EB37 /* LunaW.intentdefinition in Sources */,
+				7A30FCF824A031CE000F1522 /* Planets.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A66CA4A24A19D090039EB37 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A66CA5B24A19D0D0039EB37 /* LunaW.intentdefinition in Sources */,
+				7A66CA5624A19D090039EB37 /* LunaW.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7A66CA5E24A19D0D0039EB37 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7A66CA4D24A19D090039EB37 /* LunaWExtension */;
+			targetProxy = 7A66CA5D24A19D0D0039EB37 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		7A30FCE3249FD53A000F1522 /* LaunchScreen.storyboard */ = {
@@ -212,6 +351,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -272,6 +412,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -303,20 +444,21 @@
 		7A30FCEA249FD53A000F1522 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 13.3;
 				DEVELOPMENT_ASSET_PATHS = "\"Space/Preview Content\"";
 				DEVELOPMENT_TEAM = VBY3L3W5ZA;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Space/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "Devray-Boutique.Space1";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Luna;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -325,20 +467,69 @@
 		7A30FCEB249FD53A000F1522 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 13.3;
 				DEVELOPMENT_ASSET_PATHS = "\"Space/Preview Content\"";
 				DEVELOPMENT_TEAM = VBY3L3W5ZA;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Space/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "Devray-Boutique.Space1";
+				PRODUCT_NAME = Luna;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		7A66CA6124A19D0D0039EB37 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 13.3;
+				DEVELOPMENT_TEAM = VBY3L3W5ZA;
+				INFOPLIST_FILE = LunaW/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "Devray-Boutique.Space1.LunaW";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7A66CA6224A19D0D0039EB37 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 13.3;
+				DEVELOPMENT_TEAM = VBY3L3W5ZA;
+				INFOPLIST_FILE = LunaW/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "Devray-Boutique.Space1.LunaW";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -347,7 +538,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		7A30FCD0249FD532000F1522 /* Build configuration list for PBXProject "Space" */ = {
+		7A30FCD0249FD532000F1522 /* Build configuration list for PBXProject "Luna" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7A30FCE7249FD53A000F1522 /* Debug */,
@@ -356,11 +547,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7A30FCE9249FD53A000F1522 /* Build configuration list for PBXNativeTarget "Space" */ = {
+		7A30FCE9249FD53A000F1522 /* Build configuration list for PBXNativeTarget "Luna" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7A30FCEA249FD53A000F1522 /* Debug */,
 				7A30FCEB249FD53A000F1522 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7A66CA6324A19D0D0039EB37 /* Build configuration list for PBXNativeTarget "LunaWExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A66CA6124A19D0D0039EB37 /* Debug */,
+				7A66CA6224A19D0D0039EB37 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
