@@ -13,6 +13,18 @@
 		7A6B026524A30F9800535EA4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B025024A30F9400535EA4 /* ContentView.swift */; };
 		7A6B026624A30F9800535EA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B025124A30F9800535EA4 /* Assets.xcassets */; };
 		7A6B026724A30F9800535EA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B025124A30F9800535EA4 /* Assets.xcassets */; };
+		7A6B027124A310DE00535EA4 /* ARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027024A310DE00535EA4 /* ARView.swift */; };
+		7A6B027224A310DE00535EA4 /* ARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027024A310DE00535EA4 /* ARView.swift */; };
+		7A6B027424A310F800535EA4 /* Information.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027324A310F800535EA4 /* Information.swift */; };
+		7A6B027524A310F800535EA4 /* Information.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027324A310F800535EA4 /* Information.swift */; };
+		7A6B027724A3110300535EA4 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027624A3110300535EA4 /* Settings.swift */; };
+		7A6B027824A3110300535EA4 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027624A3110300535EA4 /* Settings.swift */; };
+		7A6B027A24A3115800535EA4 /* The_Sun.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027924A3115800535EA4 /* The_Sun.swift */; };
+		7A6B027B24A3115800535EA4 /* The_Sun.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027924A3115800535EA4 /* The_Sun.swift */; };
+		7A6B027D24A3116A00535EA4 /* Planets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027C24A3116A00535EA4 /* Planets.swift */; };
+		7A6B027E24A3116A00535EA4 /* Planets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027C24A3116A00535EA4 /* Planets.swift */; };
+		7A6B028024A3118000535EA4 /* Dwarf Planets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027F24A3117F00535EA4 /* Dwarf Planets.swift */; };
+		7A6B028124A3118000535EA4 /* Dwarf Planets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B027F24A3117F00535EA4 /* Dwarf Planets.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +36,12 @@
 		7A6B025E24A30F9800535EA4 /* LunaUni.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LunaUni.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A6B026024A30F9800535EA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7A6B026124A30F9800535EA4 /* macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = macOS.entitlements; sourceTree = "<group>"; };
+		7A6B027024A310DE00535EA4 /* ARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARView.swift; sourceTree = "<group>"; };
+		7A6B027324A310F800535EA4 /* Information.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Information.swift; sourceTree = "<group>"; };
+		7A6B027624A3110300535EA4 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		7A6B027924A3115800535EA4 /* The_Sun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = The_Sun.swift; sourceTree = "<group>"; };
+		7A6B027C24A3116A00535EA4 /* Planets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Planets.swift; sourceTree = "<group>"; };
+		7A6B027F24A3117F00535EA4 /* Dwarf Planets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Dwarf Planets.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,6 +78,12 @@
 				7A6B024F24A30F9400535EA4 /* LunaUniApp.swift */,
 				7A6B025024A30F9400535EA4 /* ContentView.swift */,
 				7A6B025124A30F9800535EA4 /* Assets.xcassets */,
+				7A6B027024A310DE00535EA4 /* ARView.swift */,
+				7A6B027324A310F800535EA4 /* Information.swift */,
+				7A6B027624A3110300535EA4 /* Settings.swift */,
+				7A6B027924A3115800535EA4 /* The_Sun.swift */,
+				7A6B027C24A3116A00535EA4 /* Planets.swift */,
+				7A6B027F24A3117F00535EA4 /* Dwarf Planets.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -188,7 +212,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A6B026424A30F9800535EA4 /* ContentView.swift in Sources */,
+				7A6B028024A3118000535EA4 /* Dwarf Planets.swift in Sources */,
+				7A6B027D24A3116A00535EA4 /* Planets.swift in Sources */,
 				7A6B026224A30F9800535EA4 /* LunaUniApp.swift in Sources */,
+				7A6B027A24A3115800535EA4 /* The_Sun.swift in Sources */,
+				7A6B027424A310F800535EA4 /* Information.swift in Sources */,
+				7A6B027124A310DE00535EA4 /* ARView.swift in Sources */,
+				7A6B027724A3110300535EA4 /* Settings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -197,7 +227,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A6B026524A30F9800535EA4 /* ContentView.swift in Sources */,
+				7A6B028124A3118000535EA4 /* Dwarf Planets.swift in Sources */,
+				7A6B027E24A3116A00535EA4 /* Planets.swift in Sources */,
 				7A6B026324A30F9800535EA4 /* LunaUniApp.swift in Sources */,
+				7A6B027B24A3115800535EA4 /* The_Sun.swift in Sources */,
+				7A6B027524A310F800535EA4 /* Information.swift in Sources */,
+				7A6B027224A310DE00535EA4 /* ARView.swift in Sources */,
+				7A6B027824A3110300535EA4 /* Settings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -321,7 +357,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = VBY3L3W5ZA;
+				DEVELOPMENT_TEAM = VHCWBN8GY3;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
@@ -329,7 +365,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "Devray-Boutique.LunaUni";
+				PRODUCT_BUNDLE_IDENTIFIER = novapro.Space;
 				PRODUCT_NAME = LunaUni;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
@@ -343,7 +379,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = VBY3L3W5ZA;
+				DEVELOPMENT_TEAM = VHCWBN8GY3;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
@@ -351,7 +387,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "Devray-Boutique.LunaUni";
+				PRODUCT_BUNDLE_IDENTIFIER = novapro.Space;
 				PRODUCT_NAME = LunaUni;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
