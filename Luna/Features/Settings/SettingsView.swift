@@ -1,9 +1,16 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @EnvironmentObject private var appState: LunaAppState
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 12) {
+                PageHeader(
+                    title: "Settings",
+                    subtitle: "Tune Luna's experience, appearance, and app details."
+                )
+
                 generalSection
                 experienceSection
                 profileSection
@@ -11,7 +18,6 @@ struct SettingsView: View {
             .screenContentPadding()
         }
         .appBackground()
-        .navigationTitle("Settings")
     }
 
     private var experienceSection: some View {
@@ -72,9 +78,9 @@ struct SettingsView: View {
                 CardRow {
                     RowLabel(
                         title: "Reset Onboarding",
-                        subtitle: "Available after local profile storage is wired",
+                        subtitle: "Return to the first-run setup when onboarding is enabled",
                         systemImage: "arrow.counterclockwise",
-                        value: "Phase 4"
+                        value: "Pending"
                     )
                 }
             }
@@ -86,6 +92,28 @@ struct SettingsView: View {
             SectionHeader(title: "General")
 
             CardSection {
+                CardRow {
+                    HStack(spacing: 12) {
+                        RowLabel(
+                            title: "Appearance",
+                            subtitle: "Use system, light, or dark mode",
+                            systemImage: "circle.lefthalf.filled"
+                        )
+
+                        Spacer(minLength: 12)
+
+                        Picker("Appearance", selection: $appState.appearancePreference) {
+                            ForEach(AppAppearancePreference.allCases) { preference in
+                                Text(preference.title).tag(preference)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                    }
+                }
+
+                CardDivider(leadingInset: 56)
+
                 NavigationLink {
                     AboutView()
                         .appBackground()
@@ -126,10 +154,7 @@ struct AboutView: View {
     private var appIdentityCard: some View {
         Card {
             HStack(spacing: 12) {
-                Image(systemName: "moon.stars.fill")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 32, height: 32)
+                IconBadge(systemImage: "moon.stars.fill")
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Luna")
@@ -165,17 +190,21 @@ struct AboutView: View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Website")
 
-            Card {
+            CardSection {
                 Link(destination: URL(string: "https://novapro.net")!) {
-                    HStack {
-                        Label("novapro.net", systemImage: "globe")
-                            .font(.subheadline.weight(.semibold))
+                    CardRow {
+                        HStack(spacing: 12) {
+                            IconBadge(systemImage: "globe")
 
-                        Spacer(minLength: 8)
+                            Text("novapro.net")
+                                .font(.headline)
 
-                        Image(systemName: "arrow.up.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            Spacer(minLength: 8)
+
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .buttonStyle(.plain)

@@ -1,5 +1,17 @@
 import SwiftUI
 
+enum Palette {
+#if os(macOS)
+    static let background = Color(nsColor: .windowBackgroundColor)
+#else
+    static let background = Color(.systemBackground)
+#endif
+    static let spaceBlack = Color(red: 0.02, green: 0.02, blue: 0.04)
+    static let softWhite = Color.white.opacity(0.86)
+    static let moonGrey = Color(red: 0.76, green: 0.76, blue: 0.80)
+    static let orbitBlue = Color(red: 0.36, green: 0.52, blue: 0.96)
+}
+
 struct AppBackgroundView: View {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -19,28 +31,31 @@ struct AppBackgroundView: View {
     }
 
     private var backgroundBase: Color {
-#if os(macOS)
-        colorScheme == .dark ? Color.black : Color(nsColor: .windowBackgroundColor)
-#else
-        colorScheme == .dark ? Color.black : Color(.systemBackground)
-#endif
+        colorScheme == .dark ? Palette.spaceBlack : Palette.background
     }
 
     private var gradientStops: [Color] {
         if colorScheme == .dark {
             return [
-                Color.white.opacity(0.72),
-                Color.gray.opacity(0.30),
+                Palette.softWhite.opacity(0.62),
+                Palette.moonGrey.opacity(0.24),
                 Color.clear
             ]
         }
 
         return [
-            Color.black.opacity(0.82),
-            Color.gray.opacity(0.24),
+            Palette.moonGrey.opacity(0.46),
+            Palette.moonGrey.opacity(0.16),
             Color.clear
         ]
     }
+}
+
+enum Spacing {
+    static let screenHorizontal: CGFloat = 16
+    static let screenVertical: CGFloat = 12
+    static let section: CGFloat = 12
+    static let card: CGFloat = 14
 }
 
 enum Radii {
@@ -95,6 +110,61 @@ struct Card<Content: View>: View {
     }
 }
 
+struct ActionButtonStyle: ButtonStyle {
+    @Environment(\.colorScheme) private var colorScheme
+
+    enum Emphasis {
+        case primary
+        case secondary
+    }
+
+    let emphasis: Emphasis
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 42)
+            .frame(maxWidth: .infinity)
+            .background(background(configuration: configuration), in: Capsule(style: .continuous))
+            .overlay {
+                Capsule(style: .continuous)
+                    .stroke(border, lineWidth: 1)
+            }
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(.easeOut(duration: 0.16), value: configuration.isPressed)
+    }
+
+    private var foreground: Color {
+        switch emphasis {
+        case .primary:
+            return colorScheme == .dark ? Palette.spaceBlack : Color.white
+        case .secondary:
+            return .primary
+        }
+    }
+
+    private func background(configuration: Configuration) -> some ShapeStyle {
+        let opacity = configuration.isPressed ? 0.78 : 1
+
+        switch emphasis {
+        case .primary:
+            return AnyShapeStyle(Color.primary.opacity(opacity))
+        case .secondary:
+            if colorScheme == .dark {
+                return AnyShapeStyle(Color.white.opacity(0.08))
+            }
+
+            return AnyShapeStyle(.regularMaterial)
+        }
+    }
+
+    private var border: Color {
+        emphasis == .primary ? Color.clear : Color.primary.opacity(0.12)
+    }
+}
+
 struct CardSection<Content: View>: View {
     let content: Content
 
@@ -121,7 +191,7 @@ struct CardRow<Content: View>: View {
 
     var body: some View {
         content
-            .padding(14)
+            .padding(Spacing.card)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -137,18 +207,19 @@ struct CardDivider: View {
 
 struct CardBackground: View {
     @Environment(\.colorScheme) private var colorScheme
+    var cornerRadius: CGFloat = Radii.card
 
     var body: some View {
-        RoundedRectangle(cornerRadius: Radii.card, style: .continuous)
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(cardFill)
             .overlay {
                 if colorScheme == .light {
-                    RoundedRectangle(cornerRadius: Radii.card, style: .continuous)
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .fill(Color.white.opacity(0.30))
                 }
             }
             .overlay {
-                RoundedRectangle(cornerRadius: Radii.card, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(cardBorder, lineWidth: 1)
             }
             .shadow(
@@ -187,6 +258,25 @@ struct SectionHeader: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 4)
         .accessibilityAddTraits(.isHeader)
+    }
+}
+
+struct PageHeader: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.largeTitle.weight(.bold))
+                .foregroundStyle(.primary)
+
+            Text(subtitle)
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -234,6 +324,77 @@ struct RowLabel: View {
     }
 }
 
+struct IconBadge: View {
+    let systemImage: String
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .frame(width: 34, height: 34)
+            .background(
+                RoundedRectangle(cornerRadius: Radii.tile, style: .continuous)
+                    .fill(Color.primary.opacity(0.06))
+            )
+    }
+}
+
+struct MetricTile: View {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            IconBadge(systemImage: systemImage)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(CardBackground(cornerRadius: Radii.tile))
+    }
+}
+
+struct EmptyStateView: View {
+    let title: String
+    let systemImage: String
+    let message: String
+
+    var body: some View {
+        Card {
+            VStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Text(title)
+                    .font(.headline)
+
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 extension View {
     func appBackground() -> some View {
         background(AppBackgroundView())
@@ -241,8 +402,16 @@ extension View {
 
     func screenContentPadding() -> some View {
         frame(maxWidth: 600, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, Spacing.screenHorizontal)
+            .padding(.vertical, Spacing.screenVertical)
             .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    func primaryActionButton() -> some View {
+        buttonStyle(ActionButtonStyle(emphasis: .primary))
+    }
+
+    func secondaryActionButton() -> some View {
+        buttonStyle(ActionButtonStyle(emphasis: .secondary))
     }
 }
