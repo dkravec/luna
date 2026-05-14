@@ -49,6 +49,10 @@
 		7A6B032124A5000000000000 /* RemoteCelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */; };
 		7A6B032224A5000000000000 /* celestial_bodies.json in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B030924A5000000000000 /* celestial_bodies.json */; };
 		7A6B032324A5000000000000 /* celestial_bodies.json in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B030924A5000000000000 /* celestial_bodies.json */; };
+		7A6B033224A7000000000000 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033024A7000000000000 /* OnboardingViewModel.swift */; };
+		7A6B033324A7000000000000 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033024A7000000000000 /* OnboardingViewModel.swift */; };
+		7A6B033424A7000000000000 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033124A7000000000000 /* OnboardingFlowView.swift */; };
+		7A6B033524A7000000000000 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033124A7000000000000 /* OnboardingFlowView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -79,6 +83,8 @@
 		7A6B030724A5000000000000 /* LocalCelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCelestialBodyRepository.swift; sourceTree = "<group>"; };
 		7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCelestialBodyRepository.swift; sourceTree = "<group>"; };
 		7A6B030924A5000000000000 /* celestial_bodies.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = celestial_bodies.json; sourceTree = "<group>"; };
+		7A6B033024A7000000000000 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
+		7A6B033124A7000000000000 /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -216,14 +222,24 @@
 		7A6B101124A4000000000000 /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
+				7A6B103224A7000000000000 /* ViewModels */,
 				7A6B102424A6000000000000 /* Views */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
 		};
+		7A6B103224A7000000000000 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B033024A7000000000000 /* OnboardingViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
 		7A6B102424A6000000000000 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				7A6B033124A7000000000000 /* OnboardingFlowView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -538,6 +554,8 @@
 				7A6B02BA24A317C600535EA4 /* ExploreView.swift in Sources */,
 				7A6B02BE24A317C600535EA4 /* ExperienceView.swift in Sources */,
 				7A6B02C024A317C600535EA4 /* SettingsView.swift in Sources */,
+				7A6B033224A7000000000000 /* OnboardingViewModel.swift in Sources */,
+				7A6B033424A7000000000000 /* OnboardingFlowView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -564,6 +582,8 @@
 				7A6B02BB24A317C600535EA4 /* ExploreView.swift in Sources */,
 				7A6B02BF24A317C600535EA4 /* ExperienceView.swift in Sources */,
 				7A6B02C124A317C600535EA4 /* SettingsView.swift in Sources */,
+				7A6B033324A7000000000000 /* OnboardingViewModel.swift in Sources */,
+				7A6B033524A7000000000000 /* OnboardingFlowView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

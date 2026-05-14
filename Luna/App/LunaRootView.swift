@@ -1,7 +1,13 @@
 import SwiftUI
 
 struct LunaRootView: View {
+    @EnvironmentObject private var appState: LunaAppState
+
     var body: some View {
-        LunaAdaptiveShell()
+        if appState.userProfile.hasCompletedOnboarding {
+            LunaAdaptiveShell()
+        } else {
+            OnboardingFlowView()
+        }
     }
 }

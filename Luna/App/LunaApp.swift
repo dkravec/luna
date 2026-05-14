@@ -46,17 +46,27 @@ final class LunaAppState: ObservableObject {
         appearancePreference = preference
         userProfile.appearancePreference = preference
 
-        do {
-            try userProfileRepository.save(userProfile)
-            lastRepositoryError = nil
-        } catch {
-            lastRepositoryError = error.localizedDescription
-        }
+        saveUserProfile()
+    }
+
+    func completeOnboarding(
+        displayName: String?,
+        prefersARMode: Bool,
+        preferredScaleMode: ScaleMode
+    ) {
+        userProfile.displayName = displayName
+        userProfile.prefersARMode = prefersARMode
+        userProfile.preferredScaleMode = preferredScaleMode
+        userProfile.hasCompletedOnboarding = true
+
+        saveUserProfile()
+        selectedTab = prefersARMode ? .arExperience : .solarSystem
     }
 
     func resetOnboarding() {
         do {
             userProfile = try userProfileRepository.resetOnboarding()
+            selectedTab = .home
             lastRepositoryError = nil
         } catch {
             lastRepositoryError = error.localizedDescription
@@ -69,6 +79,15 @@ final class LunaAppState: ObservableObject {
             lastRepositoryError = nil
         } catch {
             celestialBodies = []
+            lastRepositoryError = error.localizedDescription
+        }
+    }
+
+    private func saveUserProfile() {
+        do {
+            try userProfileRepository.save(userProfile)
+            lastRepositoryError = nil
+        } catch {
             lastRepositoryError = error.localizedDescription
         }
     }
