@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var appState: LunaAppState
+    @State private var isShowingResetConfirmation = false
 
     var body: some View {
         ScrollView {
@@ -25,35 +26,84 @@ struct SettingsView: View {
             SectionHeader(title: "Experience")
 
             CardSection {
-                CardRow {
-                    RowLabel(
-                        title: "Default View",
-                        subtitle: "Open Luna with AR as the preferred experience",
-                        systemImage: "arkit",
-                        value: appState.userProfile.prefersARMode ? "AR first" : "Visual first"
+                NavigationLink {
+                    SettingsViewingModeView(
+                        prefersARMode: Binding(
+                            get: { appState.userProfile.prefersARMode },
+                            set: { appState.setPrefersARMode($0) }
+                        )
                     )
+                    .appBackground()
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "View Mode",
+                            subtitle: currentViewModeSubtitle,
+                            systemImage: "arkit",
+                            value: currentViewModeTitle,
+                            showsChevron: true
+                        )
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
+
+                CardDivider(leadingInset: 56)
+
+                NavigationLink {
+                    SettingsScaleModeView(
+                        preferredScaleMode: Binding(
+                            get: { appState.userProfile.preferredScaleMode },
+                            set: { appState.setPreferredScaleMode($0) }
+                        )
+                    )
+                    .appBackground()
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "Scaling",
+                            subtitle: currentScaleModeSubtitle,
+                            systemImage: "scale.3d",
+                            value: appState.userProfile.preferredScaleMode.title,
+                            showsChevron: true
+                        )
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
+
+                CardDivider(leadingInset: 56)
+
+                CardRow {
+                    Toggle(
+                        isOn: Binding(
+                            get: { appState.userProfile.showLabels },
+                            set: { setShowLabels($0) }
+                        )
+                    ) {
+                        RowLabel(
+                            title: "Labels",
+                            subtitle: "Show names and values in visual scenes",
+                            systemImage: "tag"
+                        )
+                    }
                 }
 
                 CardDivider(leadingInset: 56)
 
                 CardRow {
-                    RowLabel(
-                        title: "Scale Mode",
-                        subtitle: "Keep early browsing readable until scale controls ship",
-                        systemImage: "scale.3d",
-                        value: appState.userProfile.preferredScaleMode.title
-                    )
-                }
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    RowLabel(
-                        title: "Labels",
-                        subtitle: "Show names and values in visual scenes",
-                        systemImage: "tag",
-                        value: appState.userProfile.showLabels ? "On" : "Off"
-                    )
+                    Toggle(
+                        isOn: Binding(
+                            get: { appState.userProfile.showOrbits },
+                            set: { setShowOrbits($0) }
+                        )
+                    ) {
+                        RowLabel(
+                            title: "Orbits",
+                            subtitle: "Show orbit guides in visual scenes",
+                            systemImage: "circle.dashed"
+                        )
+                    }
                 }
             }
         }
@@ -76,19 +126,37 @@ struct SettingsView: View {
                 CardDivider(leadingInset: 56)
 
                 Button {
-                    appState.resetOnboarding()
+                    Haptics.selection()
+                    isShowingResetConfirmation = true
                 } label: {
                     CardRow {
                         RowLabel(
-                            title: "Reset Onboarding",
-                            subtitle: "Return to the first-run setup when onboarding is enabled",
+                            title: "Reset User",
+                            subtitle: "Clear profile choices and show onboarding again",
                             systemImage: "arrow.counterclockwise",
-                            value: appState.userProfile.hasCompletedOnboarding ? "Ready" : "Not completed"
+                            showsChevron: true
                         )
                     }
                 }
                 .buttonStyle(.plain)
+                .foregroundStyle(.red)
             }
+        }
+        .confirmationDialog(
+            "Reset Luna?",
+            isPresented: $isShowingResetConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Reset User", role: .destructive) {
+                Haptics.selection()
+                appState.resetUserProfile()
+            }
+
+            Button("Cancel", role: .cancel) {
+                Haptics.selection()
+            }
+        } message: {
+            Text("This clears your display name and Luna preferences, then shows onboarding again.")
         }
     }
 
@@ -111,7 +179,7 @@ struct SettingsView: View {
                             "Appearance",
                             selection: Binding(
                                 get: { appState.appearancePreference },
-                                set: { appState.setAppearancePreference($0) }
+                                set: { setAppearancePreference($0) }
                             )
                         ) {
                             ForEach(AppAppearancePreference.allCases) { preference in
@@ -121,6 +189,53 @@ struct SettingsView: View {
                         .pickerStyle(.menu)
                         .labelsHidden()
                     }
+                }
+
+                CardDivider(leadingInset: 56)
+
+                CardRow {
+                    Toggle(
+                        isOn: Binding(
+                            get: { appState.userProfile.hapticsEnabled },
+                            set: { setHapticsEnabled($0) }
+                        )
+                    ) {
+                        RowLabel(
+                            title: "Haptics",
+                            subtitle: "Use press feedback across Luna",
+                            systemImage: "hand.tap"
+                        )
+                    }
+                }
+
+                CardDivider(leadingInset: 56)
+
+                CardRow {
+                    HStack(spacing: 12) {
+                        RowLabel(
+                            title: "Haptic Strength",
+                            subtitle: "Choose how firm button presses feel",
+                            systemImage: "waveform.path.ecg"
+                        )
+
+                        Spacer(minLength: 12)
+
+                        Picker(
+                            "Haptic Strength",
+                            selection: Binding(
+                                get: { appState.userProfile.hapticIntensity },
+                                set: { setHapticIntensity($0) }
+                            )
+                        ) {
+                            ForEach(HapticIntensity.allCases) { intensity in
+                                Text(intensity.title).tag(intensity)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                        .disabled(!appState.userProfile.hapticsEnabled)
+                    }
+                    .opacity(appState.userProfile.hapticsEnabled ? 1 : 0.55)
                 }
 
                 CardDivider(leadingInset: 56)
@@ -139,8 +254,100 @@ struct SettingsView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .hapticTap()
             }
         }
+    }
+
+    private func setAppearancePreference(_ preference: AppAppearancePreference) {
+        Haptics.selection()
+        appState.setAppearancePreference(preference)
+    }
+
+    private func setShowLabels(_ showLabels: Bool) {
+        Haptics.selection()
+        appState.setShowLabels(showLabels)
+    }
+
+    private func setShowOrbits(_ showOrbits: Bool) {
+        Haptics.selection()
+        appState.setShowOrbits(showOrbits)
+    }
+
+    private func setHapticsEnabled(_ isEnabled: Bool) {
+        if isEnabled {
+            appState.setHapticsEnabled(isEnabled)
+            Haptics.selection()
+        } else {
+            Haptics.selection()
+            appState.setHapticsEnabled(isEnabled)
+        }
+    }
+
+    private func setHapticIntensity(_ intensity: HapticIntensity) {
+        appState.setHapticIntensity(intensity)
+        Haptics.selection()
+    }
+
+    private var currentViewModeTitle: String {
+        appState.userProfile.prefersARMode ? "AR First" : "Visual First"
+    }
+
+    private var currentViewModeSubtitle: String {
+        appState.userProfile.prefersARMode
+            ? "Starts space views with AR when available"
+            : "Starts with the non-AR visual mode"
+    }
+
+    private var currentScaleModeSubtitle: String {
+        switch appState.userProfile.preferredScaleMode {
+        case .educational:
+            return "Readable sizes and distances together"
+        case .compressedDistance:
+            return "Brings bodies closer for comparison"
+        case .trueDistance:
+            return "Accurate intent, impractical at room scale"
+        case .custom:
+            return "Uses your custom scale controls"
+        }
+    }
+}
+
+private struct SettingsViewingModeView: View {
+    @Binding var prefersARMode: Bool
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                PageHeader(
+                    title: "Choose View Mode",
+                    subtitle: "Pick the experience Luna should prefer when opening space views."
+                )
+
+                ViewingModeOptionsView(prefersARMode: $prefersARMode)
+            }
+            .screenContentPadding()
+        }
+        .navigationTitle("View Mode")
+    }
+}
+
+private struct SettingsScaleModeView: View {
+    @Binding var preferredScaleMode: ScaleMode
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                PageHeader(
+                    title: "Choose Scaling",
+                    subtitle: "Pick how Luna should balance accurate scale with readable space views."
+                )
+
+                ScaleModeOptionsView(preferredScaleMode: $preferredScaleMode)
+            }
+            .screenContentPadding()
+        }
+        .navigationTitle("Scaling")
     }
 }
 
@@ -219,6 +426,7 @@ struct AboutView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .hapticTap()
             }
         }
     }

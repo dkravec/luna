@@ -33,6 +33,14 @@ final class CoreDataUserProfileRepository: UserProfileRepository {
         return profile
     }
 
+    func resetProfile() throws -> UserProfile {
+        let profile = UserProfile.defaultProfile
+        let object = try fetchProfileObject() ?? UserProfileRecord(context: context)
+        object.apply(profile)
+        try saveContextIfNeeded()
+        return profile
+    }
+
     private func fetchProfileObject() throws -> UserProfileRecord? {
         let request = UserProfileRecord.fetchRequest()
         request.fetchLimit = 1
@@ -49,6 +57,7 @@ extension UserProfile {
     init(managedObject: UserProfileRecord) {
         let scaleMode = ScaleMode(rawValue: managedObject.preferredScaleModeRaw ?? "") ?? .educational
         let appearance = AppAppearancePreference(rawValue: managedObject.appearancePreferenceRaw ?? "") ?? .system
+        let hapticIntensity = HapticIntensity(rawValue: managedObject.hapticIntensityRaw ?? "") ?? .heavy
 
         self.init(
             id: managedObject.id ?? UUID(),
@@ -58,7 +67,9 @@ extension UserProfile {
             prefersARMode: managedObject.prefersARMode,
             appearancePreference: appearance,
             showLabels: managedObject.showLabels,
-            showOrbits: managedObject.showOrbits
+            showOrbits: managedObject.showOrbits,
+            hapticsEnabled: managedObject.hapticsEnabled,
+            hapticIntensity: hapticIntensity
         )
     }
 }
@@ -73,6 +84,8 @@ final class UserProfileRecord: NSManagedObject {
     @NSManaged var appearancePreferenceRaw: String?
     @NSManaged var showLabels: Bool
     @NSManaged var showOrbits: Bool
+    @NSManaged var hapticsEnabled: Bool
+    @NSManaged var hapticIntensityRaw: String?
 }
 
 extension UserProfileRecord {
@@ -90,5 +103,7 @@ extension UserProfileRecord {
         appearancePreferenceRaw = profile.appearancePreference.rawValue
         showLabels = profile.showLabels
         showOrbits = profile.showOrbits
+        hapticsEnabled = profile.hapticsEnabled
+        hapticIntensityRaw = profile.hapticIntensity.rawValue
     }
 }

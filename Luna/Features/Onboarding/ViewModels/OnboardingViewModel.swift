@@ -3,8 +3,8 @@ import Foundation
 final class OnboardingViewModel: ObservableObject {
     enum Step: Int, CaseIterable {
         case welcome
-        case viewingMode
         case profile
+        case viewingMode
         case scaleMode
 
         var isFirst: Bool {

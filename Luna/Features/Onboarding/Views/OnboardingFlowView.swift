@@ -30,6 +30,7 @@ struct OnboardingFlowView: View {
 
             if !viewModel.step.isFirst {
                 Button("Back") {
+                    Haptics.selection()
                     viewModel.goBack()
                 }
                 .font(.subheadline.weight(.semibold))
@@ -43,10 +44,10 @@ struct OnboardingFlowView: View {
         switch viewModel.step {
         case .welcome:
             WelcomeStepView()
-        case .viewingMode:
-            ViewingModeStepView(prefersARMode: $viewModel.prefersARMode)
         case .profile:
             ProfileStepView(displayName: $viewModel.displayName)
+        case .viewingMode:
+            ViewingModeStepView(prefersARMode: $viewModel.prefersARMode)
         case .scaleMode:
             ScaleModeStepView(preferredScaleMode: $viewModel.preferredScaleMode)
         }
@@ -91,7 +92,7 @@ private struct WelcomeStepView: View {
         VStack(alignment: .leading, spacing: Spacing.section) {
             PageHeader(
                 title: "Welcome to Luna",
-                subtitle: "Set up how you want to browse planets, compare scale, and move into AR."
+                subtitle: "Explore planets, compare scale, and place worlds around you with AR."
             )
 
             Card {
@@ -107,6 +108,34 @@ private struct WelcomeStepView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "What Luna Does")
+
+                CardSection {
+                    OnboardingFeatureRow(
+                        title: "Browse Nearby Worlds",
+                        subtitle: "Start with the Sun, planets, and the Moon from local data.",
+                        systemImage: "circle.grid.cross"
+                    )
+
+                    CardDivider(leadingInset: 56)
+
+                    OnboardingFeatureRow(
+                        title: "Compare Scale",
+                        subtitle: "Switch between educational, compressed, and true-distance views.",
+                        systemImage: "scale.3d"
+                    )
+
+                    CardDivider(leadingInset: 56)
+
+                    OnboardingFeatureRow(
+                        title: "Use AR When It Fits",
+                        subtitle: "Place planets in your space, with visual mode always available.",
+                        systemImage: "arkit"
+                    )
+                }
+            }
         }
     }
 }
@@ -117,35 +146,11 @@ private struct ViewingModeStepView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.section) {
             PageHeader(
-                title: "Choose A Starting Mode",
+                title: "Choose View Mode",
                 subtitle: "Pick the experience Luna should prefer when opening space views."
             )
 
-            VStack(alignment: .leading, spacing: 8) {
-                SectionHeader(title: "Default Viewing Mode")
-
-                CardSection {
-                    SelectionRow(
-                        title: "AR First",
-                        subtitle: "Prioritize placing scaled bodies in your space.",
-                        systemImage: "arkit",
-                        isSelected: prefersARMode
-                    ) {
-                        prefersARMode = true
-                    }
-
-                    CardDivider(leadingInset: 56)
-
-                    SelectionRow(
-                        title: "Visual First",
-                        subtitle: "Start with the non-AR visual mode on every platform.",
-                        systemImage: "cube.transparent",
-                        isSelected: !prefersARMode
-                    ) {
-                        prefersARMode = false
-                    }
-                }
-            }
+            ViewingModeOptionsView(prefersARMode: $prefersARMode)
         }
     }
 }
@@ -157,7 +162,7 @@ private struct ProfileStepView: View {
         VStack(alignment: .leading, spacing: Spacing.section) {
             PageHeader(
                 title: "Personalize Luna",
-                subtitle: "Add a display name if you want a lighter, more personal setup."
+                subtitle: "Add an optional display name for your profile."
             )
 
             VStack(alignment: .leading, spacing: 8) {
@@ -186,28 +191,68 @@ private struct ScaleModeStepView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.section) {
             PageHeader(
-                title: "Pick A Scale Default",
-                subtitle: "Real solar system distances are huge, so Luna labels compressed modes clearly."
+                title: "Choose Scaling",
+                subtitle: "Pick how Luna should balance accurate scale with readable space views."
             )
 
-            VStack(alignment: .leading, spacing: 8) {
-                SectionHeader(title: "Scale Mode")
+            ScaleModeOptionsView(preferredScaleMode: $preferredScaleMode)
+        }
+    }
+}
 
-                CardSection {
-                    ForEach(Array(scaleOptions.enumerated()), id: \.element.mode) { index, option in
-                        SelectionRow(
-                            title: option.mode.title,
-                            subtitle: option.subtitle,
-                            systemImage: option.systemImage,
-                            value: option.value,
-                            isSelected: preferredScaleMode == option.mode
-                        ) {
-                            preferredScaleMode = option.mode
-                        }
+struct ViewingModeOptionsView: View {
+    @Binding var prefersARMode: Bool
 
-                        if index < scaleOptions.count - 1 {
-                            CardDivider(leadingInset: 56)
-                        }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Default Viewing Mode")
+
+            CardSection {
+                SelectionRow(
+                    title: "AR First",
+                    subtitle: "Prioritize placing scaled bodies in your space.",
+                    systemImage: "arkit",
+                    isSelected: prefersARMode
+                ) {
+                    prefersARMode = true
+                }
+
+                CardDivider(leadingInset: 56)
+
+                SelectionRow(
+                    title: "Visual First",
+                    subtitle: "Start with the non-AR visual mode on every platform.",
+                    systemImage: "cube.transparent",
+                    isSelected: !prefersARMode
+                ) {
+                    prefersARMode = false
+                }
+            }
+        }
+    }
+}
+
+struct ScaleModeOptionsView: View {
+    @Binding var preferredScaleMode: ScaleMode
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Scale Mode")
+
+            CardSection {
+                ForEach(Array(scaleOptions.enumerated()), id: \.element.mode) { index, option in
+                    SelectionRow(
+                        title: option.mode.title,
+                        subtitle: option.subtitle,
+                        systemImage: option.systemImage,
+                        value: option.value,
+                        isSelected: preferredScaleMode == option.mode
+                    ) {
+                        preferredScaleMode = option.mode
+                    }
+
+                    if index < scaleOptions.count - 1 {
+                        CardDivider(leadingInset: 56)
                     }
                 }
             }
@@ -238,14 +283,14 @@ private struct ScaleModeStepView: View {
     }
 }
 
-private struct ScaleOption {
+struct ScaleOption {
     let mode: ScaleMode
     let subtitle: String
     let systemImage: String
     let value: String
 }
 
-private struct SelectionRow: View {
+struct SelectionRow: View {
     let title: String
     let subtitle: String
     let systemImage: String
@@ -271,6 +316,23 @@ private struct SelectionRow: View {
             }
         }
         .buttonStyle(.plain)
+        .hapticTap()
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private struct OnboardingFeatureRow: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+
+    var body: some View {
+        CardRow {
+            RowLabel(
+                title: title,
+                subtitle: subtitle,
+                systemImage: systemImage
+            )
+        }
     }
 }

@@ -9,6 +9,8 @@ struct UserProfile: Identifiable, Equatable {
     var appearancePreference: AppAppearancePreference
     var showLabels: Bool
     var showOrbits: Bool
+    var hapticsEnabled: Bool
+    var hapticIntensity: HapticIntensity
 
     static let defaultProfile = UserProfile(
         id: UUID(),
@@ -18,8 +20,29 @@ struct UserProfile: Identifiable, Equatable {
         prefersARMode: true,
         appearancePreference: .system,
         showLabels: true,
-        showOrbits: true
+        showOrbits: true,
+        hapticsEnabled: true,
+        hapticIntensity: .heavy
     )
+}
+
+enum HapticIntensity: String, CaseIterable, Codable, Identifiable {
+    case light
+    case medium
+    case heavy
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .light:
+            return "Light"
+        case .medium:
+            return "Medium"
+        case .heavy:
+            return "Heavy"
+        }
+    }
 }
 
 enum ScaleMode: String, CaseIterable, Codable, Identifiable {

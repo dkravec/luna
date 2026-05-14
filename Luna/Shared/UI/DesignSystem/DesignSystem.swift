@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 enum Palette {
 #if os(macOS)
@@ -54,6 +57,7 @@ struct AppBackgroundView: View {
 enum Spacing {
     static let screenHorizontal: CGFloat = 16
     static let screenVertical: CGFloat = 12
+    static let screenBottom: CGFloat = 32
     static let section: CGFloat = 12
     static let card: CGFloat = 14
 }
@@ -396,6 +400,14 @@ struct EmptyStateView: View {
 }
 
 extension View {
+    func hapticTap() -> some View {
+        simultaneousGesture(
+            TapGesture().onEnded {
+                Haptics.selection()
+            }
+        )
+    }
+
     func appBackground() -> some View {
         background(AppBackgroundView())
     }
@@ -403,15 +415,53 @@ extension View {
     func screenContentPadding() -> some View {
         frame(maxWidth: 600, alignment: .leading)
             .padding(.horizontal, Spacing.screenHorizontal)
-            .padding(.vertical, Spacing.screenVertical)
+            .padding(.top, Spacing.screenVertical)
+            .padding(.bottom, Spacing.screenBottom)
             .frame(maxWidth: .infinity, alignment: .center)
     }
 
     func primaryActionButton() -> some View {
         buttonStyle(ActionButtonStyle(emphasis: .primary))
+            .hapticTap()
     }
 
     func secondaryActionButton() -> some View {
         buttonStyle(ActionButtonStyle(emphasis: .secondary))
+            .hapticTap()
     }
 }
+
+enum Haptics {
+    private static var isEnabled = UserProfile.defaultProfile.hapticsEnabled
+    private static var intensity = UserProfile.defaultProfile.hapticIntensity
+
+    static func configure(isEnabled: Bool, intensity: HapticIntensity) {
+        Self.isEnabled = isEnabled
+        Self.intensity = intensity
+    }
+
+    static func selection() {
+#if os(iOS)
+        guard isEnabled else { return }
+
+        let generator = UIImpactFeedbackGenerator(style: intensity.impactStyle)
+        generator.prepare()
+        generator.impactOccurred()
+#endif
+    }
+}
+
+#if os(iOS)
+private extension HapticIntensity {
+    var impactStyle: UIImpactFeedbackGenerator.FeedbackStyle {
+        switch self {
+        case .light:
+            return .light
+        case .medium:
+            return .medium
+        case .heavy:
+            return .heavy
+        }
+    }
+}
+#endif

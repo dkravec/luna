@@ -38,6 +38,7 @@ struct HomeView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .hapticTap()
 
                 CardDivider(leadingInset: 56)
 
@@ -54,6 +55,7 @@ struct HomeView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .hapticTap()
             }
         }
     }

@@ -34,8 +34,13 @@ final class LunaAppState: ObservableObject {
             let profile = try userProfileRepository.fetchOrCreateProfile()
             userProfile = profile
             appearancePreference = profile.appearancePreference
+            Haptics.configure(isEnabled: profile.hapticsEnabled, intensity: profile.hapticIntensity)
         } catch {
             userProfile = .defaultProfile
+            Haptics.configure(
+                isEnabled: UserProfile.defaultProfile.hapticsEnabled,
+                intensity: UserProfile.defaultProfile.hapticIntensity
+            )
             lastRepositoryError = error.localizedDescription
         }
 
@@ -46,6 +51,38 @@ final class LunaAppState: ObservableObject {
         appearancePreference = preference
         userProfile.appearancePreference = preference
 
+        saveUserProfile()
+    }
+
+    func setPrefersARMode(_ prefersARMode: Bool) {
+        userProfile.prefersARMode = prefersARMode
+        saveUserProfile()
+    }
+
+    func setPreferredScaleMode(_ scaleMode: ScaleMode) {
+        userProfile.preferredScaleMode = scaleMode
+        saveUserProfile()
+    }
+
+    func setShowLabels(_ showLabels: Bool) {
+        userProfile.showLabels = showLabels
+        saveUserProfile()
+    }
+
+    func setShowOrbits(_ showOrbits: Bool) {
+        userProfile.showOrbits = showOrbits
+        saveUserProfile()
+    }
+
+    func setHapticsEnabled(_ isEnabled: Bool) {
+        userProfile.hapticsEnabled = isEnabled
+        Haptics.configure(isEnabled: isEnabled, intensity: userProfile.hapticIntensity)
+        saveUserProfile()
+    }
+
+    func setHapticIntensity(_ intensity: HapticIntensity) {
+        userProfile.hapticIntensity = intensity
+        Haptics.configure(isEnabled: userProfile.hapticsEnabled, intensity: intensity)
         saveUserProfile()
     }
 
@@ -66,6 +103,18 @@ final class LunaAppState: ObservableObject {
     func resetOnboarding() {
         do {
             userProfile = try userProfileRepository.resetOnboarding()
+            selectedTab = .home
+            lastRepositoryError = nil
+        } catch {
+            lastRepositoryError = error.localizedDescription
+        }
+    }
+
+    func resetUserProfile() {
+        do {
+            userProfile = try userProfileRepository.resetProfile()
+            appearancePreference = userProfile.appearancePreference
+            Haptics.configure(isEnabled: userProfile.hapticsEnabled, intensity: userProfile.hapticIntensity)
             selectedTab = .home
             lastRepositoryError = nil
         } catch {

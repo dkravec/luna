@@ -14,6 +14,11 @@ final class LunaPersistenceController {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         }
 
+        container.persistentStoreDescriptions.forEach { description in
+            description.setOption(true as NSNumber, forKey: NSMigratePersistentStoresAutomaticallyOption)
+            description.setOption(true as NSNumber, forKey: NSInferMappingModelAutomaticallyOption)
+        }
+
         container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         container.viewContext.automaticallyMergesChangesFromParent = true
 
@@ -38,7 +43,9 @@ final class LunaPersistenceController {
             attribute("prefersARMode", type: .booleanAttributeType, optional: false, defaultValue: true),
             attribute("appearancePreferenceRaw", type: .stringAttributeType, optional: false, defaultValue: AppAppearancePreference.system.rawValue),
             attribute("showLabels", type: .booleanAttributeType, optional: false, defaultValue: true),
-            attribute("showOrbits", type: .booleanAttributeType, optional: false, defaultValue: true)
+            attribute("showOrbits", type: .booleanAttributeType, optional: false, defaultValue: true),
+            attribute("hapticsEnabled", type: .booleanAttributeType, optional: false, defaultValue: true),
+            attribute("hapticIntensityRaw", type: .stringAttributeType, optional: false, defaultValue: HapticIntensity.heavy.rawValue)
         ]
 
         model.entities = [profileEntity]
