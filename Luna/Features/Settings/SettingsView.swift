@@ -30,7 +30,7 @@ struct SettingsView: View {
                         title: "Default View",
                         subtitle: "Open Luna with AR as the preferred experience",
                         systemImage: "arkit",
-                        value: "AR first"
+                        value: appState.userProfile.prefersARMode ? "AR first" : "Visual first"
                     )
                 }
 
@@ -41,7 +41,7 @@ struct SettingsView: View {
                         title: "Scale Mode",
                         subtitle: "Keep early browsing readable until scale controls ship",
                         systemImage: "scale.3d",
-                        value: "Educational"
+                        value: appState.userProfile.preferredScaleMode.title
                     )
                 }
 
@@ -52,7 +52,7 @@ struct SettingsView: View {
                         title: "Labels",
                         subtitle: "Show names and values in visual scenes",
                         systemImage: "tag",
-                        value: "On"
+                        value: appState.userProfile.showLabels ? "On" : "Off"
                     )
                 }
             }
@@ -69,20 +69,25 @@ struct SettingsView: View {
                         title: "Display Name",
                         subtitle: "Optional profile setup arrives with onboarding",
                         systemImage: "textformat",
-                        value: "Not set"
+                        value: appState.userProfile.displayName ?? "Not set"
                     )
                 }
 
                 CardDivider(leadingInset: 56)
 
-                CardRow {
-                    RowLabel(
-                        title: "Reset Onboarding",
-                        subtitle: "Return to the first-run setup when onboarding is enabled",
-                        systemImage: "arrow.counterclockwise",
-                        value: "Pending"
-                    )
+                Button {
+                    appState.resetOnboarding()
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "Reset Onboarding",
+                            subtitle: "Return to the first-run setup when onboarding is enabled",
+                            systemImage: "arrow.counterclockwise",
+                            value: appState.userProfile.hasCompletedOnboarding ? "Ready" : "Not completed"
+                        )
+                    }
                 }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -102,7 +107,13 @@ struct SettingsView: View {
 
                         Spacer(minLength: 12)
 
-                        Picker("Appearance", selection: $appState.appearancePreference) {
+                        Picker(
+                            "Appearance",
+                            selection: Binding(
+                                get: { appState.appearancePreference },
+                                set: { appState.setAppearancePreference($0) }
+                            )
+                        ) {
                             ForEach(AppAppearancePreference.allCases) { preference in
                                 Text(preference.title).tag(preference)
                             }

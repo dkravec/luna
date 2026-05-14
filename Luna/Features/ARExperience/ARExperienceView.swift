@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ARExperienceView: View {
+    @EnvironmentObject private var appState: LunaAppState
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Spacing.section) {
@@ -86,7 +88,7 @@ struct ARExperienceView: View {
                         title: "Labels",
                         subtitle: "Show body names and scale notes in the scene.",
                         systemImage: "tag",
-                        value: "On"
+                        value: appState.userProfile.showLabels ? "On" : "Off"
                     )
                 }
             }

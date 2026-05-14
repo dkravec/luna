@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct SolarSystemView: View {
+    @EnvironmentObject private var appState: LunaAppState
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Spacing.section) {
@@ -28,7 +30,7 @@ struct SolarSystemView: View {
                         title: "Educational",
                         subtitle: "Keeps planets and distances readable together.",
                         systemImage: "graduationcap",
-                        value: "Default"
+                        value: appState.userProfile.preferredScaleMode.title
                     )
                 }
 
@@ -50,11 +52,16 @@ struct SolarSystemView: View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Bodies")
 
-            EmptyStateView(
-                title: "Solar library pending",
-                systemImage: "circle.grid.cross",
-                message: "Sun, planets, and the Moon are ready for the local library."
-            )
+            CardSection {
+                CardRow {
+                    RowLabel(
+                        title: "Local Library",
+                        subtitle: "Sun, planets, and the Moon loaded from bundled JSON.",
+                        systemImage: "circle.grid.cross",
+                        value: "\(appState.celestialBodies.count)"
+                    )
+                }
+            }
         }
     }
 }

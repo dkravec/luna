@@ -14,36 +14,62 @@ struct LunaApp: App {
 }
 
 final class LunaAppState: ObservableObject {
+    let userProfileRepository: UserProfileRepository
+    let celestialBodyRepository: CelestialBodyRepository
+
     @Published var selectedTab: LunaTab = .home
     @Published var appearancePreference: AppAppearancePreference = .system
-}
+    @Published private(set) var userProfile: UserProfile
+    @Published private(set) var celestialBodies: [CelestialBody] = []
+    @Published private(set) var lastRepositoryError: String?
 
-enum AppAppearancePreference: String, CaseIterable, Identifiable {
-    case system
-    case light
-    case dark
+    init(
+        userProfileRepository: UserProfileRepository = CoreDataUserProfileRepository(),
+        celestialBodyRepository: CelestialBodyRepository = LocalCelestialBodyRepository()
+    ) {
+        self.userProfileRepository = userProfileRepository
+        self.celestialBodyRepository = celestialBodyRepository
 
-    var id: String { rawValue }
+        do {
+            let profile = try userProfileRepository.fetchOrCreateProfile()
+            userProfile = profile
+            appearancePreference = profile.appearancePreference
+        } catch {
+            userProfile = .defaultProfile
+            lastRepositoryError = error.localizedDescription
+        }
 
-    var title: String {
-        switch self {
-        case .system:
-            return "System"
-        case .light:
-            return "Light"
-        case .dark:
-            return "Dark"
+        loadCelestialBodies()
+    }
+
+    func setAppearancePreference(_ preference: AppAppearancePreference) {
+        appearancePreference = preference
+        userProfile.appearancePreference = preference
+
+        do {
+            try userProfileRepository.save(userProfile)
+            lastRepositoryError = nil
+        } catch {
+            lastRepositoryError = error.localizedDescription
         }
     }
 
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system:
-            return nil
-        case .light:
-            return .light
-        case .dark:
-            return .dark
+    func resetOnboarding() {
+        do {
+            userProfile = try userProfileRepository.resetOnboarding()
+            lastRepositoryError = nil
+        } catch {
+            lastRepositoryError = error.localizedDescription
+        }
+    }
+
+    func loadCelestialBodies() {
+        do {
+            celestialBodies = try celestialBodyRepository.fetchBodies()
+            lastRepositoryError = nil
+        } catch {
+            celestialBodies = []
+            lastRepositoryError = error.localizedDescription
         }
     }
 }

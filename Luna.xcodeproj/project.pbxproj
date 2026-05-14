@@ -29,6 +29,26 @@
 		7A6B02BF24A317C600535EA4 /* ARExperienceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BC24A317C600535EA4 /* ARExperienceView.swift */; };
 		7A6B02C024A317C600535EA4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BD24A317C600535EA4 /* SettingsView.swift */; };
 		7A6B02C124A317C600535EA4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BD24A317C600535EA4 /* SettingsView.swift */; };
+		7A6B031024A5000000000000 /* AppAppearancePreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030024A5000000000000 /* AppAppearancePreference.swift */; };
+		7A6B031124A5000000000000 /* AppAppearancePreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030024A5000000000000 /* AppAppearancePreference.swift */; };
+		7A6B031224A5000000000000 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030124A5000000000000 /* UserProfile.swift */; };
+		7A6B031324A5000000000000 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030124A5000000000000 /* UserProfile.swift */; };
+		7A6B031424A5000000000000 /* CelestialBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030224A5000000000000 /* CelestialBody.swift */; };
+		7A6B031524A5000000000000 /* CelestialBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030224A5000000000000 /* CelestialBody.swift */; };
+		7A6B031624A5000000000000 /* SolarSystemSceneSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030324A5000000000000 /* SolarSystemSceneSettings.swift */; };
+		7A6B031724A5000000000000 /* SolarSystemSceneSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030324A5000000000000 /* SolarSystemSceneSettings.swift */; };
+		7A6B031824A5000000000000 /* UserProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030424A5000000000000 /* UserProfileRepository.swift */; };
+		7A6B031924A5000000000000 /* UserProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030424A5000000000000 /* UserProfileRepository.swift */; };
+		7A6B031A24A5000000000000 /* CoreDataUserProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030524A5000000000000 /* CoreDataUserProfileRepository.swift */; };
+		7A6B031B24A5000000000000 /* CoreDataUserProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030524A5000000000000 /* CoreDataUserProfileRepository.swift */; };
+		7A6B031C24A5000000000000 /* CelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030624A5000000000000 /* CelestialBodyRepository.swift */; };
+		7A6B031D24A5000000000000 /* CelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030624A5000000000000 /* CelestialBodyRepository.swift */; };
+		7A6B031E24A5000000000000 /* LocalCelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030724A5000000000000 /* LocalCelestialBodyRepository.swift */; };
+		7A6B031F24A5000000000000 /* LocalCelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030724A5000000000000 /* LocalCelestialBodyRepository.swift */; };
+		7A6B032024A5000000000000 /* RemoteCelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */; };
+		7A6B032124A5000000000000 /* RemoteCelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */; };
+		7A6B032224A5000000000000 /* celestial_bodies.json in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B030924A5000000000000 /* celestial_bodies.json */; };
+		7A6B032324A5000000000000 /* celestial_bodies.json in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B030924A5000000000000 /* celestial_bodies.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -49,6 +69,16 @@
 		7A6B02B924A317C600535EA4 /* SolarSystemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarSystemView.swift; sourceTree = "<group>"; };
 		7A6B02BC24A317C600535EA4 /* ARExperienceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARExperienceView.swift; sourceTree = "<group>"; };
 		7A6B02BD24A317C600535EA4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		7A6B030024A5000000000000 /* AppAppearancePreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAppearancePreference.swift; sourceTree = "<group>"; };
+		7A6B030124A5000000000000 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		7A6B030224A5000000000000 /* CelestialBody.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelestialBody.swift; sourceTree = "<group>"; };
+		7A6B030324A5000000000000 /* SolarSystemSceneSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarSystemSceneSettings.swift; sourceTree = "<group>"; };
+		7A6B030424A5000000000000 /* UserProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileRepository.swift; sourceTree = "<group>"; };
+		7A6B030524A5000000000000 /* CoreDataUserProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataUserProfileRepository.swift; sourceTree = "<group>"; };
+		7A6B030624A5000000000000 /* CelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelestialBodyRepository.swift; sourceTree = "<group>"; };
+		7A6B030724A5000000000000 /* LocalCelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCelestialBodyRepository.swift; sourceTree = "<group>"; };
+		7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCelestialBodyRepository.swift; sourceTree = "<group>"; };
+		7A6B030924A5000000000000 /* celestial_bodies.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = celestial_bodies.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -145,6 +175,10 @@
 		7A6B100224A4000000000000 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				7A6B030024A5000000000000 /* AppAppearancePreference.swift */,
+				7A6B030124A5000000000000 /* UserProfile.swift */,
+				7A6B030224A5000000000000 /* CelestialBody.swift */,
+				7A6B030324A5000000000000 /* SolarSystemSceneSettings.swift */,
 				7A6B02AD24A3176300535EA4 /* LunaTab.swift */,
 			);
 			path = Models;
@@ -153,6 +187,11 @@
 		7A6B100324A4000000000000 /* Repositories */ = {
 			isa = PBXGroup;
 			children = (
+				7A6B030424A5000000000000 /* UserProfileRepository.swift */,
+				7A6B030524A5000000000000 /* CoreDataUserProfileRepository.swift */,
+				7A6B030624A5000000000000 /* CelestialBodyRepository.swift */,
+				7A6B030724A5000000000000 /* LocalCelestialBodyRepository.swift */,
+				7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -264,6 +303,7 @@
 			isa = PBXGroup;
 			children = (
 				7A6B028A24A3156B00535EA4 /* Assets.xcassets */,
+				7A6B030924A5000000000000 /* celestial_bodies.json */,
 				7A6B101824A4000000000000 /* Assets */,
 				7A6B101924A4000000000000 /* Textures */,
 			);
@@ -363,6 +403,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A6B029F24A3156B00535EA4 /* Assets.xcassets in Resources */,
+				7A6B032224A5000000000000 /* celestial_bodies.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -371,6 +412,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A6B02A024A3156B00535EA4 /* Assets.xcassets in Resources */,
+				7A6B032324A5000000000000 /* celestial_bodies.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -387,6 +429,15 @@
 				7A6B02AE24A3176300535EA4 /* LunaTab.swift in Sources */,
 				7A6B02B124A3176C00535EA4 /* LunaDesignSystem.swift in Sources */,
 				7A6B02B424A317B100535EA4 /* LunaPersistenceController.swift in Sources */,
+				7A6B031024A5000000000000 /* AppAppearancePreference.swift in Sources */,
+				7A6B031224A5000000000000 /* UserProfile.swift in Sources */,
+				7A6B031424A5000000000000 /* CelestialBody.swift in Sources */,
+				7A6B031624A5000000000000 /* SolarSystemSceneSettings.swift in Sources */,
+				7A6B031824A5000000000000 /* UserProfileRepository.swift in Sources */,
+				7A6B031A24A5000000000000 /* CoreDataUserProfileRepository.swift in Sources */,
+				7A6B031C24A5000000000000 /* CelestialBodyRepository.swift in Sources */,
+				7A6B031E24A5000000000000 /* LocalCelestialBodyRepository.swift in Sources */,
+				7A6B032024A5000000000000 /* RemoteCelestialBodyRepository.swift in Sources */,
 				7A6B02B724A317BC00535EA4 /* HomeView.swift in Sources */,
 				7A6B02BA24A317C600535EA4 /* SolarSystemView.swift in Sources */,
 				7A6B02BE24A317C600535EA4 /* ARExperienceView.swift in Sources */,
@@ -404,6 +455,15 @@
 				7A6B02AF24A3176300535EA4 /* LunaTab.swift in Sources */,
 				7A6B02B224A3176C00535EA4 /* LunaDesignSystem.swift in Sources */,
 				7A6B02B524A317B100535EA4 /* LunaPersistenceController.swift in Sources */,
+				7A6B031124A5000000000000 /* AppAppearancePreference.swift in Sources */,
+				7A6B031324A5000000000000 /* UserProfile.swift in Sources */,
+				7A6B031524A5000000000000 /* CelestialBody.swift in Sources */,
+				7A6B031724A5000000000000 /* SolarSystemSceneSettings.swift in Sources */,
+				7A6B031924A5000000000000 /* UserProfileRepository.swift in Sources */,
+				7A6B031B24A5000000000000 /* CoreDataUserProfileRepository.swift in Sources */,
+				7A6B031D24A5000000000000 /* CelestialBodyRepository.swift in Sources */,
+				7A6B031F24A5000000000000 /* LocalCelestialBodyRepository.swift in Sources */,
+				7A6B032124A5000000000000 /* RemoteCelestialBodyRepository.swift in Sources */,
 				7A6B02B824A317BC00535EA4 /* HomeView.swift in Sources */,
 				7A6B02BB24A317C600535EA4 /* SolarSystemView.swift in Sources */,
 				7A6B02BF24A317C600535EA4 /* ARExperienceView.swift in Sources */,
@@ -587,7 +647,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 14;
-				DEVELOPMENT_TEAM = VBY3L3W5ZA;
+				DEVELOPMENT_TEAM = VHCWBN8GY3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = macOS/Info.plist;
@@ -613,7 +673,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 14;
-				DEVELOPMENT_TEAM = VBY3L3W5ZA;
+				DEVELOPMENT_TEAM = VHCWBN8GY3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = macOS/Info.plist;

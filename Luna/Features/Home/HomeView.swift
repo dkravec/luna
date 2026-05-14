@@ -63,8 +63,16 @@ struct HomeView: View {
             SectionHeader(title: "Today")
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                MetricTile(title: "Viewing Mode", value: "AR First", systemImage: "viewfinder")
-                MetricTile(title: "Scale", value: "Educational", systemImage: "scale.3d")
+                MetricTile(
+                    title: "Viewing Mode",
+                    value: appState.userProfile.prefersARMode ? "AR First" : "Visual First",
+                    systemImage: "viewfinder"
+                )
+                MetricTile(
+                    title: "Bodies Loaded",
+                    value: "\(appState.celestialBodies.count)",
+                    systemImage: "circle.grid.cross"
+                )
             }
         }
     }
