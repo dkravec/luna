@@ -57,9 +57,9 @@ enum LunaTab: String, CaseIterable, Identifiable {
         case .home:
             HomeView()
         case .solarSystem:
-            SolarSystemView()
+            ExploreView()
         case .arExperience:
-            ARExperienceView()
+            ExperienceView()
         case .settings:
             SettingsView()
         }

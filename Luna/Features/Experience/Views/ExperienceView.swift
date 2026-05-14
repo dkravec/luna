@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ARExperienceView: View {
+struct ExperienceView: View {
     @EnvironmentObject private var appState: LunaAppState
 
     var body: some View {

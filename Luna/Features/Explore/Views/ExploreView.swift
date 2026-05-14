@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SolarSystemView: View {
+struct ExploreView: View {
     @EnvironmentObject private var appState: LunaAppState
 
     var body: some View {
