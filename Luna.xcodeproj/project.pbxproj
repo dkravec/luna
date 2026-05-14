@@ -1,0 +1,666 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		7A6B029B24A3156B00535EA4 /* LunaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028824A3156800535EA4 /* LunaApp.swift */; };
+		7A6B029C24A3156B00535EA4 /* LunaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028824A3156800535EA4 /* LunaApp.swift */; };
+		7A6B029D24A3156B00535EA4 /* LunaRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028924A3156800535EA4 /* LunaRootView.swift */; };
+		7A6B029E24A3156B00535EA4 /* LunaRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028924A3156800535EA4 /* LunaRootView.swift */; };
+		7A6B029F24A3156B00535EA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B028A24A3156B00535EA4 /* Assets.xcassets */; };
+		7A6B02A024A3156B00535EA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B028A24A3156B00535EA4 /* Assets.xcassets */; };
+		7A6B02AB24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */; };
+		7A6B02AC24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */; };
+		7A6B02AE24A3176300535EA4 /* LunaTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AD24A3176300535EA4 /* LunaTab.swift */; };
+		7A6B02AF24A3176300535EA4 /* LunaTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AD24A3176300535EA4 /* LunaTab.swift */; };
+		7A6B02B124A3176C00535EA4 /* LunaDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B024A3176B00535EA4 /* LunaDesignSystem.swift */; };
+		7A6B02B224A3176C00535EA4 /* LunaDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B024A3176B00535EA4 /* LunaDesignSystem.swift */; };
+		7A6B02B424A317B100535EA4 /* LunaPersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */; };
+		7A6B02B524A317B100535EA4 /* LunaPersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */; };
+		7A6B02B724A317BC00535EA4 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B624A317BC00535EA4 /* HomeView.swift */; };
+		7A6B02B824A317BC00535EA4 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B624A317BC00535EA4 /* HomeView.swift */; };
+		7A6B02BA24A317C600535EA4 /* SolarSystemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B924A317C600535EA4 /* SolarSystemView.swift */; };
+		7A6B02BB24A317C600535EA4 /* SolarSystemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B924A317C600535EA4 /* SolarSystemView.swift */; };
+		7A6B02BE24A317C600535EA4 /* ARExperienceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BC24A317C600535EA4 /* ARExperienceView.swift */; };
+		7A6B02BF24A317C600535EA4 /* ARExperienceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BC24A317C600535EA4 /* ARExperienceView.swift */; };
+		7A6B02C024A317C600535EA4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BD24A317C600535EA4 /* SettingsView.swift */; };
+		7A6B02C124A317C600535EA4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BD24A317C600535EA4 /* SettingsView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		7A6B028824A3156800535EA4 /* LunaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaApp.swift; sourceTree = "<group>"; };
+		7A6B028924A3156800535EA4 /* LunaRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaRootView.swift; sourceTree = "<group>"; };
+		7A6B028A24A3156B00535EA4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7A6B028F24A3156B00535EA4 /* Luna.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luna.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A6B029224A3156B00535EA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7A6B029724A3156B00535EA4 /* Luna.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luna.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A6B029924A3156B00535EA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7A6B029A24A3156B00535EA4 /* Luna.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Luna.entitlements; sourceTree = "<group>"; };
+		7A6B02A924A316F700535EA4 /* Luna.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Luna.entitlements; sourceTree = "<group>"; };
+		7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaAdaptiveShell.swift; sourceTree = "<group>"; };
+		7A6B02AD24A3176300535EA4 /* LunaTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaTab.swift; sourceTree = "<group>"; };
+		7A6B02B024A3176B00535EA4 /* LunaDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaDesignSystem.swift; sourceTree = "<group>"; };
+		7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaPersistenceController.swift; sourceTree = "<group>"; };
+		7A6B02B624A317BC00535EA4 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		7A6B02B924A317C600535EA4 /* SolarSystemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarSystemView.swift; sourceTree = "<group>"; };
+		7A6B02BC24A317C600535EA4 /* ARExperienceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARExperienceView.swift; sourceTree = "<group>"; };
+		7A6B02BD24A317C600535EA4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7A6B028C24A3156B00535EA4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A6B029424A3156B00535EA4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		7A6B028224A3156800535EA4 = {
+			isa = PBXGroup;
+			children = (
+				7A6B028724A3156800535EA4 /* Luna */,
+				7A6B029124A3156B00535EA4 /* iOS */,
+				7A6B029824A3156B00535EA4 /* macOS */,
+				7A6B029024A3156B00535EA4 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		7A6B028724A3156800535EA4 /* Luna */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B100024A4000000000000 /* App */,
+				7A6B100124A4000000000000 /* Core */,
+				7A6B101024A4000000000000 /* Features */,
+				7A6B101724A4000000000000 /* Resources */,
+			);
+			path = Luna;
+			sourceTree = "<group>";
+		};
+		7A6B029024A3156B00535EA4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B028F24A3156B00535EA4 /* Luna.app */,
+				7A6B029724A3156B00535EA4 /* Luna.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7A6B029124A3156B00535EA4 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02A924A316F700535EA4 /* Luna.entitlements */,
+				7A6B029224A3156B00535EA4 /* Info.plist */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		7A6B029824A3156B00535EA4 /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B029924A3156B00535EA4 /* Info.plist */,
+				7A6B029A24A3156B00535EA4 /* Luna.entitlements */,
+			);
+			path = macOS;
+			sourceTree = "<group>";
+		};
+		7A6B100024A4000000000000 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B028824A3156800535EA4 /* LunaApp.swift */,
+				7A6B028924A3156800535EA4 /* LunaRootView.swift */,
+				7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		7A6B100124A4000000000000 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B100224A4000000000000 /* Models */,
+				7A6B100324A4000000000000 /* Repositories */,
+				7A6B100424A4000000000000 /* Services */,
+				7A6B100524A4000000000000 /* Data */,
+				7A6B100624A4000000000000 /* DesignSystem */,
+				7A6B100724A4000000000000 /* Platform */,
+				7A6B100824A4000000000000 /* Persistence */,
+				7A6B100924A4000000000000 /* Utilities */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		7A6B100224A4000000000000 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02AD24A3176300535EA4 /* LunaTab.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7A6B100324A4000000000000 /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		7A6B100424A4000000000000 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		7A6B100524A4000000000000 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		7A6B100624A4000000000000 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02B024A3176B00535EA4 /* LunaDesignSystem.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		7A6B100724A4000000000000 /* Platform */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Platform;
+			sourceTree = "<group>";
+		};
+		7A6B100824A4000000000000 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		7A6B100924A4000000000000 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		7A6B101024A4000000000000 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B101124A4000000000000 /* Onboarding */,
+				7A6B101224A4000000000000 /* Home */,
+				7A6B101324A4000000000000 /* SolarSystem */,
+				7A6B101424A4000000000000 /* BodyDetail */,
+				7A6B101524A4000000000000 /* ARExperience */,
+				7A6B101624A4000000000000 /* Settings */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		7A6B101124A4000000000000 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		7A6B101224A4000000000000 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02B624A317BC00535EA4 /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		7A6B101324A4000000000000 /* SolarSystem */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02B924A317C600535EA4 /* SolarSystemView.swift */,
+			);
+			path = SolarSystem;
+			sourceTree = "<group>";
+		};
+		7A6B101424A4000000000000 /* BodyDetail */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = BodyDetail;
+			sourceTree = "<group>";
+		};
+		7A6B101524A4000000000000 /* ARExperience */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02BC24A317C600535EA4 /* ARExperienceView.swift */,
+			);
+			path = ARExperience;
+			sourceTree = "<group>";
+		};
+		7A6B101624A4000000000000 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02BD24A317C600535EA4 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		7A6B101724A4000000000000 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B028A24A3156B00535EA4 /* Assets.xcassets */,
+				7A6B101824A4000000000000 /* Assets */,
+				7A6B101924A4000000000000 /* Textures */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		7A6B101824A4000000000000 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Assets;
+			sourceTree = "<group>";
+		};
+		7A6B101924A4000000000000 /* Textures */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Textures;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		7A6B028E24A3156B00535EA4 /* Luna */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A6B02A324A3156B00535EA4 /* Build configuration list for PBXNativeTarget "Luna" */;
+			buildPhases = (
+				7A6B028B24A3156B00535EA4 /* Sources */,
+				7A6B028C24A3156B00535EA4 /* Frameworks */,
+				7A6B028D24A3156B00535EA4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Luna;
+			productName = Luna;
+			productReference = 7A6B028F24A3156B00535EA4 /* Luna.app */;
+			productType = "com.apple.product-type.application";
+		};
+		7A6B029624A3156B00535EA4 /* Luna macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A6B02A624A3156B00535EA4 /* Build configuration list for PBXNativeTarget "Luna macOS" */;
+			buildPhases = (
+				7A6B029324A3156B00535EA4 /* Sources */,
+				7A6B029424A3156B00535EA4 /* Frameworks */,
+				7A6B029524A3156B00535EA4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Luna macOS";
+			productName = Luna;
+			productReference = 7A6B029724A3156B00535EA4 /* Luna.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7A6B028324A3156800535EA4 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1200;
+				LastUpgradeCheck = 1200;
+				TargetAttributes = {
+					7A6B028E24A3156B00535EA4 = {
+						CreatedOnToolsVersion = 12.0;
+					};
+					7A6B029624A3156B00535EA4 = {
+						CreatedOnToolsVersion = 12.0;
+					};
+				};
+			};
+			buildConfigurationList = 7A6B028624A3156800535EA4 /* Build configuration list for PBXProject "Luna" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 7A6B028224A3156800535EA4;
+			productRefGroup = 7A6B029024A3156B00535EA4 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7A6B028E24A3156B00535EA4 /* Luna */,
+				7A6B029624A3156B00535EA4 /* Luna macOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		7A6B028D24A3156B00535EA4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A6B029F24A3156B00535EA4 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A6B029524A3156B00535EA4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A6B02A024A3156B00535EA4 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7A6B028B24A3156B00535EA4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A6B029B24A3156B00535EA4 /* LunaApp.swift in Sources */,
+				7A6B029D24A3156B00535EA4 /* LunaRootView.swift in Sources */,
+				7A6B02AB24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */,
+				7A6B02AE24A3176300535EA4 /* LunaTab.swift in Sources */,
+				7A6B02B124A3176C00535EA4 /* LunaDesignSystem.swift in Sources */,
+				7A6B02B424A317B100535EA4 /* LunaPersistenceController.swift in Sources */,
+				7A6B02B724A317BC00535EA4 /* HomeView.swift in Sources */,
+				7A6B02BA24A317C600535EA4 /* SolarSystemView.swift in Sources */,
+				7A6B02BE24A317C600535EA4 /* ARExperienceView.swift in Sources */,
+				7A6B02C024A317C600535EA4 /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A6B029324A3156B00535EA4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A6B029C24A3156B00535EA4 /* LunaApp.swift in Sources */,
+				7A6B029E24A3156B00535EA4 /* LunaRootView.swift in Sources */,
+				7A6B02AC24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */,
+				7A6B02AF24A3176300535EA4 /* LunaTab.swift in Sources */,
+				7A6B02B224A3176C00535EA4 /* LunaDesignSystem.swift in Sources */,
+				7A6B02B524A317B100535EA4 /* LunaPersistenceController.swift in Sources */,
+				7A6B02B824A317BC00535EA4 /* HomeView.swift in Sources */,
+				7A6B02BB24A317C600535EA4 /* SolarSystemView.swift in Sources */,
+				7A6B02BF24A317C600535EA4 /* ARExperienceView.swift in Sources */,
+				7A6B02C124A317C600535EA4 /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		7A6B02A124A3156B00535EA4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		7A6B02A224A3156B00535EA4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		7A6B02A424A3156B00535EA4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iOS/Luna.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 14;
+				DEVELOPMENT_TEAM = VHCWBN8GY3;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = novapro.Luna;
+				PRODUCT_NAME = Luna;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7A6B02A524A3156B00535EA4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iOS/Luna.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 14;
+				DEVELOPMENT_TEAM = VHCWBN8GY3;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = novapro.Luna;
+				PRODUCT_NAME = Luna;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		7A6B02A724A3156B00535EA4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = macOS/Luna.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 14;
+				DEVELOPMENT_TEAM = VBY3L3W5ZA;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = novapro.Luna;
+				PRODUCT_NAME = Luna;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		7A6B02A824A3156B00535EA4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = macOS/Luna.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 14;
+				DEVELOPMENT_TEAM = VBY3L3W5ZA;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = novapro.Luna;
+				PRODUCT_NAME = Luna;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7A6B028624A3156800535EA4 /* Build configuration list for PBXProject "Luna" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A6B02A124A3156B00535EA4 /* Debug */,
+				7A6B02A224A3156B00535EA4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7A6B02A324A3156B00535EA4 /* Build configuration list for PBXNativeTarget "Luna" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A6B02A424A3156B00535EA4 /* Debug */,
+				7A6B02A524A3156B00535EA4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7A6B02A624A3156B00535EA4 /* Build configuration list for PBXNativeTarget "Luna macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A6B02A724A3156B00535EA4 /* Debug */,
+				7A6B02A824A3156B00535EA4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7A6B028324A3156800535EA4 /* Project object */;
+}
