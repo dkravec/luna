@@ -8,6 +8,7 @@ struct ExperienceView: View {
     @State private var isAREnabled = false
     @State private var hasInitializedMode = false
     @State private var isControlsPresented = false
+    @State private var isSceneReady = false
     @State private var recenterTrigger = 0
 
     var body: some View {
@@ -22,8 +23,11 @@ struct ExperienceView: View {
         }
         .appBackground()
         .onAppear {
-            appState.loadCelestialBodies()
+            if appState.celestialBodies.isEmpty {
+                appState.loadCelestialBodies()
+            }
             initializePreferredModeIfNeeded()
+            prepareSceneAfterInitialRender()
         }
         .sheet(isPresented: $isControlsPresented) {
             controlsSheetContent
@@ -36,7 +40,9 @@ struct ExperienceView: View {
 
     @ViewBuilder
     private var sceneLayer: some View {
-        if appState.celestialBodies.isEmpty {
+        if !isSceneReady {
+            ExperienceLoadingView()
+        } else if appState.celestialBodies.isEmpty {
             EmptyStateView(
                 title: "No Bodies Loaded",
                 systemImage: "sparkles",
@@ -299,6 +305,18 @@ struct ExperienceView: View {
         hasInitializedMode = true
     }
 
+    private func prepareSceneAfterInitialRender() {
+        guard !isSceneReady else { return }
+
+        Task {
+            try? await Task.sleep(nanoseconds: 140_000_000)
+
+            await MainActor.run {
+                isSceneReady = true
+            }
+        }
+    }
+
     private func setSceneMode(isAR: Bool) {
         isAREnabled = isAR && canUseAR
         appState.setPrefersARMode(isAREnabled)
@@ -338,6 +356,31 @@ struct ExperienceView: View {
             get: { appState.userProfile.planetSizeMultiplier },
             set: { appState.setPlanetSizeMultiplier($0) }
         )
+    }
+}
+
+private struct ExperienceLoadingView: View {
+    var body: some View {
+        ZStack {
+            Color.clear
+
+            VStack(spacing: 12) {
+                ProgressView()
+                    .controlSize(.large)
+                    .tint(.white)
+
+                Text("Preparing Experience")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.86))
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 16)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: Radii.card, style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            }
+        }
     }
 }
 

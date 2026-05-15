@@ -133,7 +133,7 @@ struct LunaARSceneView: UIViewRepresentable {
 
         private static func anchorTransform(for view: ARView) -> simd_float4x4 {
             var translation = matrix_identity_float4x4
-            translation.columns.3.y = -0.28
+            translation.columns.3.y = -0.08
             translation.columns.3.z = -1.25
             return simd_mul(view.cameraTransform.matrix, translation)
         }

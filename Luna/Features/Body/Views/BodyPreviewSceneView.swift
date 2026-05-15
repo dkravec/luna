@@ -150,18 +150,16 @@ private enum BodyPreviewSceneFactory {
         panelMaterial.diffuse.contents = previewColor(red: 0.10, green: 0.22, blue: 0.50, alpha: 1)
         panelMaterial.emission.contents = previewColor(red: 0.03, green: 0.08, blue: 0.18, alpha: 1)
 
-        let leftPanel = SCNPlane(width: 0.78, height: 0.28)
+        let leftPanel = SCNBox(width: 0.78, height: 0.028, length: 0.28, chamferRadius: 0.006)
         leftPanel.firstMaterial = panelMaterial
         let leftNode = SCNNode(geometry: leftPanel)
         leftNode.position.x = -0.68
-        leftNode.eulerAngles.y = .pi / 2
         root.addChildNode(leftNode)
 
-        let rightPanel = SCNPlane(width: 0.78, height: 0.28)
+        let rightPanel = SCNBox(width: 0.78, height: 0.028, length: 0.28, chamferRadius: 0.006)
         rightPanel.firstMaterial = panelMaterial
         let rightNode = SCNNode(geometry: rightPanel)
         rightNode.position.x = 0.68
-        rightNode.eulerAngles.y = -.pi / 2
         root.addChildNode(rightNode)
 
         root.eulerAngles = SCNVector3(-0.18, 0.42, 0)

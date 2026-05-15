@@ -13,12 +13,6 @@
 		7A6B029E24A3156B00535EA4 /* LunaRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028924A3156800535EA4 /* LunaRootView.swift */; };
 		7A6B029F24A3156B00535EA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B028A24A3156B00535EA4 /* Assets.xcassets */; };
 		7A6B02A024A3156B00535EA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B028A24A3156B00535EA4 /* Assets.xcassets */; };
-		7A6B040024AB000000000000 /* Planets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041024AB000000000000 /* Planets */; };
-		7A6B040124AB000000000000 /* Planets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041024AB000000000000 /* Planets */; };
-		7A6B040224AB000000000000 /* Satellites in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041224AB000000000000 /* Satellites */; };
-		7A6B040324AB000000000000 /* Satellites in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041224AB000000000000 /* Satellites */; };
-		7A6B040424AB000000000000 /* Moons in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041324AB000000000000 /* Moons */; };
-		7A6B040524AB000000000000 /* Moons in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041324AB000000000000 /* Moons */; };
 		7A6B02AB24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */; };
 		7A6B02AC24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */; };
 		7A6B02AE24A3176300535EA4 /* LunaTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AD24A3176300535EA4 /* LunaTab.swift */; };
@@ -63,6 +57,12 @@
 		7A6B034124A8000000000000 /* ExploreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033E24A8000000000000 /* ExploreViewModel.swift */; };
 		7A6B034224A8000000000000 /* BodyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033F24A8000000000000 /* BodyDetailView.swift */; };
 		7A6B034324A8000000000000 /* BodyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033F24A8000000000000 /* BodyDetailView.swift */; };
+		7A6B040024AB000000000000 /* Planets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041024AB000000000000 /* Planets */; };
+		7A6B040124AB000000000000 /* Planets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041024AB000000000000 /* Planets */; };
+		7A6B040224AB000000000000 /* Satellites in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041224AB000000000000 /* Satellites */; };
+		7A6B040324AB000000000000 /* Satellites in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041224AB000000000000 /* Satellites */; };
+		7A6B040424AB000000000000 /* Moons in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041324AB000000000000 /* Moons */; };
+		7A6B040524AB000000000000 /* Moons in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041324AB000000000000 /* Moons */; };
 		7A6B050124AC000000000000 /* ExperienceSceneLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050024AC000000000000 /* ExperienceSceneLayout.swift */; };
 		7A6B050224AC000000000000 /* ExperienceSceneLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050024AC000000000000 /* ExperienceSceneLayout.swift */; };
 		7A6B050424AC000000000000 /* SolarSystemVisualSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050324AC000000000000 /* SolarSystemVisualSceneView.swift */; };
@@ -101,14 +101,14 @@
 		7A6B030724A5000000000000 /* LocalCelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCelestialBodyRepository.swift; sourceTree = "<group>"; };
 		7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCelestialBodyRepository.swift; sourceTree = "<group>"; };
 		7A6B030924A5000000000000 /* celestial_bodies.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = celestial_bodies.json; sourceTree = "<group>"; };
-		7A6B041024AB000000000000 /* Planets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Planets; sourceTree = "<group>"; };
-		7A6B041224AB000000000000 /* Satellites */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Satellites; sourceTree = "<group>"; };
-		7A6B041324AB000000000000 /* Moons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Moons; sourceTree = "<group>"; };
-		7A6B041424AB000000000000 /* ASSET_SOURCES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ASSET_SOURCES.md; sourceTree = "<group>"; };
 		7A6B033024A7000000000000 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
 		7A6B033124A7000000000000 /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
 		7A6B033E24A8000000000000 /* ExploreViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreViewModel.swift; sourceTree = "<group>"; };
 		7A6B033F24A8000000000000 /* BodyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyDetailView.swift; sourceTree = "<group>"; };
+		7A6B041024AB000000000000 /* Planets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Planets; sourceTree = "<group>"; };
+		7A6B041224AB000000000000 /* Satellites */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Satellites; sourceTree = "<group>"; };
+		7A6B041324AB000000000000 /* Moons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Moons; sourceTree = "<group>"; };
+		7A6B041424AB000000000000 /* ASSET_SOURCES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ASSET_SOURCES.md; sourceTree = "<group>"; };
 		7A6B050024AC000000000000 /* ExperienceSceneLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceSceneLayout.swift; sourceTree = "<group>"; };
 		7A6B050324AC000000000000 /* SolarSystemVisualSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarSystemVisualSceneView.swift; sourceTree = "<group>"; };
 		7A6B050624AC000000000000 /* LunaARSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaARSceneView.swift; sourceTree = "<group>"; };
@@ -182,6 +182,23 @@
 			path = macOS;
 			sourceTree = "<group>";
 		};
+		7A6B041524AB000000000000 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B041324AB000000000000 /* Moons */,
+				7A6B041224AB000000000000 /* Satellites */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7A6B041624AB000000000000 /* AssetNotes */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B041424AB000000000000 /* ASSET_SOURCES.md */,
+			);
+			path = AssetNotes;
+			sourceTree = "<group>";
+		};
 		7A6B100024A4000000000000 /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -191,14 +208,6 @@
 				7A6B102024A6000000000000 /* Navigation */,
 			);
 			path = App;
-			sourceTree = "<group>";
-		};
-		7A6B102024A6000000000000 /* Navigation */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B02AD24A3176300535EA4 /* LunaTab.swift */,
-			);
-			path = Navigation;
 			sourceTree = "<group>";
 		};
 		7A6B100124A4000000000000 /* Core */ = {
@@ -256,36 +265,12 @@
 			path = Onboarding;
 			sourceTree = "<group>";
 		};
-		7A6B103224A7000000000000 /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B033024A7000000000000 /* OnboardingViewModel.swift */,
-			);
-			path = ViewModels;
-			sourceTree = "<group>";
-		};
-		7A6B102424A6000000000000 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B033124A7000000000000 /* OnboardingFlowView.swift */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
 		7A6B101224A4000000000000 /* Home */ = {
 			isa = PBXGroup;
 			children = (
 				7A6B102524A6000000000000 /* Views */,
 			);
 			path = Home;
-			sourceTree = "<group>";
-		};
-		7A6B102524A6000000000000 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B02B624A317BC00535EA4 /* HomeView.swift */,
-			);
-			path = Views;
 			sourceTree = "<group>";
 		};
 		7A6B101324A4000000000000 /* Explore */ = {
@@ -297,20 +282,15 @@
 			path = Explore;
 			sourceTree = "<group>";
 		};
-		7A6B103324A8000000000000 /* ViewModels */ = {
+		7A6B101424A4000000000000 /* Body */ = {
 			isa = PBXGroup;
 			children = (
-				7A6B033E24A8000000000000 /* ExploreViewModel.swift */,
+				7A6B102A24A6000000000000 /* Models */,
+				7A6B102B24A6000000000000 /* Repositories */,
+				7A6B103424A8000000000000 /* Views */,
+				7A6B102C24A6000000000000 /* Resources */,
 			);
-			path = ViewModels;
-			sourceTree = "<group>";
-		};
-		7A6B102624A6000000000000 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B02B924A317C600535EA4 /* ExploreView.swift */,
-			);
-			path = Views;
+			path = Body;
 			sourceTree = "<group>";
 		};
 		7A6B101524A4000000000000 /* Experience */ = {
@@ -320,6 +300,97 @@
 				7A6B102824A6000000000000 /* Views */,
 			);
 			path = Experience;
+			sourceTree = "<group>";
+		};
+		7A6B101624A4000000000000 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B103124A6000000000000 /* Views */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		7A6B101724A4000000000000 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B028A24A3156B00535EA4 /* Assets.xcassets */,
+				7A6B101824A4000000000000 /* Assets */,
+				7A6B101924A4000000000000 /* Textures */,
+				7A6B041524AB000000000000 /* Models */,
+				7A6B041624AB000000000000 /* AssetNotes */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		7A6B101824A4000000000000 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Assets;
+			sourceTree = "<group>";
+		};
+		7A6B101924A4000000000000 /* Textures */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B041024AB000000000000 /* Planets */,
+			);
+			path = Textures;
+			sourceTree = "<group>";
+		};
+		7A6B102024A6000000000000 /* Navigation */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02AD24A3176300535EA4 /* LunaTab.swift */,
+			);
+			path = Navigation;
+			sourceTree = "<group>";
+		};
+		7A6B102124A6000000000000 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B102224A6000000000000 /* UI */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		7A6B102224A6000000000000 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B102324A6000000000000 /* DesignSystem */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		7A6B102324A6000000000000 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02B024A3176B00535EA4 /* DesignSystem.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		7A6B102424A6000000000000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B033124A7000000000000 /* OnboardingFlowView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		7A6B102524A6000000000000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02B624A317BC00535EA4 /* HomeView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		7A6B102624A6000000000000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02B924A317C600535EA4 /* ExploreView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 		7A6B102724A6000000000000 /* Models */ = {
@@ -341,17 +412,6 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		7A6B101424A4000000000000 /* Body */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B102A24A6000000000000 /* Models */,
-				7A6B102B24A6000000000000 /* Repositories */,
-				7A6B103424A8000000000000 /* Views */,
-				7A6B102C24A6000000000000 /* Resources */,
-			);
-			path = Body;
-			sourceTree = "<group>";
-		};
 		7A6B102A24A6000000000000 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -370,37 +430,12 @@
 			path = Repositories;
 			sourceTree = "<group>";
 		};
-		7A6B103424A8000000000000 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B033F24A8000000000000 /* BodyDetailView.swift */,
-				7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
 		7A6B102C24A6000000000000 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
 				7A6B030924A5000000000000 /* celestial_bodies.json */,
 			);
 			path = Resources;
-			sourceTree = "<group>";
-		};
-		7A6B101624A4000000000000 /* Settings */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B103124A6000000000000 /* Views */,
-			);
-			path = Settings;
-			sourceTree = "<group>";
-		};
-		7A6B103124A6000000000000 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B02BD24A317C600535EA4 /* SettingsView.swift */,
-			);
-			path = Views;
 			sourceTree = "<group>";
 		};
 		7A6B102D24A6000000000000 /* User */ = {
@@ -438,72 +473,37 @@
 			path = Persistence;
 			sourceTree = "<group>";
 		};
-		7A6B101724A4000000000000 /* Resources */ = {
+		7A6B103124A6000000000000 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				7A6B028A24A3156B00535EA4 /* Assets.xcassets */,
-				7A6B101824A4000000000000 /* Assets */,
-				7A6B101924A4000000000000 /* Textures */,
-				7A6B041524AB000000000000 /* Models */,
-				7A6B041624AB000000000000 /* AssetNotes */,
+				7A6B02BD24A317C600535EA4 /* SettingsView.swift */,
 			);
-			path = Resources;
+			path = Views;
 			sourceTree = "<group>";
 		};
-		7A6B101824A4000000000000 /* Assets */ = {
+		7A6B103224A7000000000000 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				7A6B033024A7000000000000 /* OnboardingViewModel.swift */,
 			);
-			path = Assets;
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
-		7A6B101924A4000000000000 /* Textures */ = {
+		7A6B103324A8000000000000 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				7A6B041024AB000000000000 /* Planets */,
+				7A6B033E24A8000000000000 /* ExploreViewModel.swift */,
 			);
-			path = Textures;
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
-		7A6B041524AB000000000000 /* Models */ = {
+		7A6B103424A8000000000000 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				7A6B041324AB000000000000 /* Moons */,
-				7A6B041224AB000000000000 /* Satellites */,
+				7A6B033F24A8000000000000 /* BodyDetailView.swift */,
+				7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */,
 			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		7A6B041624AB000000000000 /* AssetNotes */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B041424AB000000000000 /* ASSET_SOURCES.md */,
-			);
-			path = AssetNotes;
-			sourceTree = "<group>";
-		};
-		7A6B102124A6000000000000 /* Shared */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B102224A6000000000000 /* UI */,
-			);
-			path = Shared;
-			sourceTree = "<group>";
-		};
-		7A6B102224A6000000000000 /* UI */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B102324A6000000000000 /* DesignSystem */,
-			);
-			path = UI;
-			sourceTree = "<group>";
-		};
-		7A6B102324A6000000000000 /* DesignSystem */ = {
-			isa = PBXGroup;
-			children = (
-				7A6B02B024A3176B00535EA4 /* DesignSystem.swift */,
-			);
-			path = DesignSystem;
+			path = Views;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -806,7 +806,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1;
-				PRODUCT_BUNDLE_IDENTIFIER = novapro.Luna;
+				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.Luna;
 				PRODUCT_NAME = Luna;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
@@ -832,7 +832,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1;
-				PRODUCT_BUNDLE_IDENTIFIER = novapro.Luna;
+				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.Luna;
 				PRODUCT_NAME = Luna;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;

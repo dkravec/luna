@@ -26,11 +26,11 @@ struct SolarSystemVisualSceneView: View {
 
     private var sceneCaption: some View {
         Text(settings.scaleMode == .compressedDistance ? "Compressed distance view" : settings.scaleMode.title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white.opacity(0.82))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(.black.opacity(0.34), in: Capsule(style: .continuous))
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.90))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(.black.opacity(0.42), in: Capsule(style: .continuous))
             .padding(12)
     }
 }
@@ -156,10 +156,11 @@ private enum SolarSystemSceneFactory {
 
         if placement.body.type == .satellite {
             node = satelliteNode()
+            let satelliteScale = max(1, placement.displayRadius * 8)
             node.scale = SCNVector3(
-                placement.displayRadius * 8,
-                placement.displayRadius * 8,
-                placement.displayRadius * 8
+                satelliteScale,
+                satelliteScale,
+                satelliteScale
             )
         } else {
             let sphere = SCNSphere(radius: CGFloat(placement.displayRadius))
@@ -183,18 +184,16 @@ private enum SolarSystemSceneFactory {
         panelMaterial.diffuse.contents = platformColor(red: 0.12, green: 0.28, blue: 0.58, alpha: 1)
         panelMaterial.emission.contents = platformColor(red: 0.03, green: 0.08, blue: 0.18, alpha: 1)
 
-        let leftPanel = SCNPlane(width: 0.22, height: 0.08)
+        let leftPanel = SCNBox(width: 0.22, height: 0.008, length: 0.08, chamferRadius: 0.002)
         leftPanel.firstMaterial = panelMaterial
         let leftNode = SCNNode(geometry: leftPanel)
         leftNode.position.x = -0.18
-        leftNode.eulerAngles.y = .pi / 2
         root.addChildNode(leftNode)
 
-        let rightPanel = SCNPlane(width: 0.22, height: 0.08)
+        let rightPanel = SCNBox(width: 0.22, height: 0.008, length: 0.08, chamferRadius: 0.002)
         rightPanel.firstMaterial = panelMaterial
         let rightNode = SCNNode(geometry: rightPanel)
         rightNode.position.x = 0.18
-        rightNode.eulerAngles.y = -.pi / 2
         root.addChildNode(rightNode)
 
         return root
@@ -251,14 +250,16 @@ private enum SolarSystemSceneFactory {
     }
 
     private static func labelNode(for body: CelestialBody, radius: Float) -> SCNNode {
-        let text = SCNText(string: body.name, extrusionDepth: 0.002)
-        text.font = .systemFont(ofSize: 0.28, weight: .semibold)
-        text.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.86)
+        let text = SCNText(string: body.name, extrusionDepth: 0.006)
+        text.font = .systemFont(ofSize: 1.0, weight: .bold)
+        text.flatness = 0.02
+        text.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.92)
+        text.firstMaterial?.emission.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.18)
         text.alignmentMode = CATextLayerAlignmentMode.center.rawValue
 
         let node = SCNNode(geometry: text)
-        node.scale = SCNVector3(0.025, 0.025, 0.025)
-        node.position = SCNVector3(0, radius + 0.28, 0)
+        node.scale = SCNVector3(0.32, 0.32, 0.32)
+        node.position = SCNVector3(0, radius + max(0.85, radius * 0.55), 0)
         node.constraints = [SCNBillboardConstraint()]
 
         let (minVector, maxVector) = text.boundingBox

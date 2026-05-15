@@ -37,7 +37,7 @@ enum ExperienceSceneLayout {
                 body: body,
                 position: position,
                 displayRadius: displayRadius(for: body, settings: settings),
-                orbitRadius: orbitRadius(for: body, settings: settings, maxSunDistance: maxSunDistance)
+                orbitRadius: orbitRadius(for: body, position: position, settings: settings)
             )
 
             placements.append(placement)
@@ -94,8 +94,8 @@ enum ExperienceSceneLayout {
 
     private static func orbitRadius(
         for body: CelestialBody,
-        settings: SolarSystemSceneSettings,
-        maxSunDistance: Double
+        position: SIMD3<Float>,
+        settings: SolarSystemSceneSettings
     ) -> Float? {
         guard settings.showOrbits,
               body.parentBodyId == nil || body.parentBodyId == "sun",
@@ -103,18 +103,7 @@ enum ExperienceSceneLayout {
             return nil
         }
 
-        switch settings.scaleMode {
-        case .educational, .custom:
-            return nil
-        case .compressedDistance, .trueDistance:
-            return abs(position(
-                for: body,
-                bodies: [body],
-                parentPositions: [:],
-                settings: settings,
-                maxSunDistance: maxSunDistance
-            ).x)
-        }
+        return abs(position.x)
     }
 
     private static func displayRadius(
@@ -125,15 +114,15 @@ enum ExperienceSceneLayout {
 
         switch body.type {
         case .star:
-            return min(0.88, 0.54 * pow(multiplier, 0.22))
+            return min(0.76, 0.48 * pow(multiplier, 0.18))
         case .satellite:
-            return min(0.22, 0.04 * pow(multiplier, 0.50))
+            return min(0.18, 0.035 * pow(multiplier, 0.42))
         case .moon, .asteroid, .dwarfPlanet:
-            let baseRadius = max(0.055, Float(log10(body.radiusKm + 10)) / 24)
-            return min(0.46, baseRadius * pow(multiplier, 0.45))
+            let baseRadius = max(0.048, Float(log10(body.radiusKm + 10)) / 27)
+            return min(0.36, baseRadius * pow(multiplier, 0.36))
         case .planet:
-            let baseRadius = max(0.095, Float(log10(body.radiusKm + 10)) / 22)
-            return min(0.74, baseRadius * pow(multiplier, 0.42))
+            let baseRadius = max(0.082, Float(log10(body.radiusKm + 10)) / 25)
+            return min(0.58, baseRadius * pow(multiplier, 0.34))
         }
     }
 
