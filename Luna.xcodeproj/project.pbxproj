@@ -53,6 +53,10 @@
 		7A6B033324A7000000000000 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033024A7000000000000 /* OnboardingViewModel.swift */; };
 		7A6B033424A7000000000000 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033124A7000000000000 /* OnboardingFlowView.swift */; };
 		7A6B033524A7000000000000 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033124A7000000000000 /* OnboardingFlowView.swift */; };
+		7A6B034024A8000000000000 /* ExploreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033E24A8000000000000 /* ExploreViewModel.swift */; };
+		7A6B034124A8000000000000 /* ExploreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033E24A8000000000000 /* ExploreViewModel.swift */; };
+		7A6B034224A8000000000000 /* BodyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033F24A8000000000000 /* BodyDetailView.swift */; };
+		7A6B034324A8000000000000 /* BodyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033F24A8000000000000 /* BodyDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -85,6 +89,8 @@
 		7A6B030924A5000000000000 /* celestial_bodies.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = celestial_bodies.json; sourceTree = "<group>"; };
 		7A6B033024A7000000000000 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
 		7A6B033124A7000000000000 /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
+		7A6B033E24A8000000000000 /* ExploreViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreViewModel.swift; sourceTree = "<group>"; };
+		7A6B033F24A8000000000000 /* BodyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyDetailView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -263,9 +269,18 @@
 		7A6B101324A4000000000000 /* Explore */ = {
 			isa = PBXGroup;
 			children = (
+				7A6B103324A8000000000000 /* ViewModels */,
 				7A6B102624A6000000000000 /* Views */,
 			);
 			path = Explore;
+			sourceTree = "<group>";
+		};
+		7A6B103324A8000000000000 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B033E24A8000000000000 /* ExploreViewModel.swift */,
+			);
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
 		7A6B102624A6000000000000 /* Views */ = {
@@ -306,6 +321,7 @@
 			children = (
 				7A6B102A24A6000000000000 /* Models */,
 				7A6B102B24A6000000000000 /* Repositories */,
+				7A6B103424A8000000000000 /* Views */,
 				7A6B102C24A6000000000000 /* Resources */,
 			);
 			path = Body;
@@ -327,6 +343,14 @@
 				7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */,
 			);
 			path = Repositories;
+			sourceTree = "<group>";
+		};
+		7A6B103424A8000000000000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B033F24A8000000000000 /* BodyDetailView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 		7A6B102C24A6000000000000 /* Resources */ = {
@@ -556,6 +580,8 @@
 				7A6B02C024A317C600535EA4 /* SettingsView.swift in Sources */,
 				7A6B033224A7000000000000 /* OnboardingViewModel.swift in Sources */,
 				7A6B033424A7000000000000 /* OnboardingFlowView.swift in Sources */,
+				7A6B034024A8000000000000 /* ExploreViewModel.swift in Sources */,
+				7A6B034224A8000000000000 /* BodyDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -584,6 +610,8 @@
 				7A6B02C124A317C600535EA4 /* SettingsView.swift in Sources */,
 				7A6B033324A7000000000000 /* OnboardingViewModel.swift in Sources */,
 				7A6B033524A7000000000000 /* OnboardingFlowView.swift in Sources */,
+				7A6B034124A8000000000000 /* ExploreViewModel.swift in Sources */,
+				7A6B034324A8000000000000 /* BodyDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
