@@ -7,66 +7,123 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		87F4F41C2394655C00EDA388 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F4F41B2394655C00EDA388 /* AppDelegate.swift */; };
-		87F4F41E2394655C00EDA388 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F4F41D2394655C00EDA388 /* SceneDelegate.swift */; };
-		87F4F4202394655C00EDA388 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F4F41F2394655C00EDA388 /* ViewController.swift */; };
-		87F4F4232394655C00EDA388 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 87F4F4212394655C00EDA388 /* Main.storyboard */; };
-		87F4F4252394656300EDA388 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 87F4F4242394656300EDA388 /* Assets.xcassets */; };
-		87F4F4282394656300EDA388 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 87F4F4262394656300EDA388 /* LaunchScreen.storyboard */; };
-		87F4F4332394656300EDA388 /* SpaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F4F4322394656300EDA388 /* SpaceTests.swift */; };
-		87F4F43E2394656300EDA388 /* SpaceUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F4F43D2394656300EDA388 /* SpaceUITests.swift */; };
+		7A6B029B24A3156B00535EA4 /* LunaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028824A3156800535EA4 /* LunaApp.swift */; };
+		7A6B029C24A3156B00535EA4 /* LunaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028824A3156800535EA4 /* LunaApp.swift */; };
+		7A6B029D24A3156B00535EA4 /* LunaRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028924A3156800535EA4 /* LunaRootView.swift */; };
+		7A6B029E24A3156B00535EA4 /* LunaRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028924A3156800535EA4 /* LunaRootView.swift */; };
+		7A6B029F24A3156B00535EA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B028A24A3156B00535EA4 /* Assets.xcassets */; };
+		7A6B02A024A3156B00535EA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B028A24A3156B00535EA4 /* Assets.xcassets */; };
+		7A6B02AB24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */; };
+		7A6B02AC24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */; };
+		7A6B02AE24A3176300535EA4 /* LunaTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AD24A3176300535EA4 /* LunaTab.swift */; };
+		7A6B02AF24A3176300535EA4 /* LunaTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AD24A3176300535EA4 /* LunaTab.swift */; };
+		7A6B02B124A3176C00535EA4 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B024A3176B00535EA4 /* DesignSystem.swift */; };
+		7A6B02B224A3176C00535EA4 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B024A3176B00535EA4 /* DesignSystem.swift */; };
+		7A6B02B424A317B100535EA4 /* LunaPersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */; };
+		7A6B02B524A317B100535EA4 /* LunaPersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */; };
+		7A6B02B724A317BC00535EA4 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B624A317BC00535EA4 /* HomeView.swift */; };
+		7A6B02B824A317BC00535EA4 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B624A317BC00535EA4 /* HomeView.swift */; };
+		7A6B02BA24A317C600535EA4 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B924A317C600535EA4 /* ExploreView.swift */; };
+		7A6B02BB24A317C600535EA4 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B924A317C600535EA4 /* ExploreView.swift */; };
+		7A6B02BE24A317C600535EA4 /* ExperienceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BC24A317C600535EA4 /* ExperienceView.swift */; };
+		7A6B02BF24A317C600535EA4 /* ExperienceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BC24A317C600535EA4 /* ExperienceView.swift */; };
+		7A6B02C024A317C600535EA4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BD24A317C600535EA4 /* SettingsView.swift */; };
+		7A6B02C124A317C600535EA4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BD24A317C600535EA4 /* SettingsView.swift */; };
+		7A6B031024A5000000000000 /* AppAppearancePreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030024A5000000000000 /* AppAppearancePreference.swift */; };
+		7A6B031124A5000000000000 /* AppAppearancePreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030024A5000000000000 /* AppAppearancePreference.swift */; };
+		7A6B031224A5000000000000 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030124A5000000000000 /* UserProfile.swift */; };
+		7A6B031324A5000000000000 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030124A5000000000000 /* UserProfile.swift */; };
+		7A6B031424A5000000000000 /* CelestialBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030224A5000000000000 /* CelestialBody.swift */; };
+		7A6B031524A5000000000000 /* CelestialBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030224A5000000000000 /* CelestialBody.swift */; };
+		7A6B031624A5000000000000 /* SolarSystemSceneSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030324A5000000000000 /* SolarSystemSceneSettings.swift */; };
+		7A6B031724A5000000000000 /* SolarSystemSceneSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030324A5000000000000 /* SolarSystemSceneSettings.swift */; };
+		7A6B031824A5000000000000 /* UserProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030424A5000000000000 /* UserProfileRepository.swift */; };
+		7A6B031924A5000000000000 /* UserProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030424A5000000000000 /* UserProfileRepository.swift */; };
+		7A6B031A24A5000000000000 /* CoreDataUserProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030524A5000000000000 /* CoreDataUserProfileRepository.swift */; };
+		7A6B031B24A5000000000000 /* CoreDataUserProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030524A5000000000000 /* CoreDataUserProfileRepository.swift */; };
+		7A6B031C24A5000000000000 /* CelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030624A5000000000000 /* CelestialBodyRepository.swift */; };
+		7A6B031D24A5000000000000 /* CelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030624A5000000000000 /* CelestialBodyRepository.swift */; };
+		7A6B031E24A5000000000000 /* LocalCelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030724A5000000000000 /* LocalCelestialBodyRepository.swift */; };
+		7A6B031F24A5000000000000 /* LocalCelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030724A5000000000000 /* LocalCelestialBodyRepository.swift */; };
+		7A6B032024A5000000000000 /* RemoteCelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */; };
+		7A6B032124A5000000000000 /* RemoteCelestialBodyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */; };
+		7A6B032224A5000000000000 /* celestial_bodies.json in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B030924A5000000000000 /* celestial_bodies.json */; };
+		7A6B032324A5000000000000 /* celestial_bodies.json in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B030924A5000000000000 /* celestial_bodies.json */; };
+		7A6B033224A7000000000000 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033024A7000000000000 /* OnboardingViewModel.swift */; };
+		7A6B033324A7000000000000 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033024A7000000000000 /* OnboardingViewModel.swift */; };
+		7A6B033424A7000000000000 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033124A7000000000000 /* OnboardingFlowView.swift */; };
+		7A6B033524A7000000000000 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033124A7000000000000 /* OnboardingFlowView.swift */; };
+		7A6B034024A8000000000000 /* ExploreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033E24A8000000000000 /* ExploreViewModel.swift */; };
+		7A6B034124A8000000000000 /* ExploreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033E24A8000000000000 /* ExploreViewModel.swift */; };
+		7A6B034224A8000000000000 /* BodyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033F24A8000000000000 /* BodyDetailView.swift */; };
+		7A6B034324A8000000000000 /* BodyDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B033F24A8000000000000 /* BodyDetailView.swift */; };
+		7A6B040024AB000000000000 /* Planets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041024AB000000000000 /* Planets */; };
+		7A6B040124AB000000000000 /* Planets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041024AB000000000000 /* Planets */; };
+		7A6B040224AB000000000000 /* Satellites in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041224AB000000000000 /* Satellites */; };
+		7A6B040324AB000000000000 /* Satellites in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041224AB000000000000 /* Satellites */; };
+		7A6B040424AB000000000000 /* Moons in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041324AB000000000000 /* Moons */; };
+		7A6B040524AB000000000000 /* Moons in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041324AB000000000000 /* Moons */; };
+		7A6B050124AC000000000000 /* ExperienceSceneLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050024AC000000000000 /* ExperienceSceneLayout.swift */; };
+		7A6B050224AC000000000000 /* ExperienceSceneLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050024AC000000000000 /* ExperienceSceneLayout.swift */; };
+		7A6B050424AC000000000000 /* SolarSystemVisualSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050324AC000000000000 /* SolarSystemVisualSceneView.swift */; };
+		7A6B050524AC000000000000 /* SolarSystemVisualSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050324AC000000000000 /* SolarSystemVisualSceneView.swift */; };
+		7A6B050724AC000000000000 /* LunaARSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050624AC000000000000 /* LunaARSceneView.swift */; };
+		7A6B050824AC000000000000 /* LunaARSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050624AC000000000000 /* LunaARSceneView.swift */; };
+		7A6B051124AC100000000000 /* BodyPreviewSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */; };
+		7A6B051224AC100000000000 /* BodyPreviewSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		87F4F42F2394656300EDA388 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 87F4F4102394655C00EDA388 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 87F4F4172394655C00EDA388;
-			remoteInfo = Space;
-		};
-		87F4F43A2394656300EDA388 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 87F4F4102394655C00EDA388 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 87F4F4172394655C00EDA388;
-			remoteInfo = Space;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXFileReference section */
-		87F4F4182394655C00EDA388 /* Luna.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luna.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		87F4F41B2394655C00EDA388 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		87F4F41D2394655C00EDA388 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		87F4F41F2394655C00EDA388 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
-		87F4F4222394655C00EDA388 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		87F4F4242394656300EDA388 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		87F4F4272394656300EDA388 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		87F4F4292394656300EDA388 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		87F4F42E2394656300EDA388 /* LunaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LunaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		87F4F4322394656300EDA388 /* SpaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpaceTests.swift; sourceTree = "<group>"; };
-		87F4F4342394656300EDA388 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		87F4F4392394656300EDA388 /* LunaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LunaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		87F4F43D2394656300EDA388 /* SpaceUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpaceUITests.swift; sourceTree = "<group>"; };
-		87F4F43F2394656300EDA388 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7A6B028824A3156800535EA4 /* LunaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaApp.swift; sourceTree = "<group>"; };
+		7A6B028924A3156800535EA4 /* LunaRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaRootView.swift; sourceTree = "<group>"; };
+		7A6B028A24A3156B00535EA4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7A6B028F24A3156B00535EA4 /* Luna.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luna.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A6B029224A3156B00535EA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7A6B029724A3156B00535EA4 /* Luna.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luna.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A6B029924A3156B00535EA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7A6B029A24A3156B00535EA4 /* Luna.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Luna.entitlements; sourceTree = "<group>"; };
+		7A6B02A924A316F700535EA4 /* Luna.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Luna.entitlements; sourceTree = "<group>"; };
+		7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaAdaptiveShell.swift; sourceTree = "<group>"; };
+		7A6B02AD24A3176300535EA4 /* LunaTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaTab.swift; sourceTree = "<group>"; };
+		7A6B02B024A3176B00535EA4 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaPersistenceController.swift; sourceTree = "<group>"; };
+		7A6B02B624A317BC00535EA4 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		7A6B02B924A317C600535EA4 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
+		7A6B02BC24A317C600535EA4 /* ExperienceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceView.swift; sourceTree = "<group>"; };
+		7A6B02BD24A317C600535EA4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		7A6B030024A5000000000000 /* AppAppearancePreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAppearancePreference.swift; sourceTree = "<group>"; };
+		7A6B030124A5000000000000 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		7A6B030224A5000000000000 /* CelestialBody.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelestialBody.swift; sourceTree = "<group>"; };
+		7A6B030324A5000000000000 /* SolarSystemSceneSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarSystemSceneSettings.swift; sourceTree = "<group>"; };
+		7A6B030424A5000000000000 /* UserProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileRepository.swift; sourceTree = "<group>"; };
+		7A6B030524A5000000000000 /* CoreDataUserProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataUserProfileRepository.swift; sourceTree = "<group>"; };
+		7A6B030624A5000000000000 /* CelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelestialBodyRepository.swift; sourceTree = "<group>"; };
+		7A6B030724A5000000000000 /* LocalCelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCelestialBodyRepository.swift; sourceTree = "<group>"; };
+		7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCelestialBodyRepository.swift; sourceTree = "<group>"; };
+		7A6B030924A5000000000000 /* celestial_bodies.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = celestial_bodies.json; sourceTree = "<group>"; };
+		7A6B033024A7000000000000 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
+		7A6B033124A7000000000000 /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
+		7A6B033E24A8000000000000 /* ExploreViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreViewModel.swift; sourceTree = "<group>"; };
+		7A6B033F24A8000000000000 /* BodyDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyDetailView.swift; sourceTree = "<group>"; };
+		7A6B041024AB000000000000 /* Planets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Planets; sourceTree = "<group>"; };
+		7A6B041224AB000000000000 /* Satellites */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Satellites; sourceTree = "<group>"; };
+		7A6B041324AB000000000000 /* Moons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Moons; sourceTree = "<group>"; };
+		7A6B041424AB000000000000 /* ASSET_SOURCES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ASSET_SOURCES.md; sourceTree = "<group>"; };
+		7A6B050024AC000000000000 /* ExperienceSceneLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceSceneLayout.swift; sourceTree = "<group>"; };
+		7A6B050324AC000000000000 /* SolarSystemVisualSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarSystemVisualSceneView.swift; sourceTree = "<group>"; };
+		7A6B050624AC000000000000 /* LunaARSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaARSceneView.swift; sourceTree = "<group>"; };
+		7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyPreviewSceneView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		87F4F4152394655C00EDA388 /* Frameworks */ = {
+		7A6B028C24A3156B00535EA4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		87F4F42B2394656300EDA388 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		87F4F4362394656300EDA388 /* Frameworks */ = {
+		7A6B029424A3156B00535EA4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -76,138 +133,434 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		87F4F40F2394655C00EDA388 = {
+		7A6B028224A3156800535EA4 = {
 			isa = PBXGroup;
 			children = (
-				87F4F41A2394655C00EDA388 /* Space */,
-				87F4F4312394656300EDA388 /* SpaceTests */,
-				87F4F43C2394656300EDA388 /* SpaceUITests */,
-				87F4F4192394655C00EDA388 /* Products */,
+				7A6B028724A3156800535EA4 /* Luna */,
+				7A6B029124A3156B00535EA4 /* iOS */,
+				7A6B029824A3156B00535EA4 /* macOS */,
+				7A6B029024A3156B00535EA4 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		87F4F4192394655C00EDA388 /* Products */ = {
+		7A6B028724A3156800535EA4 /* Luna */ = {
 			isa = PBXGroup;
 			children = (
-				87F4F4182394655C00EDA388 /* Luna.app */,
-				87F4F42E2394656300EDA388 /* LunaTests.xctest */,
-				87F4F4392394656300EDA388 /* LunaUITests.xctest */,
+				7A6B100024A4000000000000 /* App */,
+				7A6B100124A4000000000000 /* Core */,
+				7A6B101024A4000000000000 /* Features */,
+				7A6B102124A6000000000000 /* Shared */,
+				7A6B101724A4000000000000 /* Resources */,
+			);
+			path = Luna;
+			sourceTree = "<group>";
+		};
+		7A6B029024A3156B00535EA4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B028F24A3156B00535EA4 /* Luna.app */,
+				7A6B029724A3156B00535EA4 /* Luna.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		87F4F41A2394655C00EDA388 /* Space */ = {
+		7A6B029124A3156B00535EA4 /* iOS */ = {
 			isa = PBXGroup;
 			children = (
-				87F4F41B2394655C00EDA388 /* AppDelegate.swift */,
-				87F4F41D2394655C00EDA388 /* SceneDelegate.swift */,
-				87F4F41F2394655C00EDA388 /* ViewController.swift */,
-				87F4F4212394655C00EDA388 /* Main.storyboard */,
-				87F4F4242394656300EDA388 /* Assets.xcassets */,
-				87F4F4262394656300EDA388 /* LaunchScreen.storyboard */,
-				87F4F4292394656300EDA388 /* Info.plist */,
+				7A6B02A924A316F700535EA4 /* Luna.entitlements */,
+				7A6B029224A3156B00535EA4 /* Info.plist */,
 			);
-			path = Space;
+			path = iOS;
 			sourceTree = "<group>";
 		};
-		87F4F4312394656300EDA388 /* SpaceTests */ = {
+		7A6B029824A3156B00535EA4 /* macOS */ = {
 			isa = PBXGroup;
 			children = (
-				87F4F4322394656300EDA388 /* SpaceTests.swift */,
-				87F4F4342394656300EDA388 /* Info.plist */,
+				7A6B029924A3156B00535EA4 /* Info.plist */,
+				7A6B029A24A3156B00535EA4 /* Luna.entitlements */,
 			);
-			path = SpaceTests;
+			path = macOS;
 			sourceTree = "<group>";
 		};
-		87F4F43C2394656300EDA388 /* SpaceUITests */ = {
+		7A6B041524AB000000000000 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				87F4F43D2394656300EDA388 /* SpaceUITests.swift */,
-				87F4F43F2394656300EDA388 /* Info.plist */,
+				7A6B041324AB000000000000 /* Moons */,
+				7A6B041224AB000000000000 /* Satellites */,
 			);
-			path = SpaceUITests;
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7A6B041624AB000000000000 /* AssetNotes */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B041424AB000000000000 /* ASSET_SOURCES.md */,
+			);
+			path = AssetNotes;
+			sourceTree = "<group>";
+		};
+		7A6B100024A4000000000000 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B028824A3156800535EA4 /* LunaApp.swift */,
+				7A6B028924A3156800535EA4 /* LunaRootView.swift */,
+				7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */,
+				7A6B102024A6000000000000 /* Navigation */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		7A6B100124A4000000000000 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B100724A4000000000000 /* Platform */,
+				7A6B100824A4000000000000 /* Persistence */,
+				7A6B100924A4000000000000 /* Utilities */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		7A6B100724A4000000000000 /* Platform */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Platform;
+			sourceTree = "<group>";
+		};
+		7A6B100824A4000000000000 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		7A6B100924A4000000000000 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		7A6B101024A4000000000000 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B101124A4000000000000 /* Onboarding */,
+				7A6B101224A4000000000000 /* Home */,
+				7A6B101324A4000000000000 /* Explore */,
+				7A6B101524A4000000000000 /* Experience */,
+				7A6B101424A4000000000000 /* Body */,
+				7A6B102D24A6000000000000 /* User */,
+				7A6B101624A4000000000000 /* Settings */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		7A6B101124A4000000000000 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B103224A7000000000000 /* ViewModels */,
+				7A6B102424A6000000000000 /* Views */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		7A6B101224A4000000000000 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B102524A6000000000000 /* Views */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		7A6B101324A4000000000000 /* Explore */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B103324A8000000000000 /* ViewModels */,
+				7A6B102624A6000000000000 /* Views */,
+			);
+			path = Explore;
+			sourceTree = "<group>";
+		};
+		7A6B101424A4000000000000 /* Body */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B102A24A6000000000000 /* Models */,
+				7A6B102B24A6000000000000 /* Repositories */,
+				7A6B103424A8000000000000 /* Views */,
+				7A6B102C24A6000000000000 /* Resources */,
+			);
+			path = Body;
+			sourceTree = "<group>";
+		};
+		7A6B101524A4000000000000 /* Experience */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B102724A6000000000000 /* Models */,
+				7A6B102824A6000000000000 /* Views */,
+			);
+			path = Experience;
+			sourceTree = "<group>";
+		};
+		7A6B101624A4000000000000 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B103124A6000000000000 /* Views */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		7A6B101724A4000000000000 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B028A24A3156B00535EA4 /* Assets.xcassets */,
+				7A6B101824A4000000000000 /* Assets */,
+				7A6B101924A4000000000000 /* Textures */,
+				7A6B041524AB000000000000 /* Models */,
+				7A6B041624AB000000000000 /* AssetNotes */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		7A6B101824A4000000000000 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Assets;
+			sourceTree = "<group>";
+		};
+		7A6B101924A4000000000000 /* Textures */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B041024AB000000000000 /* Planets */,
+			);
+			path = Textures;
+			sourceTree = "<group>";
+		};
+		7A6B102024A6000000000000 /* Navigation */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02AD24A3176300535EA4 /* LunaTab.swift */,
+			);
+			path = Navigation;
+			sourceTree = "<group>";
+		};
+		7A6B102124A6000000000000 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B102224A6000000000000 /* UI */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		7A6B102224A6000000000000 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B102324A6000000000000 /* DesignSystem */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		7A6B102324A6000000000000 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02B024A3176B00535EA4 /* DesignSystem.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		7A6B102424A6000000000000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B033124A7000000000000 /* OnboardingFlowView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		7A6B102524A6000000000000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02B624A317BC00535EA4 /* HomeView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		7A6B102624A6000000000000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02B924A317C600535EA4 /* ExploreView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		7A6B102724A6000000000000 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B030324A5000000000000 /* SolarSystemSceneSettings.swift */,
+				7A6B050024AC000000000000 /* ExperienceSceneLayout.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7A6B102824A6000000000000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02BC24A317C600535EA4 /* ExperienceView.swift */,
+				7A6B050324AC000000000000 /* SolarSystemVisualSceneView.swift */,
+				7A6B050624AC000000000000 /* LunaARSceneView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		7A6B102A24A6000000000000 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B030224A5000000000000 /* CelestialBody.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7A6B102B24A6000000000000 /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B030624A5000000000000 /* CelestialBodyRepository.swift */,
+				7A6B030724A5000000000000 /* LocalCelestialBodyRepository.swift */,
+				7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		7A6B102C24A6000000000000 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B030924A5000000000000 /* celestial_bodies.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		7A6B102D24A6000000000000 /* User */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B102E24A6000000000000 /* Models */,
+				7A6B102F24A6000000000000 /* Repositories */,
+				7A6B103024A6000000000000 /* Persistence */,
+			);
+			path = User;
+			sourceTree = "<group>";
+		};
+		7A6B102E24A6000000000000 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B030024A5000000000000 /* AppAppearancePreference.swift */,
+				7A6B030124A5000000000000 /* UserProfile.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7A6B102F24A6000000000000 /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B030424A5000000000000 /* UserProfileRepository.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		7A6B103024A6000000000000 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B030524A5000000000000 /* CoreDataUserProfileRepository.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		7A6B103124A6000000000000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B02BD24A317C600535EA4 /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		7A6B103224A7000000000000 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B033024A7000000000000 /* OnboardingViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		7A6B103324A8000000000000 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B033E24A8000000000000 /* ExploreViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		7A6B103424A8000000000000 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B033F24A8000000000000 /* BodyDetailView.swift */,
+				7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		87F4F4172394655C00EDA388 /* Luna */ = {
+		7A6B028E24A3156B00535EA4 /* Luna */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 87F4F4422394656300EDA388 /* Build configuration list for PBXNativeTarget "Luna" */;
+			buildConfigurationList = 7A6B02A324A3156B00535EA4 /* Build configuration list for PBXNativeTarget "Luna" */;
 			buildPhases = (
-				87F4F4142394655C00EDA388 /* Sources */,
-				87F4F4152394655C00EDA388 /* Frameworks */,
-				87F4F4162394655C00EDA388 /* Resources */,
+				7A6B028B24A3156B00535EA4 /* Sources */,
+				7A6B028C24A3156B00535EA4 /* Frameworks */,
+				7A6B028D24A3156B00535EA4 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			name = Luna;
-			productName = Space;
-			productReference = 87F4F4182394655C00EDA388 /* Luna.app */;
+			productName = Luna;
+			productReference = 7A6B028F24A3156B00535EA4 /* Luna.app */;
 			productType = "com.apple.product-type.application";
 		};
-		87F4F42D2394656300EDA388 /* LunaTests */ = {
+		7A6B029624A3156B00535EA4 /* Luna macOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 87F4F4452394656300EDA388 /* Build configuration list for PBXNativeTarget "LunaTests" */;
+			buildConfigurationList = 7A6B02A624A3156B00535EA4 /* Build configuration list for PBXNativeTarget "Luna macOS" */;
 			buildPhases = (
-				87F4F42A2394656300EDA388 /* Sources */,
-				87F4F42B2394656300EDA388 /* Frameworks */,
-				87F4F42C2394656300EDA388 /* Resources */,
+				7A6B029324A3156B00535EA4 /* Sources */,
+				7A6B029424A3156B00535EA4 /* Frameworks */,
+				7A6B029524A3156B00535EA4 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				87F4F4302394656300EDA388 /* PBXTargetDependency */,
 			);
-			name = LunaTests;
-			productName = SpaceTests;
-			productReference = 87F4F42E2394656300EDA388 /* LunaTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		87F4F4382394656300EDA388 /* LunaUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 87F4F4482394656300EDA388 /* Build configuration list for PBXNativeTarget "LunaUITests" */;
-			buildPhases = (
-				87F4F4352394656300EDA388 /* Sources */,
-				87F4F4362394656300EDA388 /* Frameworks */,
-				87F4F4372394656300EDA388 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				87F4F43B2394656300EDA388 /* PBXTargetDependency */,
-			);
-			name = LunaUITests;
-			productName = SpaceUITests;
-			productReference = 87F4F4392394656300EDA388 /* LunaUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
+			name = "Luna macOS";
+			productName = Luna;
+			productReference = 7A6B029724A3156B00535EA4 /* Luna.app */;
+			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		87F4F4102394655C00EDA388 /* Project object */ = {
+		7A6B028324A3156800535EA4 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 1120;
-				LastUpgradeCheck = 1120;
-				ORGANIZATIONNAME = "NOVA Productions";
+				LastSwiftUpdateCheck = 1200;
+				LastUpgradeCheck = 1200;
 				TargetAttributes = {
-					87F4F4172394655C00EDA388 = {
-						CreatedOnToolsVersion = 11.2;
+					7A6B028E24A3156B00535EA4 = {
+						CreatedOnToolsVersion = 12.0;
 					};
-					87F4F42D2394656300EDA388 = {
-						CreatedOnToolsVersion = 11.2;
-						TestTargetID = 87F4F4172394655C00EDA388;
-					};
-					87F4F4382394656300EDA388 = {
-						CreatedOnToolsVersion = 11.2;
-						TestTargetID = 87F4F4172394655C00EDA388;
+					7A6B029624A3156B00535EA4 = {
+						CreatedOnToolsVersion = 12.0;
 					};
 				};
 			};
-			buildConfigurationList = 87F4F4132394655C00EDA388 /* Build configuration list for PBXProject "Luna" */;
+			buildConfigurationList = 7A6B028624A3156800535EA4 /* Build configuration list for PBXProject "Luna" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -215,108 +568,117 @@
 				en,
 				Base,
 			);
-			mainGroup = 87F4F40F2394655C00EDA388;
-			productRefGroup = 87F4F4192394655C00EDA388 /* Products */;
+			mainGroup = 7A6B028224A3156800535EA4;
+			productRefGroup = 7A6B029024A3156B00535EA4 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				87F4F4172394655C00EDA388 /* Luna */,
-				87F4F42D2394656300EDA388 /* LunaTests */,
-				87F4F4382394656300EDA388 /* LunaUITests */,
+				7A6B028E24A3156B00535EA4 /* Luna */,
+				7A6B029624A3156B00535EA4 /* Luna macOS */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		87F4F4162394655C00EDA388 /* Resources */ = {
+		7A6B028D24A3156B00535EA4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				87F4F4282394656300EDA388 /* LaunchScreen.storyboard in Resources */,
-				87F4F4252394656300EDA388 /* Assets.xcassets in Resources */,
-				87F4F4232394655C00EDA388 /* Main.storyboard in Resources */,
+				7A6B029F24A3156B00535EA4 /* Assets.xcassets in Resources */,
+				7A6B040424AB000000000000 /* Moons in Resources */,
+				7A6B040024AB000000000000 /* Planets in Resources */,
+				7A6B040224AB000000000000 /* Satellites in Resources */,
+				7A6B032224A5000000000000 /* celestial_bodies.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		87F4F42C2394656300EDA388 /* Resources */ = {
+		7A6B029524A3156B00535EA4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		87F4F4372394656300EDA388 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+				7A6B02A024A3156B00535EA4 /* Assets.xcassets in Resources */,
+				7A6B040524AB000000000000 /* Moons in Resources */,
+				7A6B040124AB000000000000 /* Planets in Resources */,
+				7A6B040324AB000000000000 /* Satellites in Resources */,
+				7A6B032324A5000000000000 /* celestial_bodies.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		87F4F4142394655C00EDA388 /* Sources */ = {
+		7A6B028B24A3156B00535EA4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				87F4F4202394655C00EDA388 /* ViewController.swift in Sources */,
-				87F4F41C2394655C00EDA388 /* AppDelegate.swift in Sources */,
-				87F4F41E2394655C00EDA388 /* SceneDelegate.swift in Sources */,
+				7A6B029B24A3156B00535EA4 /* LunaApp.swift in Sources */,
+				7A6B029D24A3156B00535EA4 /* LunaRootView.swift in Sources */,
+				7A6B02AB24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */,
+				7A6B02AE24A3176300535EA4 /* LunaTab.swift in Sources */,
+				7A6B02B124A3176C00535EA4 /* DesignSystem.swift in Sources */,
+				7A6B02B424A317B100535EA4 /* LunaPersistenceController.swift in Sources */,
+				7A6B031024A5000000000000 /* AppAppearancePreference.swift in Sources */,
+				7A6B031224A5000000000000 /* UserProfile.swift in Sources */,
+				7A6B031424A5000000000000 /* CelestialBody.swift in Sources */,
+				7A6B031624A5000000000000 /* SolarSystemSceneSettings.swift in Sources */,
+				7A6B031824A5000000000000 /* UserProfileRepository.swift in Sources */,
+				7A6B031A24A5000000000000 /* CoreDataUserProfileRepository.swift in Sources */,
+				7A6B031C24A5000000000000 /* CelestialBodyRepository.swift in Sources */,
+				7A6B031E24A5000000000000 /* LocalCelestialBodyRepository.swift in Sources */,
+				7A6B032024A5000000000000 /* RemoteCelestialBodyRepository.swift in Sources */,
+				7A6B02B724A317BC00535EA4 /* HomeView.swift in Sources */,
+				7A6B02BA24A317C600535EA4 /* ExploreView.swift in Sources */,
+				7A6B02BE24A317C600535EA4 /* ExperienceView.swift in Sources */,
+				7A6B02C024A317C600535EA4 /* SettingsView.swift in Sources */,
+				7A6B033224A7000000000000 /* OnboardingViewModel.swift in Sources */,
+				7A6B033424A7000000000000 /* OnboardingFlowView.swift in Sources */,
+				7A6B034024A8000000000000 /* ExploreViewModel.swift in Sources */,
+				7A6B034224A8000000000000 /* BodyDetailView.swift in Sources */,
+				7A6B050124AC000000000000 /* ExperienceSceneLayout.swift in Sources */,
+				7A6B050424AC000000000000 /* SolarSystemVisualSceneView.swift in Sources */,
+				7A6B050724AC000000000000 /* LunaARSceneView.swift in Sources */,
+				7A6B051124AC100000000000 /* BodyPreviewSceneView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		87F4F42A2394656300EDA388 /* Sources */ = {
+		7A6B029324A3156B00535EA4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				87F4F4332394656300EDA388 /* SpaceTests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		87F4F4352394656300EDA388 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				87F4F43E2394656300EDA388 /* SpaceUITests.swift in Sources */,
+				7A6B029C24A3156B00535EA4 /* LunaApp.swift in Sources */,
+				7A6B029E24A3156B00535EA4 /* LunaRootView.swift in Sources */,
+				7A6B02AC24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */,
+				7A6B02AF24A3176300535EA4 /* LunaTab.swift in Sources */,
+				7A6B02B224A3176C00535EA4 /* DesignSystem.swift in Sources */,
+				7A6B02B524A317B100535EA4 /* LunaPersistenceController.swift in Sources */,
+				7A6B031124A5000000000000 /* AppAppearancePreference.swift in Sources */,
+				7A6B031324A5000000000000 /* UserProfile.swift in Sources */,
+				7A6B031524A5000000000000 /* CelestialBody.swift in Sources */,
+				7A6B031724A5000000000000 /* SolarSystemSceneSettings.swift in Sources */,
+				7A6B031924A5000000000000 /* UserProfileRepository.swift in Sources */,
+				7A6B031B24A5000000000000 /* CoreDataUserProfileRepository.swift in Sources */,
+				7A6B031D24A5000000000000 /* CelestialBodyRepository.swift in Sources */,
+				7A6B031F24A5000000000000 /* LocalCelestialBodyRepository.swift in Sources */,
+				7A6B032124A5000000000000 /* RemoteCelestialBodyRepository.swift in Sources */,
+				7A6B02B824A317BC00535EA4 /* HomeView.swift in Sources */,
+				7A6B02BB24A317C600535EA4 /* ExploreView.swift in Sources */,
+				7A6B02BF24A317C600535EA4 /* ExperienceView.swift in Sources */,
+				7A6B02C124A317C600535EA4 /* SettingsView.swift in Sources */,
+				7A6B033324A7000000000000 /* OnboardingViewModel.swift in Sources */,
+				7A6B033524A7000000000000 /* OnboardingFlowView.swift in Sources */,
+				7A6B034124A8000000000000 /* ExploreViewModel.swift in Sources */,
+				7A6B034324A8000000000000 /* BodyDetailView.swift in Sources */,
+				7A6B050224AC000000000000 /* ExperienceSceneLayout.swift in Sources */,
+				7A6B050524AC000000000000 /* SolarSystemVisualSceneView.swift in Sources */,
+				7A6B050824AC000000000000 /* LunaARSceneView.swift in Sources */,
+				7A6B051224AC100000000000 /* BodyPreviewSceneView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin PBXTargetDependency section */
-		87F4F4302394656300EDA388 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 87F4F4172394655C00EDA388 /* Luna */;
-			targetProxy = 87F4F42F2394656300EDA388 /* PBXContainerItemProxy */;
-		};
-		87F4F43B2394656300EDA388 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 87F4F4172394655C00EDA388 /* Luna */;
-			targetProxy = 87F4F43A2394656300EDA388 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
-/* Begin PBXVariantGroup section */
-		87F4F4212394655C00EDA388 /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				87F4F4222394655C00EDA388 /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		87F4F4262394656300EDA388 /* LaunchScreen.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				87F4F4272394656300EDA388 /* Base */,
-			);
-			name = LaunchScreen.storyboard;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
-
 /* Begin XCBuildConfiguration section */
-		87F4F4402394656300EDA388 /* Debug */ = {
+		7A6B02A124A3156B00535EA4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -342,6 +704,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -366,17 +729,15 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
 		};
-		87F4F4412394656300EDA388 /* Release */ = {
+		7A6B02A224A3156B00535EA4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -402,6 +763,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -420,178 +782,149 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		7A6B02A424A3156B00535EA4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iOS/Luna.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 14;
+				DEVELOPMENT_TEAM = VHCWBN8GY3;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.Luna;
+				PRODUCT_NAME = Luna;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7A6B02A524A3156B00535EA4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iOS/Luna.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 14;
+				DEVELOPMENT_TEAM = VHCWBN8GY3;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.Luna;
+				PRODUCT_NAME = Luna;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
-		87F4F4432394656300EDA388 /* Debug */ = {
+		7A6B02A724A3156B00535EA4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = macOS/Luna.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12.2;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = VHCWBN8GY3;
-				INFOPLIST_FILE = Space/Info.plist;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = macOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/Frameworks",
+					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = novapro.Space;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = novapro.Luna;
 				PRODUCT_NAME = Luna;
+				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
-		87F4F4442394656300EDA388 /* Release */ = {
+		7A6B02A824A3156B00535EA4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = macOS/Luna.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12.2;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = VHCWBN8GY3;
-				INFOPLIST_FILE = Space/Info.plist;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = macOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/Frameworks",
+					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = novapro.Space;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = novapro.Luna;
 				PRODUCT_NAME = Luna;
+				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
-		87F4F4462394656300EDA388 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = VBY3L3W5ZA;
-				INFOPLIST_FILE = SpaceTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.NOVA-Productions.SpaceTests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Luna.app/Luna";
-			};
-			name = Debug;
-		};
-		87F4F4472394656300EDA388 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = VBY3L3W5ZA;
-				INFOPLIST_FILE = SpaceTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.NOVA-Productions.SpaceTests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Luna.app/Luna";
-			};
-			name = Release;
-		};
-		87F4F4492394656300EDA388 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = VBY3L3W5ZA;
-				INFOPLIST_FILE = SpaceUITests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.NOVA-Productions.SpaceUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Space;
-			};
-			name = Debug;
-		};
-		87F4F44A2394656300EDA388 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = VBY3L3W5ZA;
-				INFOPLIST_FILE = SpaceUITests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.NOVA-Productions.SpaceUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Space;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		87F4F4132394655C00EDA388 /* Build configuration list for PBXProject "Luna" */ = {
+		7A6B028624A3156800535EA4 /* Build configuration list for PBXProject "Luna" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				87F4F4402394656300EDA388 /* Debug */,
-				87F4F4412394656300EDA388 /* Release */,
+				7A6B02A124A3156B00535EA4 /* Debug */,
+				7A6B02A224A3156B00535EA4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		87F4F4422394656300EDA388 /* Build configuration list for PBXNativeTarget "Luna" */ = {
+		7A6B02A324A3156B00535EA4 /* Build configuration list for PBXNativeTarget "Luna" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				87F4F4432394656300EDA388 /* Debug */,
-				87F4F4442394656300EDA388 /* Release */,
+				7A6B02A424A3156B00535EA4 /* Debug */,
+				7A6B02A524A3156B00535EA4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		87F4F4452394656300EDA388 /* Build configuration list for PBXNativeTarget "LunaTests" */ = {
+		7A6B02A624A3156B00535EA4 /* Build configuration list for PBXNativeTarget "Luna macOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				87F4F4462394656300EDA388 /* Debug */,
-				87F4F4472394656300EDA388 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		87F4F4482394656300EDA388 /* Build configuration list for PBXNativeTarget "LunaUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				87F4F4492394656300EDA388 /* Debug */,
-				87F4F44A2394656300EDA388 /* Release */,
+				7A6B02A724A3156B00535EA4 /* Debug */,
+				7A6B02A824A3156B00535EA4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 87F4F4102394655C00EDA388 /* Project object */;
+	rootObject = 7A6B028324A3156800535EA4 /* Project object */;
 }
