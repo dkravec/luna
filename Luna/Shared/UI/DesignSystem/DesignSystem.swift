@@ -58,6 +58,7 @@ enum Spacing {
     static let screenHorizontal: CGFloat = 16
     static let screenVertical: CGFloat = 12
     static let screenBottom: CGFloat = 32
+    static let customTabBarBottomReserve: CGFloat = 80
     static let section: CGFloat = 12
     static let card: CGFloat = 14
 }
@@ -413,11 +414,11 @@ extension View {
     }
 
     func screenContentPadding() -> some View {
-        frame(maxWidth: 600, alignment: .leading)
-            .padding(.horizontal, Spacing.screenHorizontal)
-            .padding(.top, Spacing.screenVertical)
-            .padding(.bottom, Spacing.screenBottom)
-            .frame(maxWidth: .infinity, alignment: .center)
+        modifier(ScreenContentPaddingModifier())
+    }
+
+    func lunaCustomTabBarBottomReserve(_ isActive: Bool = true) -> some View {
+        environment(\.lunaCustomTabBarReserveIsActive, isActive)
     }
 
     func primaryActionButton() -> some View {
@@ -428,6 +429,32 @@ extension View {
     func secondaryActionButton() -> some View {
         buttonStyle(ActionButtonStyle(emphasis: .secondary))
             .hapticTap()
+    }
+}
+
+private struct ScreenContentPaddingModifier: ViewModifier {
+    @Environment(\.lunaCustomTabBarReserveIsActive) private var customTabBarReserveIsActive
+
+    func body(content: Content) -> some View {
+        let bottomReserve = customTabBarReserveIsActive ? Spacing.customTabBarBottomReserve : 0
+
+        content
+            .frame(maxWidth: 600, alignment: .leading)
+            .padding(.horizontal, Spacing.screenHorizontal)
+            .padding(.top, Spacing.screenVertical)
+            .padding(.bottom, Spacing.screenBottom + bottomReserve)
+            .frame(maxWidth: .infinity, alignment: .center)
+    }
+}
+
+private struct LunaCustomTabBarReserveActiveKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var lunaCustomTabBarReserveIsActive: Bool {
+        get { self[LunaCustomTabBarReserveActiveKey.self] }
+        set { self[LunaCustomTabBarReserveActiveKey.self] = newValue }
     }
 }
 
