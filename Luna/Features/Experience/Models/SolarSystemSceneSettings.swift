@@ -11,7 +11,7 @@ struct SolarSystemSceneSettings: Equatable {
     static let defaults = SolarSystemSceneSettings(
         isAREnabled: true,
         scaleMode: .educational,
-        distanceCompression: 1,
+        distanceCompression: 30,
         planetSizeMultiplier: 1,
         showLabels: true,
         showOrbits: true

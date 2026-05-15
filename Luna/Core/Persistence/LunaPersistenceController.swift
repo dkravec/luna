@@ -40,6 +40,8 @@ final class LunaPersistenceController {
             attribute("displayName", type: .stringAttributeType, optional: true),
             attribute("hasCompletedOnboarding", type: .booleanAttributeType, optional: false, defaultValue: false),
             attribute("preferredScaleModeRaw", type: .stringAttributeType, optional: false, defaultValue: ScaleMode.educational.rawValue),
+            attribute("distanceCompression", type: .doubleAttributeType, optional: false, defaultValue: 30),
+            attribute("planetSizeMultiplier", type: .doubleAttributeType, optional: false, defaultValue: 1),
             attribute("prefersARMode", type: .booleanAttributeType, optional: false, defaultValue: true),
             attribute("appearancePreferenceRaw", type: .stringAttributeType, optional: false, defaultValue: AppAppearancePreference.system.rawValue),
             attribute("showLabels", type: .booleanAttributeType, optional: false, defaultValue: true),

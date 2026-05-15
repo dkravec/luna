@@ -49,7 +49,10 @@ struct OnboardingFlowView: View {
         case .viewingMode:
             ViewingModeStepView(prefersARMode: $viewModel.prefersARMode)
         case .scaleMode:
-            ScaleModeStepView(preferredScaleMode: $viewModel.preferredScaleMode)
+            ScaleModeStepView(
+                preferredScaleMode: $viewModel.preferredScaleMode,
+                distanceCompression: $viewModel.distanceCompression
+            )
         }
     }
 
@@ -79,7 +82,8 @@ struct OnboardingFlowView: View {
             appState.completeOnboarding(
                 displayName: viewModel.trimmedDisplayName,
                 prefersARMode: viewModel.prefersARMode,
-                preferredScaleMode: viewModel.preferredScaleMode
+                preferredScaleMode: viewModel.preferredScaleMode,
+                distanceCompression: viewModel.distanceCompression
             )
         } else {
             viewModel.advance()
@@ -187,6 +191,7 @@ private struct ProfileStepView: View {
 
 private struct ScaleModeStepView: View {
     @Binding var preferredScaleMode: ScaleMode
+    @Binding var distanceCompression: Double
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.section) {
@@ -195,7 +200,10 @@ private struct ScaleModeStepView: View {
                 subtitle: "Pick how Luna should balance accurate scale with readable space views."
             )
 
-            ScaleModeOptionsView(preferredScaleMode: $preferredScaleMode)
+            ScaleModeOptionsView(
+                preferredScaleMode: $preferredScaleMode,
+                distanceCompression: $distanceCompression
+            )
         }
     }
 }
@@ -234,25 +242,61 @@ struct ViewingModeOptionsView: View {
 
 struct ScaleModeOptionsView: View {
     @Binding var preferredScaleMode: ScaleMode
+    var distanceCompression: Binding<Double>? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Scale Mode")
+        VStack(alignment: .leading, spacing: Spacing.section) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "Scale Mode")
 
-            CardSection {
-                ForEach(Array(scaleOptions.enumerated()), id: \.element.mode) { index, option in
-                    SelectionRow(
-                        title: option.mode.title,
-                        subtitle: option.subtitle,
-                        systemImage: option.systemImage,
-                        value: option.value,
-                        isSelected: preferredScaleMode == option.mode
-                    ) {
-                        preferredScaleMode = option.mode
+                CardSection {
+                    ForEach(Array(scaleOptions.enumerated()), id: \.element.mode) { index, option in
+                        SelectionRow(
+                            title: option.mode.title,
+                            subtitle: option.subtitle,
+                            systemImage: option.systemImage,
+                            value: option.value,
+                            isSelected: preferredScaleMode == option.mode
+                        ) {
+                            preferredScaleMode = option.mode
+                        }
+
+                        if index < scaleOptions.count - 1 {
+                            CardDivider(leadingInset: 56)
+                        }
                     }
+                }
+            }
 
-                    if index < scaleOptions.count - 1 {
-                        CardDivider(leadingInset: 56)
+            if preferredScaleMode == .compressedDistance, let distanceCompression {
+                compressionSection(distanceCompression)
+            }
+        }
+    }
+
+    private func compressionSection(_ distanceCompression: Binding<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Compression")
+
+            Card {
+                VStack(alignment: .leading, spacing: 12) {
+                    RowLabel(
+                        title: "Distance Compression",
+                        subtitle: "Brings faraway bodies closer for viewing. This is a viewing aid, not accurate distance.",
+                        systemImage: "arrow.left.and.right",
+                        value: "\(Int(distanceCompression.wrappedValue.rounded()))x"
+                    )
+
+                    Slider(
+                        value: distanceCompression,
+                        in: 5...100,
+                        step: 5
+                    ) {
+                        Text("Distance Compression")
+                    } minimumValueLabel: {
+                        Text("5x")
+                    } maximumValueLabel: {
+                        Text("100x")
                     }
                 }
             }

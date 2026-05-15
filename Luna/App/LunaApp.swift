@@ -64,6 +64,16 @@ final class LunaAppState: ObservableObject {
         saveUserProfile()
     }
 
+    func setDistanceCompression(_ distanceCompression: Double) {
+        userProfile.distanceCompression = distanceCompression
+        saveUserProfile()
+    }
+
+    func setPlanetSizeMultiplier(_ planetSizeMultiplier: Double) {
+        userProfile.planetSizeMultiplier = planetSizeMultiplier
+        saveUserProfile()
+    }
+
     func setShowLabels(_ showLabels: Bool) {
         userProfile.showLabels = showLabels
         saveUserProfile()
@@ -89,11 +99,13 @@ final class LunaAppState: ObservableObject {
     func completeOnboarding(
         displayName: String?,
         prefersARMode: Bool,
-        preferredScaleMode: ScaleMode
+        preferredScaleMode: ScaleMode,
+        distanceCompression: Double
     ) {
         userProfile.displayName = displayName
         userProfile.prefersARMode = prefersARMode
         userProfile.preferredScaleMode = preferredScaleMode
+        userProfile.distanceCompression = distanceCompression
         userProfile.hasCompletedOnboarding = true
 
         saveUserProfile()

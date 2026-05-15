@@ -64,6 +64,8 @@ extension UserProfile {
             displayName: managedObject.displayName,
             hasCompletedOnboarding: managedObject.hasCompletedOnboarding,
             preferredScaleMode: scaleMode,
+            distanceCompression: managedObject.distanceCompression,
+            planetSizeMultiplier: managedObject.planetSizeMultiplier,
             prefersARMode: managedObject.prefersARMode,
             appearancePreference: appearance,
             showLabels: managedObject.showLabels,
@@ -80,6 +82,8 @@ final class UserProfileRecord: NSManagedObject {
     @NSManaged var displayName: String?
     @NSManaged var hasCompletedOnboarding: Bool
     @NSManaged var preferredScaleModeRaw: String?
+    @NSManaged var distanceCompression: Double
+    @NSManaged var planetSizeMultiplier: Double
     @NSManaged var prefersARMode: Bool
     @NSManaged var appearancePreferenceRaw: String?
     @NSManaged var showLabels: Bool
@@ -99,6 +103,8 @@ extension UserProfileRecord {
         displayName = profile.displayName
         hasCompletedOnboarding = profile.hasCompletedOnboarding
         preferredScaleModeRaw = profile.preferredScaleMode.rawValue
+        distanceCompression = profile.distanceCompression
+        planetSizeMultiplier = profile.planetSizeMultiplier
         prefersARMode = profile.prefersARMode
         appearancePreferenceRaw = profile.appearancePreference.rawValue
         showLabels = profile.showLabels

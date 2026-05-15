@@ -55,6 +55,10 @@ struct SettingsView: View {
                         preferredScaleMode: Binding(
                             get: { appState.userProfile.preferredScaleMode },
                             set: { appState.setPreferredScaleMode($0) }
+                        ),
+                        distanceCompression: Binding(
+                            get: { appState.userProfile.distanceCompression },
+                            set: { appState.setDistanceCompression($0) }
                         )
                     )
                     .appBackground()
@@ -304,7 +308,7 @@ struct SettingsView: View {
         case .educational:
             return "Readable sizes and distances together"
         case .compressedDistance:
-            return "Brings bodies closer for comparison"
+            return "Compressed to \(Int(appState.userProfile.distanceCompression.rounded()))x for comparison"
         case .trueDistance:
             return "Accurate intent, impractical at room scale"
         case .custom:
@@ -334,6 +338,7 @@ private struct SettingsViewingModeView: View {
 
 private struct SettingsScaleModeView: View {
     @Binding var preferredScaleMode: ScaleMode
+    @Binding var distanceCompression: Double
 
     var body: some View {
         ScrollView {
@@ -343,7 +348,10 @@ private struct SettingsScaleModeView: View {
                     subtitle: "Pick how Luna should balance accurate scale with readable space views."
                 )
 
-                ScaleModeOptionsView(preferredScaleMode: $preferredScaleMode)
+                ScaleModeOptionsView(
+                    preferredScaleMode: $preferredScaleMode,
+                    distanceCompression: $distanceCompression
+                )
             }
             .screenContentPadding()
         }

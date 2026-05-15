@@ -16,7 +16,6 @@ struct BodyDetailView: View {
                 factsSection
                 descriptionSection
                 relatedSection
-                assetSection
             }
             .screenContentPadding()
         }
@@ -148,44 +147,6 @@ struct BodyDetailView: View {
         }
     }
 
-    private var assetSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Assets")
-
-            CardSection {
-                CardRow {
-                    RowLabel(
-                        title: "Image",
-                        subtitle: "Bundled asset name",
-                        systemImage: "photo",
-                        value: celestialBody.imageName ?? "None"
-                    )
-                }
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    RowLabel(
-                        title: "Texture",
-                        subtitle: "Future 3D material hook",
-                        systemImage: "circle.hexagongrid",
-                        value: celestialBody.textureName ?? "None"
-                    )
-                }
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    RowLabel(
-                        title: "Model",
-                        subtitle: "Future 3D model hook",
-                        systemImage: "cube",
-                        value: celestialBody.modelName ?? "None"
-                    )
-                }
-            }
-        }
-    }
 }
 
 struct BodyVisual: View {

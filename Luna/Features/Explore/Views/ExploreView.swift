@@ -8,11 +8,11 @@ struct ExploreView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Spacing.section) {
                 PageHeader(
-                    title: "Solar System",
-                    subtitle: "Browse nearby worlds, compare facts, and tune scale for readable viewing."
+                    title: "Explore",
+                    subtitle: "Browse worlds, compare facts, and open details from Luna's space library."
                 )
 
-                scaleSection
+                regionSection
                 filterSection
                 bodiesSection
             }
@@ -20,61 +20,22 @@ struct ExploreView: View {
         }
         .appBackground()
         .onAppear {
-            viewModel.configure(
-                repository: appState.celestialBodyRepository,
-                userProfile: appState.userProfile
-            )
+            viewModel.configure(repository: appState.celestialBodyRepository)
         }
     }
 
-    private var scaleSection: some View {
+    private var regionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Scale")
+            SectionHeader(title: "Region")
 
             CardSection {
                 CardRow {
-                    VStack(alignment: .leading, spacing: 10) {
-                        RowLabel(
-                            title: "Scale Mode",
-                            subtitle: scaleModeSubtitle,
-                            systemImage: "scale.3d",
-                            value: viewModel.scaleMode.title
-                        )
-
-                        Picker("Scale Mode", selection: $viewModel.scaleMode) {
-                            ForEach(scaleModes) { mode in
-                                Text(mode.title).tag(mode)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                }
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    VStack(alignment: .leading, spacing: 10) {
-                        RowLabel(
-                            title: "Distance Compression",
-                            subtitle: "Compressed distance is a viewing aid, not an accurate map.",
-                            systemImage: "arrow.left.and.right",
-                            value: viewModel.scaleMode == .compressedDistance ? viewModel.compressionValueText : "Off"
-                        )
-
-                        Slider(value: $viewModel.distanceCompression, in: 5...100, step: 5) {
-                            Text("Distance Compression")
-                        } minimumValueLabel: {
-                            Text("5x")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        } maximumValueLabel: {
-                            Text("100x")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .disabled(viewModel.scaleMode != .compressedDistance)
-                        .opacity(viewModel.scaleMode == .compressedDistance ? 1 : 0.45)
-                    }
+                    RowLabel(
+                        title: "Solar System",
+                        subtitle: "The Sun, planets, and Earth's Moon",
+                        systemImage: "sun.max",
+                        value: "Active"
+                    )
                 }
             }
         }
@@ -82,7 +43,7 @@ struct ExploreView: View {
 
     private var filterSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Library", subtitle: "\(viewModel.bodyCountText) bodies shown from bundled JSON")
+            SectionHeader(title: "Filter", subtitle: "\(viewModel.bodyCountText) bodies shown")
 
             Card {
                 Picker("Body Type", selection: $viewModel.selectedFilter) {
@@ -129,7 +90,7 @@ struct ExploreView: View {
                                     childBodies: viewModel.children(of: body)
                                 )
                             } label: {
-                                BodyCard(celestialBody: body, scaleMode: viewModel.scaleMode)
+                                BodyCard(celestialBody: body)
                             }
                             .buttonStyle(.plain)
                             .hapticTap()
@@ -140,27 +101,10 @@ struct ExploreView: View {
         }
     }
 
-    private var scaleModes: [ScaleMode] {
-        [.educational, .compressedDistance, .trueDistance]
-    }
-
-    private var scaleModeSubtitle: String {
-        switch viewModel.scaleMode {
-        case .educational:
-            return "Balances size and distance so the system remains readable."
-        case .compressedDistance:
-            return "Brings worlds closer together for comparison."
-        case .trueDistance:
-            return "Keeps distance intent accurate, but real scale is impractical on screen and in AR."
-        case .custom:
-            return "Uses a custom viewing setup."
-        }
-    }
 }
 
 private struct BodyCard: View {
     let celestialBody: CelestialBody
-    let scaleMode: ScaleMode
 
     var bodyContent: some View {
         Card {
@@ -204,7 +148,7 @@ private struct BodyCard: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(celestialBody.name), \(celestialBody.type.title), \(scaleMode.title)")
+        .accessibilityLabel("\(celestialBody.name), \(celestialBody.type.title)")
     }
 
     var body: some View {

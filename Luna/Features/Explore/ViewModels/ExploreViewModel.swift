@@ -10,8 +10,6 @@ final class ExploreViewModel: ObservableObject {
     @Published private(set) var bodies: [CelestialBody] = []
     @Published private(set) var loadState: LoadState = .idle
     @Published var selectedFilter: BodyFilter = .all
-    @Published var scaleMode: ScaleMode = .educational
-    @Published var distanceCompression: Double = 30
 
     private var repository: CelestialBodyRepository?
 
@@ -32,15 +30,10 @@ final class ExploreViewModel: ObservableObject {
         "\(filteredBodies.count)"
     }
 
-    var compressionValueText: String {
-        "\(Int(distanceCompression.rounded()))x"
-    }
-
-    func configure(repository: CelestialBodyRepository, userProfile: UserProfile) {
+    func configure(repository: CelestialBodyRepository) {
         self.repository = repository
 
         if loadState == .idle {
-            scaleMode = userProfile.preferredScaleMode
             loadBodies()
         }
     }

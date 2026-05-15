@@ -5,6 +5,8 @@ struct UserProfile: Identifiable, Equatable {
     var displayName: String?
     var hasCompletedOnboarding: Bool
     var preferredScaleMode: ScaleMode
+    var distanceCompression: Double
+    var planetSizeMultiplier: Double
     var prefersARMode: Bool
     var appearancePreference: AppAppearancePreference
     var showLabels: Bool
@@ -17,6 +19,8 @@ struct UserProfile: Identifiable, Equatable {
         displayName: nil,
         hasCompletedOnboarding: false,
         preferredScaleMode: .educational,
+        distanceCompression: 30,
+        planetSizeMultiplier: 1,
         prefersARMode: true,
         appearancePreference: .system,
         showLabels: true,
@@ -64,5 +68,19 @@ enum ScaleMode: String, CaseIterable, Codable, Identifiable {
         case .custom:
             return "Custom"
         }
+    }
+}
+
+enum PlanetSizeMultiplier: Double, CaseIterable, Identifiable {
+    case one = 1
+    case two = 2
+    case five = 5
+    case ten = 10
+    case twenty = 20
+
+    var id: Double { rawValue }
+
+    var title: String {
+        "\(Int(rawValue))x"
     }
 }

@@ -20,6 +20,7 @@ final class OnboardingViewModel: ObservableObject {
     @Published var displayName = ""
     @Published var prefersARMode = true
     @Published var preferredScaleMode: ScaleMode = .educational
+    @Published var distanceCompression: Double = 30
 
     var primaryButtonTitle: String {
         step.isLast ? "Start Exploring" : "Continue"
