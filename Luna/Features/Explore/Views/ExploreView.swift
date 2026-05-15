@@ -32,7 +32,7 @@ struct ExploreView: View {
                 CardRow {
                     RowLabel(
                         title: "Solar System",
-                        subtitle: "The Sun, planets, and Earth's Moon",
+                        subtitle: "The Sun, planets, Earth's Moon, and selected satellites",
                         systemImage: "sun.max",
                         value: "Active"
                     )
@@ -178,6 +178,10 @@ private enum CompactBodyFormat {
     static func distance(_ value: Double) -> String {
         if value == 0 {
             return "0 km"
+        }
+
+        if value < 1 {
+            return "\(formatted(value * 1_000)) m"
         }
 
         if value >= 1_000_000_000 {

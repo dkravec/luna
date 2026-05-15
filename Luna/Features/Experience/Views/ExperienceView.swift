@@ -106,7 +106,7 @@ struct ExperienceView: View {
                     RowLabel(
                         title: "Compressed Distance",
                         subtitle: "Use an educational layout for room-scale viewing.",
-                        systemImage: "arrow.down.left.and.arrow.up.right",
+                        systemImage: "arrow.up.left.and.arrow.down.right",
                         value: compressedDistanceTitle
                     )
                 }

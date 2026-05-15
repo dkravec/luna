@@ -13,6 +13,12 @@
 		7A6B029E24A3156B00535EA4 /* LunaRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028924A3156800535EA4 /* LunaRootView.swift */; };
 		7A6B029F24A3156B00535EA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B028A24A3156B00535EA4 /* Assets.xcassets */; };
 		7A6B02A024A3156B00535EA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B028A24A3156B00535EA4 /* Assets.xcassets */; };
+		7A6B040024AB000000000000 /* Planets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041024AB000000000000 /* Planets */; };
+		7A6B040124AB000000000000 /* Planets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041024AB000000000000 /* Planets */; };
+		7A6B040224AB000000000000 /* Satellites in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041224AB000000000000 /* Satellites */; };
+		7A6B040324AB000000000000 /* Satellites in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041224AB000000000000 /* Satellites */; };
+		7A6B040424AB000000000000 /* Moons in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041324AB000000000000 /* Moons */; };
+		7A6B040524AB000000000000 /* Moons in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041324AB000000000000 /* Moons */; };
 		7A6B02AB24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */; };
 		7A6B02AC24A3175B00535EA4 /* LunaAdaptiveShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AA24A3175B00535EA4 /* LunaAdaptiveShell.swift */; };
 		7A6B02AE24A3176300535EA4 /* LunaTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AD24A3176300535EA4 /* LunaTab.swift */; };
@@ -87,6 +93,10 @@
 		7A6B030724A5000000000000 /* LocalCelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCelestialBodyRepository.swift; sourceTree = "<group>"; };
 		7A6B030824A5000000000000 /* RemoteCelestialBodyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCelestialBodyRepository.swift; sourceTree = "<group>"; };
 		7A6B030924A5000000000000 /* celestial_bodies.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = celestial_bodies.json; sourceTree = "<group>"; };
+		7A6B041024AB000000000000 /* Planets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Planets; sourceTree = "<group>"; };
+		7A6B041224AB000000000000 /* Satellites */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Satellites; sourceTree = "<group>"; };
+		7A6B041324AB000000000000 /* Moons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Moons; sourceTree = "<group>"; };
+		7A6B041424AB000000000000 /* ASSET_SOURCES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ASSET_SOURCES.md; sourceTree = "<group>"; };
 		7A6B033024A7000000000000 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
 		7A6B033124A7000000000000 /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
 		7A6B033E24A8000000000000 /* ExploreViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreViewModel.swift; sourceTree = "<group>"; };
@@ -418,6 +428,8 @@
 				7A6B028A24A3156B00535EA4 /* Assets.xcassets */,
 				7A6B101824A4000000000000 /* Assets */,
 				7A6B101924A4000000000000 /* Textures */,
+				7A6B041524AB000000000000 /* Models */,
+				7A6B041624AB000000000000 /* AssetNotes */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -432,8 +444,26 @@
 		7A6B101924A4000000000000 /* Textures */ = {
 			isa = PBXGroup;
 			children = (
+				7A6B041024AB000000000000 /* Planets */,
 			);
 			path = Textures;
+			sourceTree = "<group>";
+		};
+		7A6B041524AB000000000000 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B041324AB000000000000 /* Moons */,
+				7A6B041224AB000000000000 /* Satellites */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7A6B041624AB000000000000 /* AssetNotes */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B041424AB000000000000 /* ASSET_SOURCES.md */,
+			);
+			path = AssetNotes;
 			sourceTree = "<group>";
 		};
 		7A6B102124A6000000000000 /* Shared */ = {
@@ -539,6 +569,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A6B029F24A3156B00535EA4 /* Assets.xcassets in Resources */,
+				7A6B040424AB000000000000 /* Moons in Resources */,
+				7A6B040024AB000000000000 /* Planets in Resources */,
+				7A6B040224AB000000000000 /* Satellites in Resources */,
 				7A6B032224A5000000000000 /* celestial_bodies.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -548,6 +581,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A6B02A024A3156B00535EA4 /* Assets.xcassets in Resources */,
+				7A6B040524AB000000000000 /* Moons in Resources */,
+				7A6B040124AB000000000000 /* Planets in Resources */,
+				7A6B040324AB000000000000 /* Satellites in Resources */,
 				7A6B032324A5000000000000 /* celestial_bodies.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

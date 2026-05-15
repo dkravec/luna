@@ -294,6 +294,10 @@ private enum Formatters {
             return "0 km"
         }
 
+        if value < 1 {
+            return "\(formatted(value * 1_000)) m"
+        }
+
         if value >= 1_000_000 {
             return "\(formatted(value / 1_000_000))M km"
         }
