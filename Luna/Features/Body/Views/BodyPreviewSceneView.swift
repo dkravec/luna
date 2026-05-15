@@ -73,11 +73,15 @@ private extension BodyPreviewSceneContainer {
 
     func configure(_ view: SCNView) {
         view.scene = BodyPreviewSceneFactory.scene(for: celestialBody)
+        if let coordinator = view.delegate as? BodyPreviewCameraCoordinator {
+            coordinator.update(subjectRadius: BodyPreviewSceneFactory.subjectRadius(for: celestialBody))
+        }
     }
 }
 
 private final class BodyPreviewCameraCoordinator: NSObject, SCNSceneRendererDelegate {
-    private let maximumOrthographicScale: Double = 3.0
+    private var minimumOrthographicScale: Double = 1.1
+    private var maximumOrthographicScale: Double = 3.0
     private let maximumCameraDistance: Float = 8.0
 
     func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
@@ -87,6 +91,7 @@ private final class BodyPreviewCameraCoordinator: NSObject, SCNSceneRendererDele
             return
         }
 
+        camera.orthographicScale = max(camera.orthographicScale, minimumOrthographicScale)
         camera.orthographicScale = min(camera.orthographicScale, maximumOrthographicScale)
 
         let offset = pointOfView.position
@@ -95,9 +100,18 @@ private final class BodyPreviewCameraCoordinator: NSObject, SCNSceneRendererDele
             pointOfView.position = offset.normalized * maximumCameraDistance
         }
     }
+
+    func update(subjectRadius: CGFloat) {
+        minimumOrthographicScale = max(0.72, Double(subjectRadius) * 1.35)
+        maximumOrthographicScale = max(2.2, Double(subjectRadius) * 3.5)
+    }
 }
 
 private enum BodyPreviewSceneFactory {
+    static func subjectRadius(for body: CelestialBody) -> CGFloat {
+        body.type == .star ? 0.95 : 0.82
+    }
+
     static func scene(for body: CelestialBody) -> SCNScene {
         let scene = SCNScene()
         scene.rootNode.addChildNode(cameraNode())
@@ -119,7 +133,7 @@ private enum BodyPreviewSceneFactory {
             return satelliteNode()
         }
 
-        let sphere = SCNSphere(radius: body.type == .star ? 0.95 : 0.82)
+        let sphere = SCNSphere(radius: subjectRadius(for: body))
         sphere.segmentCount = 64
         sphere.firstMaterial = material(for: body)
         return SCNNode(geometry: sphere)

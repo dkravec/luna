@@ -4,14 +4,10 @@ import ARKit
 #endif
 
 struct ExperienceView: View {
-    private let arNudgeStep: Float = 0.12
-
     @EnvironmentObject private var appState: LunaAppState
     @State private var isAREnabled = false
     @State private var hasInitializedMode = false
     @State private var isControlsPresented = false
-    @State private var arPlacementOffset = SIMD3<Float>.zero
-    @State private var arContentScale: Float = 1
     @State private var recenterTrigger = 0
 
     var body: some View {
@@ -53,9 +49,7 @@ struct ExperienceView: View {
                 LunaARSceneView(
                     bodies: appState.celestialBodies,
                     settings: settings,
-                    recenterTrigger: recenterTrigger,
-                    placementOffset: arPlacementOffset,
-                    contentScale: arContentScale
+                    recenterTrigger: recenterTrigger
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -91,6 +85,23 @@ struct ExperienceView: View {
 
             VStack(spacing: 10) {
                 modeToggle
+
+                if isAREnabled, canUseAR {
+                    Button {
+                        recenterARScene()
+                    } label: {
+                        Image(systemName: "scope")
+                            .font(.system(size: 18, weight: .semibold))
+                            .frame(width: 46, height: 46)
+                            .background(.ultraThinMaterial, in: Circle())
+                            .overlay {
+                                Circle()
+                                    .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Recenter AR scene")
+                }
 
                 Button {
                     Haptics.selection()
@@ -164,10 +175,6 @@ struct ExperienceView: View {
                     )
                     PlanetSizeOptionsView(planetSizeMultiplier: planetSizeMultiplierBinding)
                     sceneOptionsSection
-
-                    if isAREnabled, canUseAR {
-                        arPlacementSection
-                    }
                 }
                 .padding(.horizontal, Spacing.screenHorizontal)
                 .padding(.top, 12)
@@ -258,100 +265,6 @@ struct ExperienceView: View {
         }
     }
 
-    private var arPlacementSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "AR Placement")
-
-            CardSection {
-                CardRow {
-                    HStack(spacing: 10) {
-                        Button {
-                            recenterARScene()
-                        } label: {
-                            Label("Recenter", systemImage: "scope")
-                        }
-                        .primaryActionButton()
-
-                        Button {
-                            resetARNudge()
-                        } label: {
-                            Label("Reset Move", systemImage: "arrow.counterclockwise")
-                        }
-                        .secondaryActionButton()
-                    }
-                }
-
-                CardDivider(leadingInset: 14)
-
-                CardRow {
-                    RowLabel(
-                        title: "AR Zoom",
-                        subtitle: "Scale the placed scene without changing data labels.",
-                        systemImage: "plus.magnifyingglass",
-                        value: "\(arZoomPercent)%"
-                    )
-                }
-
-                CardRow {
-                    Slider(
-                        value: Binding(
-                            get: { Double(arContentScale) },
-                            set: { arContentScale = Float($0) }
-                        ),
-                        in: 0.4...3,
-                        step: 0.1
-                    )
-                }
-
-                CardDivider(leadingInset: 14)
-
-                CardRow {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                        placementButton(systemImage: "arrow.left", accessibilityLabel: "Move left") {
-                            nudgeAR(x: -arNudgeStep)
-                        }
-
-                        placementButton(systemImage: "arrow.up", accessibilityLabel: "Move up") {
-                            nudgeAR(y: arNudgeStep)
-                        }
-
-                        placementButton(systemImage: "arrow.right", accessibilityLabel: "Move right") {
-                            nudgeAR(x: arNudgeStep)
-                        }
-
-                        placementButton(systemImage: "arrow.down", accessibilityLabel: "Move down") {
-                            nudgeAR(y: -arNudgeStep)
-                        }
-
-                        placementButton(systemImage: "arrow.down.backward.and.arrow.up.forward", accessibilityLabel: "Move closer") {
-                            nudgeAR(z: arNudgeStep)
-                        }
-
-                        placementButton(systemImage: "arrow.up.forward.and.arrow.down.backward", accessibilityLabel: "Move farther") {
-                            nudgeAR(z: -arNudgeStep)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func placementButton(
-        systemImage: String,
-        accessibilityLabel: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 17, weight: .semibold))
-                .frame(maxWidth: .infinity, minHeight: 42)
-                .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: Radii.tile, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .hapticTap()
-        .accessibilityLabel(accessibilityLabel)
-    }
-
     private var settings: SolarSystemSceneSettings {
         SolarSystemSceneSettings(
             isAREnabled: isAREnabled,
@@ -393,18 +306,7 @@ struct ExperienceView: View {
 
     private func recenterARScene() {
         Haptics.selection()
-        arPlacementOffset = .zero
-        arContentScale = 1
         recenterTrigger += 1
-    }
-
-    private func resetARNudge() {
-        Haptics.selection()
-        arPlacementOffset = .zero
-    }
-
-    private func nudgeAR(x: Float = 0, y: Float = 0, z: Float = 0) {
-        arPlacementOffset += SIMD3<Float>(x, y, z)
     }
 
     private func setShowLabels(_ showLabels: Bool) {
@@ -436,10 +338,6 @@ struct ExperienceView: View {
             get: { appState.userProfile.planetSizeMultiplier },
             set: { appState.setPlanetSizeMultiplier($0) }
         )
-    }
-
-    private var arZoomPercent: Int {
-        Int((arContentScale * 100).rounded())
     }
 }
 

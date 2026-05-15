@@ -108,6 +108,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             return
         }
 
+        camera.orthographicScale = max(camera.orthographicScale, cameraLimit.minimumOrthographicScale)
         camera.orthographicScale = min(camera.orthographicScale, cameraLimit.maximumOrthographicScale)
 
         let offset = pointOfView.position - cameraLimit.subjectCenter
@@ -323,6 +324,7 @@ private struct SceneCameraLimit {
     )
 
     let subjectCenter: SCNVector3
+    let minimumOrthographicScale: Double
     let maximumOrthographicScale: Double
     let maximumCameraDistance: Float
 
@@ -346,20 +348,24 @@ private struct SceneCameraLimit {
         )
         let sceneSpan = max(maxX - minX, max(maxY - minY, maxZ - minZ))
         let subjectRadius = max(4, sceneSpan / 2 + 2)
+        let largestBodyRadius = placements.map(\.displayRadius).max() ?? 1
         let initialCameraDistance = (SCNVector3(6, 9, 22) - center).length
         let initialOrthographicScale = max(10, Double((placements.map { abs($0.position.x) }.max() ?? 8) + 3))
 
         subjectCenter = center
+        minimumOrthographicScale = max(0.65, Double(largestBodyRadius) * 2.25)
         maximumOrthographicScale = initialOrthographicScale * 1.35
         maximumCameraDistance = max(initialCameraDistance * 1.35, subjectRadius * 2.4)
     }
 
     private init(
         subjectCenter: SCNVector3,
+        minimumOrthographicScale: Double = 0.7,
         maximumOrthographicScale: Double,
         maximumCameraDistance: Float
     ) {
         self.subjectCenter = subjectCenter
+        self.minimumOrthographicScale = minimumOrthographicScale
         self.maximumOrthographicScale = maximumOrthographicScale
         self.maximumCameraDistance = maximumCameraDistance
     }

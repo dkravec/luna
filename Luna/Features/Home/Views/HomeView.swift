@@ -30,7 +30,7 @@ struct HomeView: View {
                 } label: {
                     CardRow {
                         RowLabel(
-                            title: "Solar System",
+                            title: "Explore",
                             subtitle: "Browse bodies, facts, scale, and distance.",
                             systemImage: "sun.max",
                             showsChevron: true
