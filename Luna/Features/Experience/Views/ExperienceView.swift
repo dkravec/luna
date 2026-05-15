@@ -1,7 +1,12 @@
 import SwiftUI
+#if os(iOS)
+import ARKit
+#endif
 
 struct ExperienceView: View {
     @EnvironmentObject private var appState: LunaAppState
+    @State private var isAREnabled = false
+    @State private var hasInitializedMode = false
 
     var body: some View {
         ScrollView {
@@ -11,6 +16,8 @@ struct ExperienceView: View {
                     subtitle: "Place scaled worlds in your space or browse in visual mode."
                 )
 
+                sceneSection
+
                 modeSection
 
                 controlsSection
@@ -18,6 +25,58 @@ struct ExperienceView: View {
             .screenContentPadding()
         }
         .appBackground()
+        .onAppear {
+            appState.loadCelestialBodies()
+            initializePreferredModeIfNeeded()
+        }
+    }
+
+    @ViewBuilder
+    private var sceneSection: some View {
+        if appState.celestialBodies.isEmpty {
+            EmptyStateView(
+                title: "No Bodies Loaded",
+                systemImage: "sparkles",
+                message: "Luna could not load the local celestial body catalog."
+            )
+        } else {
+            Card {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(isAREnabled ? "AR Scene" : "Visual Scene")
+                                .font(.headline)
+
+                            Text(sceneSubtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        Spacer(minLength: 12)
+
+                        Text(settings.scaleMode == .compressedDistance ? "\(Int(settings.distanceCompression.rounded()))x" : settings.scaleMode.title)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.primary.opacity(0.06), in: Capsule(style: .continuous))
+                    }
+
+#if os(iOS)
+                    if isAREnabled, canUseAR {
+                        LunaARSceneView(bodies: appState.celestialBodies, settings: settings)
+                            .frame(minHeight: 360)
+                            .clipShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
+                    } else {
+                        SolarSystemVisualSceneView(bodies: appState.celestialBodies, settings: settings)
+                    }
+#else
+                    SolarSystemVisualSceneView(bodies: appState.celestialBodies, settings: settings)
+#endif
+                }
+            }
+        }
     }
 
     private var modeSection: some View {
@@ -39,18 +98,21 @@ struct ExperienceView: View {
 
                 HStack(spacing: 10) {
                     Button {
+                        setSceneMode(isAR: true)
                     } label: {
-                        Label("Start AR", systemImage: "arkit")
+                        Label(canUseAR ? "Start AR" : "AR Unavailable", systemImage: "arkit")
                     }
-                    .primaryActionButton()
-                    .disabled(true)
+                    .buttonStyle(ActionButtonStyle(emphasis: isAREnabled ? .primary : .secondary))
+                    .hapticTap()
+                    .disabled(!canUseAR)
 
                     Button {
+                        setSceneMode(isAR: false)
                     } label: {
                         Label("Visual", systemImage: "cube.transparent")
                     }
-                    .secondaryActionButton()
-                    .disabled(true)
+                    .buttonStyle(ActionButtonStyle(emphasis: isAREnabled ? .secondary : .primary))
+                    .hapticTap()
                 }
             }
         }
@@ -114,15 +176,87 @@ struct ExperienceView: View {
                 CardDivider(leadingInset: 56)
 
                 CardRow {
-                    RowLabel(
-                        title: "Labels",
-                        subtitle: "Show body names and scale notes in the scene.",
-                        systemImage: "tag",
-                        value: appState.userProfile.showLabels ? "On" : "Off"
-                    )
+                    Toggle(
+                        isOn: Binding(
+                            get: { appState.userProfile.showLabels },
+                            set: { setShowLabels($0) }
+                        )
+                    ) {
+                        RowLabel(
+                            title: "Labels",
+                            subtitle: "Show body names in the scene.",
+                            systemImage: "tag"
+                        )
+                    }
+                }
+
+                CardDivider(leadingInset: 56)
+
+                CardRow {
+                    Toggle(
+                        isOn: Binding(
+                            get: { appState.userProfile.showOrbits },
+                            set: { setShowOrbits($0) }
+                        )
+                    ) {
+                        RowLabel(
+                            title: "Orbits",
+                            subtitle: "Draw orbit guides when the selected scale mode supports them.",
+                            systemImage: "circle.dashed"
+                        )
+                    }
                 }
             }
         }
+    }
+
+    private var settings: SolarSystemSceneSettings {
+        SolarSystemSceneSettings(
+            isAREnabled: isAREnabled,
+            scaleMode: appState.userProfile.preferredScaleMode,
+            distanceCompression: appState.userProfile.distanceCompression,
+            planetSizeMultiplier: appState.userProfile.planetSizeMultiplier,
+            showLabels: appState.userProfile.showLabels,
+            showOrbits: appState.userProfile.showOrbits
+        )
+    }
+
+    private var sceneSubtitle: String {
+        if isAREnabled {
+            return "Place the current solar system scale in your space."
+        }
+
+        return "Browse the same scale controls in a non-AR scene."
+    }
+
+    private var canUseAR: Bool {
+#if os(iOS)
+        ARWorldTrackingConfiguration.isSupported
+#else
+        false
+#endif
+    }
+
+    private func initializePreferredModeIfNeeded() {
+        guard !hasInitializedMode else { return }
+
+        isAREnabled = appState.userProfile.prefersARMode && canUseAR
+        hasInitializedMode = true
+    }
+
+    private func setSceneMode(isAR: Bool) {
+        isAREnabled = isAR && canUseAR
+        appState.setPrefersARMode(isAREnabled)
+    }
+
+    private func setShowLabels(_ showLabels: Bool) {
+        Haptics.selection()
+        appState.setShowLabels(showLabels)
+    }
+
+    private func setShowOrbits(_ showOrbits: Bool) {
+        Haptics.selection()
+        appState.setShowOrbits(showOrbits)
     }
 
     private var preferredScaleModeBinding: Binding<ScaleMode> {
