@@ -4,9 +4,9 @@ Downloaded for Luna b14 on 2026-05-15.
 
 ## Planet And Moon Textures
 
-The planet textures are compact JPEG maps from NASA/JPL Solar System Simulator texture maps. The Moon texture is the 2K color map from NASA Scientific Visualization Studio's CGI Moon Kit.
+The planet textures are compact JPEG maps from NASA/JPL Solar System Simulator texture maps. Mercury uses a complete NASA/MESSENGER monochrome basemap because the older compact map had a large blank region. The Moon texture is the 2K color map from NASA Scientific Visualization Studio's CGI Moon Kit.
 
-- `Textures/Planets/mercury_texture.jpg` - NASA/JPL Solar System Simulator, Mercury map, https://space.jpl.nasa.gov/tmaps/mercury.html
+- `Textures/Planets/mercury_texture.jpg` - NASA/Johns Hopkins University Applied Physics Laboratory MESSENGER complete mono basemap, public domain, https://commons.wikimedia.org/wiki/File:Mercury_-_complete_mono_basemap_2500mpp_equirectangular.png
 - `Textures/Planets/venus_texture.jpg` - NASA/JPL Solar System Simulator, Venus map, https://space.jpl.nasa.gov/tmaps/venus.html
 - `Textures/Planets/earth_texture.jpg` - NASA/JPL Solar System Simulator, Earth map, https://space.jpl.nasa.gov/tmaps/earth.html
 - `Textures/Planets/moon_texture.jpg` - NASA SVS CGI Moon Kit, 2K LROC color map, https://svs.gsfc.nasa.gov/4720/

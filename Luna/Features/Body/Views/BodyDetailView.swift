@@ -1,8 +1,10 @@
 import SwiftUI
 #if os(iOS)
 import UIKit
+private typealias PlatformBodyImage = UIImage
 #elseif os(macOS)
 import AppKit
+private typealias PlatformBodyImage = NSImage
 #endif
 
 struct BodyDetailView: View {
@@ -156,10 +158,8 @@ struct BodyVisual: View {
 
     var body: some View {
         ZStack {
-            if let imageName = celestialBody.imageName, Self.hasBundledImage(named: imageName) {
-                Image(imageName)
-                    .resizable()
-                    .scaledToFill()
+            if hasImage {
+                bundledImage
             } else {
                 Circle()
                     .fill(
@@ -189,6 +189,27 @@ struct BodyVisual: View {
         .accessibilityHidden(true)
     }
 
+    @ViewBuilder
+    private var bundledImage: some View {
+#if os(iOS)
+        if let image = Self.textureImage(for: celestialBody) ?? Self.assetImage(named: celestialBody.imageName) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+        }
+#elseif os(macOS)
+        if let image = Self.textureImage(for: celestialBody) ?? Self.assetImage(named: celestialBody.imageName) {
+            Image(nsImage: image)
+                .resizable()
+                .scaledToFill()
+        }
+#endif
+    }
+
+    private var hasImage: Bool {
+        Self.textureImage(for: celestialBody) != nil || Self.assetImage(named: celestialBody.imageName) != nil
+    }
+
     private var placeholderColors: [Color] {
         switch celestialBody.id {
         case "sun":
@@ -216,13 +237,30 @@ struct BodyVisual: View {
         }
     }
 
-    private static func hasBundledImage(named imageName: String) -> Bool {
+    private static func textureImage(for body: CelestialBody) -> PlatformBodyImage? {
+        guard let textureName = body.textureName,
+              let url = Bundle.main.url(
+                forResource: textureName,
+                withExtension: "jpg",
+                subdirectory: "Planets"
+              ) else {
+            return nil
+        }
+
 #if os(iOS)
-        UIImage(named: imageName) != nil
+        return PlatformBodyImage(contentsOfFile: url.path)
 #elseif os(macOS)
-        NSImage(named: imageName) != nil
-#else
-        false
+        return PlatformBodyImage(contentsOf: url)
+#endif
+    }
+
+    private static func assetImage(named imageName: String?) -> PlatformBodyImage? {
+        guard let imageName else { return nil }
+
+#if os(iOS)
+        return PlatformBodyImage(named: imageName)
+#elseif os(macOS)
+        return PlatformBodyImage(named: imageName)
 #endif
     }
 }

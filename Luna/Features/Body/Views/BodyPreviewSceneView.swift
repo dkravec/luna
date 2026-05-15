@@ -29,8 +29,12 @@ struct BodyPreviewSceneView: View {
 private struct BodyPreviewSceneContainer: UIViewRepresentable {
     let celestialBody: CelestialBody
 
+    func makeCoordinator() -> BodyPreviewCameraCoordinator {
+        BodyPreviewCameraCoordinator()
+    }
+
     func makeUIView(context: Context) -> SCNView {
-        makeSceneView()
+        makeSceneView(coordinator: context.coordinator)
     }
 
     func updateUIView(_ view: SCNView, context: Context) {
@@ -41,8 +45,12 @@ private struct BodyPreviewSceneContainer: UIViewRepresentable {
 private struct BodyPreviewSceneContainer: NSViewRepresentable {
     let celestialBody: CelestialBody
 
+    func makeCoordinator() -> BodyPreviewCameraCoordinator {
+        BodyPreviewCameraCoordinator()
+    }
+
     func makeNSView(context: Context) -> SCNView {
-        makeSceneView()
+        makeSceneView(coordinator: context.coordinator)
     }
 
     func updateNSView(_ view: SCNView, context: Context) {
@@ -52,10 +60,12 @@ private struct BodyPreviewSceneContainer: NSViewRepresentable {
 #endif
 
 private extension BodyPreviewSceneContainer {
-    func makeSceneView() -> SCNView {
+    func makeSceneView(coordinator: BodyPreviewCameraCoordinator) -> SCNView {
         let view = SCNView()
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = false
+        view.delegate = coordinator
+        view.defaultCameraController.target = SCNVector3Zero
         view.backgroundColor = previewColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
         configure(view)
         return view
@@ -63,6 +73,27 @@ private extension BodyPreviewSceneContainer {
 
     func configure(_ view: SCNView) {
         view.scene = BodyPreviewSceneFactory.scene(for: celestialBody)
+    }
+}
+
+private final class BodyPreviewCameraCoordinator: NSObject, SCNSceneRendererDelegate {
+    private let maximumOrthographicScale: Double = 3.0
+    private let maximumCameraDistance: Float = 8.0
+
+    func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        guard let pointOfView = renderer.pointOfView,
+              let camera = pointOfView.camera,
+              camera.usesOrthographicProjection else {
+            return
+        }
+
+        camera.orthographicScale = min(camera.orthographicScale, maximumOrthographicScale)
+
+        let offset = pointOfView.position
+        let distance = offset.length
+        if distance > maximumCameraDistance, distance > 0 {
+            pointOfView.position = offset.normalized * maximumCameraDistance
+        }
     }
 }
 
@@ -222,4 +253,36 @@ private func previewColor(red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CG
 #elseif os(macOS)
     PreviewColor(calibratedRed: red, green: green, blue: blue, alpha: alpha)
 #endif
+}
+
+private extension SCNVector3 {
+    static func * (lhs: SCNVector3, rhs: Float) -> SCNVector3 {
+#if os(macOS)
+        let multiplier = CGFloat(rhs)
+        return SCNVector3(lhs.x * multiplier, lhs.y * multiplier, lhs.z * multiplier)
+#else
+        SCNVector3(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
+#endif
+    }
+
+    var length: Float {
+        let xValue = Float(x)
+        let yValue = Float(y)
+        let zValue = Float(z)
+        return sqrtf(xValue * xValue + yValue * yValue + zValue * zValue)
+    }
+
+    var normalized: SCNVector3 {
+        let vectorLength = length
+        guard vectorLength > 0 else { return SCNVector3Zero }
+#if os(macOS)
+        return SCNVector3(
+            CGFloat(Float(x) / vectorLength),
+            CGFloat(Float(y) / vectorLength),
+            CGFloat(Float(z) / vectorLength)
+        )
+#else
+        return SCNVector3(x / vectorLength, y / vectorLength, z / vectorLength)
+#endif
+    }
 }

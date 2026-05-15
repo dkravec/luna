@@ -40,8 +40,12 @@ private struct VisualSceneContainer: UIViewRepresentable {
     let bodies: [CelestialBody]
     let settings: SolarSystemSceneSettings
 
+    func makeCoordinator() -> VisualSceneCameraCoordinator {
+        VisualSceneCameraCoordinator()
+    }
+
     func makeUIView(context: Context) -> SCNView {
-        makeSceneView()
+        makeSceneView(coordinator: context.coordinator)
     }
 
     func updateUIView(_ view: SCNView, context: Context) {
@@ -53,8 +57,12 @@ private struct VisualSceneContainer: NSViewRepresentable {
     let bodies: [CelestialBody]
     let settings: SolarSystemSceneSettings
 
+    func makeCoordinator() -> VisualSceneCameraCoordinator {
+        VisualSceneCameraCoordinator()
+    }
+
     func makeNSView(context: Context) -> SCNView {
-        makeSceneView()
+        makeSceneView(coordinator: context.coordinator)
     }
 
     func updateNSView(_ view: SCNView, context: Context) {
@@ -64,24 +72,59 @@ private struct VisualSceneContainer: NSViewRepresentable {
 #endif
 
 private extension VisualSceneContainer {
-    func makeSceneView() -> SCNView {
+    func makeSceneView(coordinator: VisualSceneCameraCoordinator) -> SCNView {
         let view = SCNView()
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = false
+        view.delegate = coordinator
         view.backgroundColor = platformColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
         configure(view)
         return view
     }
 
     func configure(_ view: SCNView) {
-        view.scene = SolarSystemSceneFactory.scene(for: bodies, settings: settings)
+        let placements = ExperienceSceneLayout.placements(for: bodies, settings: settings)
+        let cameraLimit = SceneCameraLimit(placements: placements)
+
+        view.scene = SolarSystemSceneFactory.scene(
+            for: placements,
+            showsLabels: settings.showLabels
+        )
+        view.defaultCameraController.target = cameraLimit.subjectCenter
+
+        if let coordinator = view.delegate as? VisualSceneCameraCoordinator {
+            coordinator.update(cameraLimit)
+        }
+    }
+}
+
+private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDelegate {
+    private var cameraLimit = SceneCameraLimit.default
+
+    func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        guard let pointOfView = renderer.pointOfView,
+              let camera = pointOfView.camera,
+              camera.usesOrthographicProjection else {
+            return
+        }
+
+        camera.orthographicScale = min(camera.orthographicScale, cameraLimit.maximumOrthographicScale)
+
+        let offset = pointOfView.position - cameraLimit.subjectCenter
+        let distance = offset.length
+        if distance > cameraLimit.maximumCameraDistance, distance > 0 {
+            pointOfView.position = cameraLimit.subjectCenter + offset.normalized * cameraLimit.maximumCameraDistance
+        }
+    }
+
+    func update(_ cameraLimit: SceneCameraLimit) {
+        self.cameraLimit = cameraLimit
     }
 }
 
 private enum SolarSystemSceneFactory {
-    static func scene(for bodies: [CelestialBody], settings: SolarSystemSceneSettings) -> SCNScene {
+    static func scene(for placements: [SceneBodyPlacement], showsLabels: Bool) -> SCNScene {
         let scene = SCNScene()
-        let placements = ExperienceSceneLayout.placements(for: bodies, settings: settings)
 
         scene.rootNode.addChildNode(cameraNode(for: placements))
         scene.rootNode.addChildNode(ambientLightNode())
@@ -99,7 +142,7 @@ private enum SolarSystemSceneFactory {
             let bodyNode = node(for: placement)
             root.addChildNode(bodyNode)
 
-            if settings.showLabels {
+            if showsLabels {
                 bodyNode.addChildNode(labelNode(for: placement.body, radius: placement.displayRadius))
             }
         }
@@ -208,13 +251,13 @@ private enum SolarSystemSceneFactory {
 
     private static func labelNode(for body: CelestialBody, radius: Float) -> SCNNode {
         let text = SCNText(string: body.name, extrusionDepth: 0.002)
-        text.font = .systemFont(ofSize: 0.18, weight: .semibold)
+        text.font = .systemFont(ofSize: 0.28, weight: .semibold)
         text.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.86)
         text.alignmentMode = CATextLayerAlignmentMode.center.rawValue
 
         let node = SCNNode(geometry: text)
-        node.scale = SCNVector3(0.018, 0.018, 0.018)
-        node.position = SCNVector3(0, radius + 0.22, 0)
+        node.scale = SCNVector3(0.025, 0.025, 0.025)
+        node.position = SCNVector3(0, radius + 0.28, 0)
         node.constraints = [SCNBillboardConstraint()]
 
         let (minVector, maxVector) = text.boundingBox
@@ -269,6 +312,96 @@ private enum SolarSystemSceneFactory {
         node.light = light
         node.position = SCNVector3(-3, 6, 8)
         return node
+    }
+}
+
+private struct SceneCameraLimit {
+    static let `default` = SceneCameraLimit(
+        subjectCenter: SCNVector3Zero,
+        maximumOrthographicScale: 14,
+        maximumCameraDistance: 34
+    )
+
+    let subjectCenter: SCNVector3
+    let maximumOrthographicScale: Double
+    let maximumCameraDistance: Float
+
+    init(placements: [SceneBodyPlacement]) {
+        guard !placements.isEmpty else {
+            self = .default
+            return
+        }
+
+        let minX = placements.map { $0.position.x - $0.displayRadius }.min() ?? -5
+        let maxX = placements.map { $0.position.x + $0.displayRadius }.max() ?? 5
+        let minY = placements.map { $0.position.y - $0.displayRadius }.min() ?? -2
+        let maxY = placements.map { $0.position.y + $0.displayRadius }.max() ?? 2
+        let minZ = placements.map { $0.position.z - $0.displayRadius }.min() ?? -2
+        let maxZ = placements.map { $0.position.z + $0.displayRadius }.max() ?? 2
+
+        let center = SCNVector3(
+            (minX + maxX) / 2,
+            (minY + maxY) / 2,
+            (minZ + maxZ) / 2
+        )
+        let sceneSpan = max(maxX - minX, max(maxY - minY, maxZ - minZ))
+        let subjectRadius = max(4, sceneSpan / 2 + 2)
+        let initialCameraDistance = (SCNVector3(6, 9, 22) - center).length
+        let initialOrthographicScale = max(10, Double((placements.map { abs($0.position.x) }.max() ?? 8) + 3))
+
+        subjectCenter = center
+        maximumOrthographicScale = initialOrthographicScale * 1.35
+        maximumCameraDistance = max(initialCameraDistance * 1.35, subjectRadius * 2.4)
+    }
+
+    private init(
+        subjectCenter: SCNVector3,
+        maximumOrthographicScale: Double,
+        maximumCameraDistance: Float
+    ) {
+        self.subjectCenter = subjectCenter
+        self.maximumOrthographicScale = maximumOrthographicScale
+        self.maximumCameraDistance = maximumCameraDistance
+    }
+}
+
+private extension SCNVector3 {
+    static func + (lhs: SCNVector3, rhs: SCNVector3) -> SCNVector3 {
+        SCNVector3(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z)
+    }
+
+    static func - (lhs: SCNVector3, rhs: SCNVector3) -> SCNVector3 {
+        SCNVector3(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z)
+    }
+
+    static func * (lhs: SCNVector3, rhs: Float) -> SCNVector3 {
+#if os(macOS)
+        let multiplier = CGFloat(rhs)
+        return SCNVector3(lhs.x * multiplier, lhs.y * multiplier, lhs.z * multiplier)
+#else
+        SCNVector3(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
+#endif
+    }
+
+    var length: Float {
+        let xValue = Float(x)
+        let yValue = Float(y)
+        let zValue = Float(z)
+        return sqrtf(xValue * xValue + yValue * yValue + zValue * zValue)
+    }
+
+    var normalized: SCNVector3 {
+        let vectorLength = length
+        guard vectorLength > 0 else { return SCNVector3Zero }
+#if os(macOS)
+        return SCNVector3(
+            CGFloat(Float(x) / vectorLength),
+            CGFloat(Float(y) / vectorLength),
+            CGFloat(Float(z) / vectorLength)
+        )
+#else
+        return SCNVector3(x / vectorLength, y / vectorLength, z / vectorLength)
+#endif
     }
 }
 

@@ -109,16 +109,16 @@ private struct BodyCard: View {
     var bodyContent: some View {
         Card {
             HStack(alignment: .center, spacing: 14) {
-                BodyVisual(celestialBody: celestialBody, size: 70)
+                BodyVisual(celestialBody: celestialBody, size: 86)
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(celestialBody.name)
-                            .font(.headline)
+                            .font(.title3.weight(.semibold))
                             .foregroundStyle(.primary)
 
                         Text(celestialBody.type.title)
-                            .font(.caption.weight(.semibold))
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -126,9 +126,9 @@ private struct BodyCard: View {
                     }
 
                     Text(celestialBody.summary)
-                        .font(.subheadline)
+                        .font(.body)
                         .foregroundStyle(.secondary)
-                        .lineLimit(3)
+                        .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
 
                     HStack(spacing: 10) {
@@ -168,7 +168,7 @@ private struct BodyFactPill: View {
             Text(value)
                 .foregroundStyle(.primary)
         }
-        .font(.caption.weight(.semibold))
+        .font(.subheadline.weight(.semibold))
         .lineLimit(1)
         .minimumScaleFactor(0.8)
     }
