@@ -47,7 +47,7 @@ struct HomeView: View {
                 } label: {
                     CardRow {
                         RowLabel(
-                            title: "AR Experience",
+                            title: "Experience",
                             subtitle: "Place and view scaled planets in your space.",
                             systemImage: "arkit",
                             showsChevron: true

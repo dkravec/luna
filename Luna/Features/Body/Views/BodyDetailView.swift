@@ -33,7 +33,8 @@ struct BodyDetailView: View {
     private var hero: some View {
         Card {
             VStack(alignment: .leading, spacing: 16) {
-                BodyVisual(celestialBody: celestialBody, size: 170)
+                BodyPreviewSceneView(celestialBody: celestialBody)
+                    .frame(height: 260)
                     .frame(maxWidth: .infinity)
 
                 VStack(alignment: .leading, spacing: 6) {

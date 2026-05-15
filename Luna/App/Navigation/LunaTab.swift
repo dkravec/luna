@@ -19,7 +19,7 @@ enum LunaTab: String, CaseIterable, Identifiable {
         case .solarSystem:
             return "Explore"
         case .arExperience:
-            return "AR Experience"
+            return "Experience"
         case .settings:
             return "Settings"
         }
@@ -32,7 +32,7 @@ enum LunaTab: String, CaseIterable, Identifiable {
         case .solarSystem:
             return "Explore"
         case .arExperience:
-            return "AR"
+            return "Experience"
         case .settings:
             return "Settings"
         }

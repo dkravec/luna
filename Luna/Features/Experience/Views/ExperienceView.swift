@@ -4,177 +4,225 @@ import ARKit
 #endif
 
 struct ExperienceView: View {
+    private let arNudgeStep: Float = 0.12
+
     @EnvironmentObject private var appState: LunaAppState
     @State private var isAREnabled = false
     @State private var hasInitializedMode = false
+    @State private var isControlsPresented = false
+    @State private var arPlacementOffset = SIMD3<Float>.zero
+    @State private var arContentScale: Float = 1
+    @State private var recenterTrigger = 0
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                PageHeader(
-                    title: "AR Experience",
-                    subtitle: "Place scaled worlds in your space or browse in visual mode."
-                )
+        ZStack {
+            sceneLayer
+                .ignoresSafeArea(edges: .bottom)
 
-                sceneSection
-
-                modeSection
-
-                controlsSection
-            }
-            .screenContentPadding()
+            topBar
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .appBackground()
         .onAppear {
             appState.loadCelestialBodies()
             initializePreferredModeIfNeeded()
         }
+        .sheet(isPresented: $isControlsPresented) {
+            controlsSheetContent
+                .experienceControlsPresentation()
+        }
+#if os(iOS)
+        .toolbar(.hidden, for: .navigationBar)
+#endif
     }
 
     @ViewBuilder
-    private var sceneSection: some View {
+    private var sceneLayer: some View {
         if appState.celestialBodies.isEmpty {
             EmptyStateView(
                 title: "No Bodies Loaded",
                 systemImage: "sparkles",
                 message: "Luna could not load the local celestial body catalog."
             )
+            .padding()
         } else {
-            Card {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .top, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(isAREnabled ? "AR Scene" : "Visual Scene")
-                                .font(.headline)
-
-                            Text(sceneSubtitle)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-
-                        Spacer(minLength: 12)
-
-                        Text(settings.scaleMode == .compressedDistance ? "\(Int(settings.distanceCompression.rounded()))x" : settings.scaleMode.title)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.primary.opacity(0.06), in: Capsule(style: .continuous))
-                    }
-
 #if os(iOS)
-                    if isAREnabled, canUseAR {
-                        LunaARSceneView(bodies: appState.celestialBodies, settings: settings)
-                            .frame(minHeight: 360)
-                            .clipShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
-                    } else {
-                        SolarSystemVisualSceneView(bodies: appState.celestialBodies, settings: settings)
-                    }
+            if isAREnabled, canUseAR {
+                LunaARSceneView(
+                    bodies: appState.celestialBodies,
+                    settings: settings,
+                    recenterTrigger: recenterTrigger,
+                    placementOffset: arPlacementOffset,
+                    contentScale: arContentScale
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                SolarSystemVisualSceneView(bodies: appState.celestialBodies, settings: settings)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
 #else
-                    SolarSystemVisualSceneView(bodies: appState.celestialBodies, settings: settings)
+            SolarSystemVisualSceneView(bodies: appState.celestialBodies, settings: settings)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 #endif
+        }
+    }
+
+    private var topBar: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Experience")
+                    .font(.largeTitle.weight(.bold))
+
+                Text(sceneSubtitle)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(14)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: Radii.card, style: .continuous)
+                    .stroke(Color.primary.opacity(0.10), lineWidth: 1)
+            }
+
+            Spacer(minLength: 8)
+
+            VStack(spacing: 10) {
+                modeToggle
+
+                Button {
+                    Haptics.selection()
+                    isControlsPresented = true
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 18, weight: .semibold))
+                        .frame(width: 46, height: 46)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .overlay {
+                            Circle()
+                                .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                        }
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Show experience controls")
             }
         }
     }
 
-    private var modeSection: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 12) {
-                    IconBadge(systemImage: "viewfinder")
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Ready for AR")
-                            .font(.headline)
-
-                        Text("Visual mode stays available when AR is off or unsupported.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+    private var modeToggle: some View {
+        HStack(spacing: 4) {
+            Button {
+                setSceneMode(isAR: true)
+            } label: {
+                Image(systemName: "arkit")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 40, height: 40)
+                    .background {
+                        if isAREnabled {
+                            Circle().fill(Color.accentColor.opacity(0.18))
+                        }
                     }
-                }
-
-                HStack(spacing: 10) {
-                    Button {
-                        setSceneMode(isAR: true)
-                    } label: {
-                        Label(canUseAR ? "Start AR" : "AR Unavailable", systemImage: "arkit")
-                    }
-                    .buttonStyle(ActionButtonStyle(emphasis: isAREnabled ? .primary : .secondary))
-                    .hapticTap()
-                    .disabled(!canUseAR)
-
-                    Button {
-                        setSceneMode(isAR: false)
-                    } label: {
-                        Label("Visual", systemImage: "cube.transparent")
-                    }
-                    .buttonStyle(ActionButtonStyle(emphasis: isAREnabled ? .secondary : .primary))
-                    .hapticTap()
-                }
             }
+            .disabled(!canUseAR)
+            .foregroundStyle(isAREnabled ? Color.accentColor : Color.secondary)
+            .accessibilityLabel(canUseAR ? "Use AR mode" : "AR unavailable")
+
+            Button {
+                setSceneMode(isAR: false)
+            } label: {
+                Image(systemName: "cube.transparent")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 40, height: 40)
+                    .background {
+                        if !isAREnabled {
+                            Circle().fill(Color.accentColor.opacity(0.18))
+                        }
+                    }
+            }
+            .foregroundStyle(!isAREnabled ? Color.accentColor : Color.secondary)
+            .accessibilityLabel("Use visual mode")
+        }
+        .buttonStyle(.plain)
+        .padding(4)
+        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+        .overlay {
+            Capsule(style: .continuous)
+                .stroke(Color.primary.opacity(0.12), lineWidth: 1)
         }
     }
 
-    private var controlsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Scene Controls")
-
-            CardSection {
-                NavigationLink {
-                    ExperienceScaleModeView(
+    private var controlsSheetContent: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                    viewModeSection
+                    ScaleModeOptionsView(
                         preferredScaleMode: preferredScaleModeBinding,
                         distanceCompression: distanceCompressionBinding
                     )
-                    .appBackground()
-                } label: {
-                    CardRow {
-                        RowLabel(
-                            title: "Scale Mode",
-                            subtitle: scaleModeSubtitle,
-                            systemImage: "scale.3d",
-                            value: appState.userProfile.preferredScaleMode.title,
-                            showsChevron: true
-                        )
+                    PlanetSizeOptionsView(planetSizeMultiplier: planetSizeMultiplierBinding)
+                    sceneOptionsSection
+
+                    if isAREnabled, canUseAR {
+                        arPlacementSection
                     }
                 }
-                .buttonStyle(.plain)
-                .hapticTap()
-
-                CardDivider(leadingInset: 56)
-
-                NavigationLink {
-                    ExperiencePlanetSizeView(planetSizeMultiplier: planetSizeMultiplierBinding)
-                        .appBackground()
-                } label: {
-                    CardRow {
-                        RowLabel(
-                            title: "Planet Size",
-                            subtitle: "Scale up small bodies without changing distance labels.",
-                            systemImage: "plus.magnifyingglass",
-                            value: planetSizeTitle,
-                            showsChevron: true
-                        )
+                .padding(.horizontal, Spacing.screenHorizontal)
+                .padding(.top, 12)
+                .padding(.bottom, 24)
+            }
+            .appBackground()
+            .navigationTitle("Experience")
+#if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+#endif
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        isControlsPresented = false
                     }
                 }
-                .buttonStyle(.plain)
-                .hapticTap()
+            }
+        }
+    }
 
-                CardDivider(leadingInset: 56)
+    private var viewModeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "View Mode")
 
-                CardRow {
-                    RowLabel(
-                        title: "Compressed Distance",
-                        subtitle: "Use an educational layout for room-scale viewing.",
-                        systemImage: "arrow.up.left.and.arrow.down.right",
-                        value: compressedDistanceTitle
-                    )
+            CardSection {
+                SelectionRow(
+                    title: "AR",
+                    subtitle: canUseAR ? "Place scaled bodies in your space." : "AR is not available on this device.",
+                    systemImage: "arkit",
+                    value: canUseAR ? nil : "Unavailable",
+                    isSelected: isAREnabled
+                ) {
+                    setSceneMode(isAR: true)
                 }
+                .disabled(!canUseAR)
 
                 CardDivider(leadingInset: 56)
 
+                SelectionRow(
+                    title: "Visual",
+                    subtitle: "Use the same scene controls without AR.",
+                    systemImage: "cube.transparent",
+                    isSelected: !isAREnabled
+                ) {
+                    setSceneMode(isAR: false)
+                }
+            }
+        }
+    }
+
+    private var sceneOptionsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Scene")
+
+            CardSection {
                 CardRow {
                     Toggle(
                         isOn: Binding(
@@ -184,7 +232,7 @@ struct ExperienceView: View {
                     ) {
                         RowLabel(
                             title: "Labels",
-                            subtitle: "Show body names in the scene.",
+                            subtitle: "Show body names in visual scenes.",
                             systemImage: "tag"
                         )
                     }
@@ -200,14 +248,108 @@ struct ExperienceView: View {
                         )
                     ) {
                         RowLabel(
-                            title: "Orbits",
-                            subtitle: "Draw orbit guides when the selected scale mode supports them.",
+                            title: "Orbit Guides",
+                            subtitle: "Show subtle distance guides in visual mode.",
                             systemImage: "circle.dashed"
                         )
                     }
                 }
             }
         }
+    }
+
+    private var arPlacementSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "AR Placement")
+
+            CardSection {
+                CardRow {
+                    HStack(spacing: 10) {
+                        Button {
+                            recenterARScene()
+                        } label: {
+                            Label("Recenter", systemImage: "scope")
+                        }
+                        .primaryActionButton()
+
+                        Button {
+                            resetARNudge()
+                        } label: {
+                            Label("Reset Move", systemImage: "arrow.counterclockwise")
+                        }
+                        .secondaryActionButton()
+                    }
+                }
+
+                CardDivider(leadingInset: 14)
+
+                CardRow {
+                    RowLabel(
+                        title: "AR Zoom",
+                        subtitle: "Scale the placed scene without changing data labels.",
+                        systemImage: "plus.magnifyingglass",
+                        value: "\(arZoomPercent)%"
+                    )
+                }
+
+                CardRow {
+                    Slider(
+                        value: Binding(
+                            get: { Double(arContentScale) },
+                            set: { arContentScale = Float($0) }
+                        ),
+                        in: 0.4...3,
+                        step: 0.1
+                    )
+                }
+
+                CardDivider(leadingInset: 14)
+
+                CardRow {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                        placementButton(systemImage: "arrow.left", accessibilityLabel: "Move left") {
+                            nudgeAR(x: -arNudgeStep)
+                        }
+
+                        placementButton(systemImage: "arrow.up", accessibilityLabel: "Move up") {
+                            nudgeAR(y: arNudgeStep)
+                        }
+
+                        placementButton(systemImage: "arrow.right", accessibilityLabel: "Move right") {
+                            nudgeAR(x: arNudgeStep)
+                        }
+
+                        placementButton(systemImage: "arrow.down", accessibilityLabel: "Move down") {
+                            nudgeAR(y: -arNudgeStep)
+                        }
+
+                        placementButton(systemImage: "arrow.down.backward.and.arrow.up.forward", accessibilityLabel: "Move closer") {
+                            nudgeAR(z: arNudgeStep)
+                        }
+
+                        placementButton(systemImage: "arrow.up.forward.and.arrow.down.backward", accessibilityLabel: "Move farther") {
+                            nudgeAR(z: -arNudgeStep)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func placementButton(
+        systemImage: String,
+        accessibilityLabel: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .semibold))
+                .frame(maxWidth: .infinity, minHeight: 42)
+                .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: Radii.tile, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .hapticTap()
+        .accessibilityLabel(accessibilityLabel)
     }
 
     private var settings: SolarSystemSceneSettings {
@@ -249,6 +391,22 @@ struct ExperienceView: View {
         appState.setPrefersARMode(isAREnabled)
     }
 
+    private func recenterARScene() {
+        Haptics.selection()
+        arPlacementOffset = .zero
+        arContentScale = 1
+        recenterTrigger += 1
+    }
+
+    private func resetARNudge() {
+        Haptics.selection()
+        arPlacementOffset = .zero
+    }
+
+    private func nudgeAR(x: Float = 0, y: Float = 0, z: Float = 0) {
+        arPlacementOffset += SIMD3<Float>(x, y, z)
+    }
+
     private func setShowLabels(_ showLabels: Bool) {
         Haptics.selection()
         appState.setShowLabels(showLabels)
@@ -280,69 +438,22 @@ struct ExperienceView: View {
         )
     }
 
-    private var scaleModeSubtitle: String {
-        switch appState.userProfile.preferredScaleMode {
-        case .educational:
-            return "Readable sizes and distances together."
-        case .compressedDistance:
-            return "Distance is compressed for viewing, not accuracy."
-        case .trueDistance:
-            return "Accurate intent, impractical at room scale."
-        case .custom:
-            return "Uses your custom scale controls."
-        }
-    }
-
-    private var planetSizeTitle: String {
-        "\(Int(appState.userProfile.planetSizeMultiplier.rounded()))x"
-    }
-
-    private var compressedDistanceTitle: String {
-        appState.userProfile.preferredScaleMode == .compressedDistance
-            ? "\(Int(appState.userProfile.distanceCompression.rounded()))x"
-            : "Off"
+    private var arZoomPercent: Int {
+        Int((arContentScale * 100).rounded())
     }
 }
 
-private struct ExperienceScaleModeView: View {
-    @Binding var preferredScaleMode: ScaleMode
-    @Binding var distanceCompression: Double
-
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                PageHeader(
-                    title: "Choose Scaling",
-                    subtitle: "Pick how Luna should balance accurate scale with readable space views."
-                )
-
-                ScaleModeOptionsView(
-                    preferredScaleMode: $preferredScaleMode,
-                    distanceCompression: $distanceCompression
-                )
-            }
-            .screenContentPadding()
-        }
-        .navigationTitle("Scale Mode")
-    }
-}
-
-private struct ExperiencePlanetSizeView: View {
-    @Binding var planetSizeMultiplier: Double
-
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                PageHeader(
-                    title: "Planet Size",
-                    subtitle: "Choose how large planets appear in AR and visual scenes without changing distance labels."
-                )
-
-                PlanetSizeOptionsView(planetSizeMultiplier: $planetSizeMultiplier)
-            }
-            .screenContentPadding()
-        }
-        .navigationTitle("Planet Size")
+private extension View {
+    @ViewBuilder
+    func experienceControlsPresentation() -> some View {
+#if os(iOS)
+        self
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+#else
+        self
+            .frame(minWidth: 390, minHeight: 560)
+#endif
     }
 }
 

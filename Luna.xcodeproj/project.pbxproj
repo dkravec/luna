@@ -69,6 +69,8 @@
 		7A6B050524AC000000000000 /* SolarSystemVisualSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050324AC000000000000 /* SolarSystemVisualSceneView.swift */; };
 		7A6B050724AC000000000000 /* LunaARSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050624AC000000000000 /* LunaARSceneView.swift */; };
 		7A6B050824AC000000000000 /* LunaARSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050624AC000000000000 /* LunaARSceneView.swift */; };
+		7A6B051124AC100000000000 /* BodyPreviewSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */; };
+		7A6B051224AC100000000000 /* BodyPreviewSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -110,6 +112,7 @@
 		7A6B050024AC000000000000 /* ExperienceSceneLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceSceneLayout.swift; sourceTree = "<group>"; };
 		7A6B050324AC000000000000 /* SolarSystemVisualSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarSystemVisualSceneView.swift; sourceTree = "<group>"; };
 		7A6B050624AC000000000000 /* LunaARSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaARSceneView.swift; sourceTree = "<group>"; };
+		7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyPreviewSceneView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -371,6 +374,7 @@
 			isa = PBXGroup;
 			children = (
 				7A6B033F24A8000000000000 /* BodyDetailView.swift */,
+				7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -633,6 +637,7 @@
 				7A6B050124AC000000000000 /* ExperienceSceneLayout.swift in Sources */,
 				7A6B050424AC000000000000 /* SolarSystemVisualSceneView.swift in Sources */,
 				7A6B050724AC000000000000 /* LunaARSceneView.swift in Sources */,
+				7A6B051124AC100000000000 /* BodyPreviewSceneView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -666,6 +671,7 @@
 				7A6B050224AC000000000000 /* ExperienceSceneLayout.swift in Sources */,
 				7A6B050524AC000000000000 /* SolarSystemVisualSceneView.swift in Sources */,
 				7A6B050824AC000000000000 /* LunaARSceneView.swift in Sources */,
+				7A6B051224AC100000000000 /* BodyPreviewSceneView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

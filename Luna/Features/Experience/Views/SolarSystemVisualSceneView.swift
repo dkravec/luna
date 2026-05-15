@@ -17,7 +17,7 @@ struct SolarSystemVisualSceneView: View {
 
     var body: some View {
         VisualSceneContainer(bodies: bodies, settings: settings)
-            .frame(minHeight: 360)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
             .overlay(alignment: .bottomLeading) {
                 sceneCaption
@@ -228,8 +228,9 @@ private enum SolarSystemSceneFactory {
     }
 
     private static func orbitNode(radius: CGFloat) -> SCNNode {
-        let orbit = SCNTorus(ringRadius: radius, pipeRadius: 0.006)
-        orbit.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.22)
+        let orbit = SCNTorus(ringRadius: radius, pipeRadius: 0.003)
+        orbit.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.14)
+        orbit.firstMaterial?.lightingModel = .constant
         let node = SCNNode(geometry: orbit)
         node.eulerAngles.x = .pi / 2
         return node

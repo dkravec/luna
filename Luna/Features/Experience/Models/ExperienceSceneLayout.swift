@@ -125,13 +125,15 @@ enum ExperienceSceneLayout {
 
         switch body.type {
         case .star:
-            return min(1.1, 0.62 * multiplier)
+            return min(1.8, 0.62 * pow(multiplier, 0.42))
         case .satellite:
-            return min(0.22, 0.06 * multiplier)
+            return min(0.65, 0.05 * multiplier)
         case .moon, .asteroid, .dwarfPlanet:
-            return min(0.48, max(0.09, Float(log10(body.radiusKm + 10)) / 10) * multiplier)
+            let baseRadius = max(0.07, Float(log10(body.radiusKm + 10)) / 18)
+            return min(1.2, baseRadius * multiplier)
         case .planet:
-            return min(0.72, max(0.16, Float(log10(body.radiusKm + 10)) / 8.5) * multiplier)
+            let baseRadius = max(0.11, Float(log10(body.radiusKm + 10)) / 14)
+            return min(2.0, baseRadius * multiplier)
         }
     }
 

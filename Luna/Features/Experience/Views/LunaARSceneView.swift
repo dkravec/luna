@@ -7,6 +7,9 @@ import UIKit
 struct LunaARSceneView: UIViewRepresentable {
     let bodies: [CelestialBody]
     let settings: SolarSystemSceneSettings
+    let recenterTrigger: Int
+    let placementOffset: SIMD3<Float>
+    let contentScale: Float
 
     func makeUIView(context: Context) -> ARView {
         let view = ARView(frame: .zero)
@@ -30,7 +33,8 @@ struct LunaARSceneView: UIViewRepresentable {
     private func populate(_ view: ARView) {
         view.scene.anchors.removeAll()
 
-        let anchor = AnchorEntity(world: SIMD3<Float>(0, -0.35, -1.2))
+        let anchor = AnchorEntity(world: anchorTransform(for: view))
+        anchor.scale = SIMD3<Float>(repeating: max(0.25, contentScale))
         let placements = ExperienceSceneLayout.placements(for: bodies, settings: settings)
 
         for placement in placements {
@@ -39,11 +43,18 @@ struct LunaARSceneView: UIViewRepresentable {
                 placement.position.x * 0.11,
                 placement.position.y * 0.11,
                 placement.position.z * 0.11
-            )
+            ) + placementOffset
             anchor.addChild(entity)
         }
 
         view.scene.addAnchor(anchor)
+    }
+
+    private func anchorTransform(for view: ARView) -> simd_float4x4 {
+        var translation = matrix_identity_float4x4
+        translation.columns.3.y = -0.28
+        translation.columns.3.z = -1.25
+        return simd_mul(view.cameraTransform.matrix, translation)
     }
 
     private func entity(for placement: SceneBodyPlacement) -> Entity {
@@ -52,12 +63,31 @@ struct LunaARSceneView: UIViewRepresentable {
         }
 
         let mesh = MeshResource.generateSphere(radius: max(0.015, placement.displayRadius * 0.11))
-        let material = SimpleMaterial(
-            color: UIColor(sceneColor(for: placement.body)),
-            roughness: 0.55,
-            isMetallic: false
-        )
+        let material = material(for: placement.body)
         return ModelEntity(mesh: mesh, materials: [material])
+    }
+
+    private func material(for body: CelestialBody) -> UnlitMaterial {
+        var material = UnlitMaterial(color: fallbackColor(for: body))
+
+        if let texture = textureResource(for: body) {
+            material.color = .init(tint: .white, texture: .init(texture))
+        }
+
+        return material
+    }
+
+    private func textureResource(for body: CelestialBody) -> TextureResource? {
+        guard let textureName = body.textureName,
+              let url = Bundle.main.url(
+                forResource: textureName,
+                withExtension: "jpg",
+                subdirectory: "Planets"
+              ) else {
+            return nil
+        }
+
+        return try? TextureResource.load(contentsOf: url)
     }
 
     private func satelliteEntity(scale: Float) -> Entity {
@@ -81,24 +111,24 @@ struct LunaARSceneView: UIViewRepresentable {
         return root
     }
 
-    private func sceneColor(for body: CelestialBody) -> Color {
+    private func fallbackColor(for body: CelestialBody) -> UIColor {
         switch body.id {
         case "sun":
-            return Color(red: 1, green: 0.74, blue: 0.20)
+            return UIColor(red: 1, green: 0.74, blue: 0.20, alpha: 1)
         case "mercury", "moon":
-            return Color(red: 0.55, green: 0.54, blue: 0.52)
+            return UIColor(red: 0.55, green: 0.54, blue: 0.52, alpha: 1)
         case "venus":
-            return Color(red: 0.86, green: 0.67, blue: 0.38)
+            return UIColor(red: 0.86, green: 0.67, blue: 0.38, alpha: 1)
         case "earth":
-            return Color(red: 0.16, green: 0.38, blue: 0.84)
+            return UIColor(red: 0.16, green: 0.38, blue: 0.84, alpha: 1)
         case "mars":
-            return Color(red: 0.78, green: 0.32, blue: 0.18)
+            return UIColor(red: 0.78, green: 0.32, blue: 0.18, alpha: 1)
         case "jupiter", "saturn":
-            return Color(red: 0.73, green: 0.58, blue: 0.42)
+            return UIColor(red: 0.73, green: 0.58, blue: 0.42, alpha: 1)
         case "uranus", "neptune":
-            return Color(red: 0.28, green: 0.62, blue: 0.84)
+            return UIColor(red: 0.28, green: 0.62, blue: 0.84, alpha: 1)
         default:
-            return Color(red: 0.78, green: 0.80, blue: 0.84)
+            return UIColor(red: 0.78, green: 0.80, blue: 0.84, alpha: 1)
         }
     }
 }
