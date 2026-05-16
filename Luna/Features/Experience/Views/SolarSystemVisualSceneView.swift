@@ -93,22 +93,17 @@ private extension VisualSceneContainer {
     }
 
     func configure(_ view: SCNView) {
-        let cameraLimit = SceneCameraLimit(snapshot: snapshot)
-
-        view.scene = SolarSystemSceneFactory.scene(
-            for: snapshot,
-            showsLabels: showsLabels
-        )
-        view.defaultCameraController.target = cameraLimit.subjectCenter
-
         if let coordinator = view.delegate as? VisualSceneCameraCoordinator {
-            coordinator.update(cameraLimit)
+            coordinator.apply(snapshot: snapshot, showsLabels: showsLabels, to: view)
         }
     }
 }
 
 private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDelegate {
     private var cameraLimit = SceneCameraLimit.default
+    private var structureKey: String?
+    private var bodyNodes: [String: SCNNode] = [:]
+    private var orbitNodes: [String: SCNNode] = [:]
 
     func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
         guard let pointOfView = renderer.pointOfView,
@@ -130,6 +125,74 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     func update(_ cameraLimit: SceneCameraLimit) {
         self.cameraLimit = cameraLimit
     }
+
+    func apply(snapshot: ExperienceSceneSnapshot, showsLabels: Bool, to view: SCNView) {
+        let nextStructureKey = Self.structureKey(for: snapshot, showsLabels: showsLabels)
+        let nextCameraLimit = SceneCameraLimit(snapshot: snapshot)
+
+        if view.scene == nil || structureKey != nextStructureKey {
+            let scene = SolarSystemSceneFactory.scene(
+                for: snapshot,
+                showsLabels: showsLabels
+            )
+            view.scene = scene
+            captureNodes(from: scene)
+            view.defaultCameraController.target = nextCameraLimit.subjectCenter
+            structureKey = nextStructureKey
+        } else {
+            updateExistingNodes(with: snapshot)
+        }
+
+        update(nextCameraLimit)
+    }
+
+    private func updateExistingNodes(with snapshot: ExperienceSceneSnapshot) {
+        SCNTransaction.begin()
+        SCNTransaction.disableActions = true
+
+        for placement in snapshot.bodies {
+            bodyNodes[placement.id]?.position = SCNVector3(
+                placement.position.x,
+                placement.position.y,
+                placement.position.z
+            )
+        }
+
+        for orbitPath in snapshot.orbitPaths {
+            orbitNodes[orbitPath.id]?.geometry = SolarSystemSceneFactory.orbitGeometry(path: orbitPath)
+        }
+
+        SCNTransaction.commit()
+    }
+
+    private func captureNodes(from scene: SCNScene) {
+        bodyNodes.removeAll()
+        orbitNodes.removeAll()
+
+        scene.rootNode.enumerateChildNodes { node, _ in
+            guard let name = node.name else { return }
+
+            if name.hasPrefix("body:") {
+                bodyNodes[String(name.dropFirst(5))] = node
+            } else if name.hasPrefix("orbit:") {
+                orbitNodes[String(name.dropFirst(6))] = node
+            }
+        }
+    }
+
+    private static func structureKey(for snapshot: ExperienceSceneSnapshot, showsLabels: Bool) -> String {
+        let bodyKey = snapshot.bodies
+            .map { body in
+                let radius = Int((body.displayRadius * 1_000).rounded())
+                return "\(body.id):\(body.body.type.rawValue):\(radius):\(body.body.textureName ?? ""):\(body.body.modelName ?? "")"
+            }
+            .joined(separator: "|")
+        let orbitKey = snapshot.orbitPaths
+            .map { "\($0.id):\($0.points.count)" }
+            .joined(separator: "|")
+
+        return "\(showsLabels)-\(bodyKey)-\(orbitKey)"
+    }
 }
 
 private enum SolarSystemSceneFactory {
@@ -150,6 +213,7 @@ private enum SolarSystemSceneFactory {
 
         for placement in snapshot.bodies {
             let bodyNode = node(for: placement)
+            bodyNode.name = "body:\(placement.id)"
             root.addChildNode(bodyNode)
 
             if showsLabels {
@@ -282,6 +346,12 @@ private enum SolarSystemSceneFactory {
     }
 
     private static func orbitNode(path: ExperienceOrbitPath) -> SCNNode {
+        let node = SCNNode(geometry: orbitGeometry(path: path))
+        node.name = "orbit:\(path.id)"
+        return node
+    }
+
+    static func orbitGeometry(path: ExperienceOrbitPath) -> SCNGeometry {
         let vertices = path.points.map { SCNVector3($0.x, $0.y, $0.z) }
         let source = SCNGeometrySource(vertices: vertices)
         var indices: [Int32] = []
@@ -296,7 +366,7 @@ private enum SolarSystemSceneFactory {
         geometry.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: path.bodyId == "moon" ? 0.22 : 0.13)
         geometry.firstMaterial?.emission.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.10)
         geometry.firstMaterial?.lightingModel = .constant
-        return SCNNode(geometry: geometry)
+        return geometry
     }
 
     private static func cameraNode(for snapshot: ExperienceSceneSnapshot) -> SCNNode {

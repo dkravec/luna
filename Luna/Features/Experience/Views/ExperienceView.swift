@@ -1,9 +1,14 @@
+import Combine
 import SwiftUI
 #if os(iOS)
 import ARKit
 #endif
 
 struct ExperienceView: View {
+    private static let playbackTimer = Timer
+        .publish(every: 1.0 / 24.0, on: .main, in: .common)
+        .autoconnect()
+
     @EnvironmentObject private var appState: LunaAppState
     @Environment(\.lunaCustomTabBarReserveIsActive) private var hasCustomTabBarReserve
     @State private var isAREnabled = false
@@ -14,6 +19,7 @@ struct ExperienceView: View {
     @State private var isOrbitPlaybackEnabled = false
     @State private var playbackStartDate = Date()
     @State private var pausedSimulationDays: Double = 0
+    @State private var currentSimulationDays: Double = 0
 
     var body: some View {
         ZStack {
@@ -39,6 +45,17 @@ struct ExperienceView: View {
             initializePreferredModeIfNeeded()
             prepareSceneAfterInitialRender()
         }
+        .onDisappear {
+            pauseOrbitPlaybackIfNeeded()
+        }
+        .onChange(of: appState.selectedTab) { selectedTab in
+            if selectedTab != .arExperience {
+                pauseOrbitPlaybackIfNeeded()
+            }
+        }
+        .onReceive(Self.playbackTimer) { date in
+            advanceOrbitPlaybackIfNeeded(at: date)
+        }
         .sheet(isPresented: $isControlsPresented) {
             controlsSheetContent
                 .experienceControlsPresentation()
@@ -60,9 +77,7 @@ struct ExperienceView: View {
             )
             .padding()
         } else {
-            TimelineView(.animation) { timeline in
-                sceneContent(simulationTimeDays: simulationTimeDays(at: timeline.date))
-            }
+            sceneContent(simulationTimeDays: currentSimulationDays)
         }
     }
 
@@ -437,12 +452,26 @@ struct ExperienceView: View {
     private func toggleOrbitPlayback() {
         Haptics.selection()
         if isOrbitPlaybackEnabled {
-            pausedSimulationDays = simulationTimeDays(at: Date())
-            isOrbitPlaybackEnabled = false
+            pauseOrbitPlaybackIfNeeded()
         } else {
+            pausedSimulationDays = currentSimulationDays
             playbackStartDate = Date()
             isOrbitPlaybackEnabled = true
         }
+    }
+
+    private func pauseOrbitPlaybackIfNeeded() {
+        guard isOrbitPlaybackEnabled else { return }
+
+        currentSimulationDays = simulationTimeDays(at: Date())
+        pausedSimulationDays = currentSimulationDays
+        isOrbitPlaybackEnabled = false
+    }
+
+    private func advanceOrbitPlaybackIfNeeded(at date: Date) {
+        guard isOrbitPlaybackEnabled else { return }
+
+        currentSimulationDays = simulationTimeDays(at: date)
     }
 
     private func simulationTimeDays(at date: Date) -> Double {

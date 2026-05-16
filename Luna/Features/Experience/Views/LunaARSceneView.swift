@@ -44,6 +44,11 @@ struct LunaARSceneView: UIViewRepresentable {
 
     final class Coordinator: NSObject, ARCoachingOverlayViewDelegate {
         private var anchor: AnchorEntity?
+        private var root: ModelEntity?
+        private var rootCenter: SIMD3<Float> = .zero
+        private var structureKey: String?
+        private var bodyEntities: [String: Entity] = [:]
+        private var orbitDotEntities: [String: [Entity]] = [:]
         private var installedGestures: [UIGestureRecognizer] = []
         private var lastRecenterTrigger: Int?
 
@@ -90,30 +95,48 @@ struct LunaARSceneView: UIViewRepresentable {
                     view.scene.removeAnchor(anchor)
                     self.anchor = nil
                 }
+                root = nil
+                structureKey = nil
+                bodyEntities.removeAll()
+                orbitDotEntities.removeAll()
                 lastRecenterTrigger = recenterTrigger
                 return
             }
 
-            let shouldRecenter = anchor == nil || lastRecenterTrigger != recenterTrigger
-            if shouldRecenter {
-                recenter(in: view)
-                lastRecenterTrigger = recenterTrigger
-            }
-
-            guard let anchor else { return }
-
-            installedGestures.forEach { view.removeGestureRecognizer($0) }
-            installedGestures.removeAll()
-            anchor.children.removeAll()
-
-            let root = Self.gestureRoot(
+            let snapshot = ExperienceSceneEngine.snapshot(
                 for: bodies,
                 settings: settings,
                 content: content,
                 simulationTimeDays: simulationTimeDays
             )
-            anchor.addChild(root)
-            installedGestures = view.installGestures([.translation, .rotation, .scale], for: root)
+            let shouldRecenter = anchor == nil || lastRecenterTrigger != recenterTrigger
+            if shouldRecenter {
+                recenter(in: view)
+                lastRecenterTrigger = recenterTrigger
+                structureKey = nil
+            }
+
+            guard let anchor else { return }
+
+            let nextStructureKey = Self.structureKey(for: snapshot, settings: settings)
+
+            if root == nil || structureKey != nextStructureKey {
+                installedGestures.forEach { view.removeGestureRecognizer($0) }
+                installedGestures.removeAll()
+                anchor.children.removeAll()
+
+                let renderTree = Self.gestureRoot(for: snapshot, settings: settings)
+                root = renderTree.root
+                rootCenter = renderTree.center
+                bodyEntities = renderTree.bodyEntities
+                orbitDotEntities = renderTree.orbitDotEntities
+                structureKey = nextStructureKey
+
+                anchor.addChild(renderTree.root)
+                installedGestures = view.installGestures([.translation, .rotation, .scale], for: renderTree.root)
+            } else {
+                updateExistingEntities(with: snapshot)
+            }
         }
 
         private func recenter(in view: ARView) {
@@ -126,18 +149,37 @@ struct LunaARSceneView: UIViewRepresentable {
             view.scene.addAnchor(anchor)
         }
 
+        private func updateExistingEntities(with snapshot: ExperienceSceneSnapshot) {
+            let arPlacements = snapshot.bodies.map { placement -> ARBodyPlacement in
+                ARBodyPlacement(
+                    body: placement.body,
+                    displayRadius: max(0.002, placement.displayRadius * 0.095),
+                    position: SIMD3<Float>(
+                        placement.position.x * 0.095,
+                        placement.position.y * 0.095,
+                        placement.position.z * 0.095
+                    )
+                )
+            }
+
+            for placement in arPlacements {
+                bodyEntities[placement.body.id]?.position = placement.position - rootCenter
+            }
+
+            for orbitPath in snapshot.orbitPaths {
+                guard let dots = orbitDotEntities[orbitPath.id] else { continue }
+
+                let positions = Self.orbitDotPositions(for: orbitPath, scale: 0.095)
+                for index in 0..<min(dots.count, positions.count) {
+                    dots[index].position = positions[index] - rootCenter
+                }
+            }
+        }
+
         private static func gestureRoot(
-            for bodies: [CelestialBody],
-            settings: ExperienceSceneSettings,
-            content: ExperienceSceneContent,
-            simulationTimeDays: Double
-        ) -> ModelEntity {
-            let snapshot = ExperienceSceneEngine.snapshot(
-                for: bodies,
-                settings: settings,
-                content: content,
-                simulationTimeDays: simulationTimeDays
-            )
+            for snapshot: ExperienceSceneSnapshot,
+            settings: ExperienceSceneSettings
+        ) -> ARRenderTree {
             let arPlacements = snapshot.bodies.map { placement -> ARBodyPlacement in
                 ARBodyPlacement(
                     body: placement.body,
@@ -153,21 +195,30 @@ struct LunaARSceneView: UIViewRepresentable {
             let root = ModelEntity()
             root.position = bounds.center
             root.collision = CollisionComponent(shapes: [.generateBox(size: bounds.size)])
+            var bodyEntities: [String: Entity] = [:]
+            var orbitDotEntities: [String: [Entity]] = [:]
 
             for placement in arPlacements {
                 let entity = entity(for: placement)
                 entity.position = placement.position - bounds.center
                 root.addChild(entity)
+                bodyEntities[placement.body.id] = entity
             }
 
             if settings.showOrbits {
                 for orbitPath in snapshot.orbitPaths {
-                    let dots = orbitDots(for: orbitPath, scale: 0.095, center: bounds.center)
-                    root.addChild(dots)
+                    let orbitTree = orbitDots(for: orbitPath, scale: 0.095, center: bounds.center)
+                    root.addChild(orbitTree.root)
+                    orbitDotEntities[orbitPath.id] = orbitTree.dots
                 }
             }
 
-            return root
+            return ARRenderTree(
+                root: root,
+                center: bounds.center,
+                bodyEntities: bodyEntities,
+                orbitDotEntities: orbitDotEntities
+            )
         }
 
         private static func anchorTransform(for view: ARView) -> simd_float4x4 {
@@ -204,21 +255,47 @@ struct LunaARSceneView: UIViewRepresentable {
             return ModelEntity(mesh: mesh, materials: [material])
         }
 
-        private static func orbitDots(for path: ExperienceOrbitPath, scale: Float, center: SIMD3<Float>) -> Entity {
+        private static func orbitDots(for path: ExperienceOrbitPath, scale: Float, center: SIMD3<Float>) -> AROrbitTree {
             let root = Entity()
             let material = SimpleMaterial(
                 color: UIColor.white.withAlphaComponent(path.bodyId == "moon" ? 0.36 : 0.20),
                 roughness: 0.6,
                 isMetallic: false
             )
+            let positions = orbitDotPositions(for: path, scale: scale)
+            var dots: [Entity] = []
 
-            for point in path.points.enumerated() where point.offset.isMultiple(of: 6) {
+            for position in positions {
                 let dot = ModelEntity(mesh: .generateSphere(radius: path.bodyId == "moon" ? 0.0028 : 0.0021), materials: [material])
-                dot.position = point.element * scale - center
+                dot.position = position - center
                 root.addChild(dot)
+                dots.append(dot)
             }
 
-            return root
+            return AROrbitTree(root: root, dots: dots)
+        }
+
+        private static func orbitDotPositions(for path: ExperienceOrbitPath, scale: Float) -> [SIMD3<Float>] {
+            path.points.enumerated().compactMap { point in
+                point.offset.isMultiple(of: 6) ? point.element * scale : nil
+            }
+        }
+
+        private static func structureKey(
+            for snapshot: ExperienceSceneSnapshot,
+            settings: ExperienceSceneSettings
+        ) -> String {
+            let bodyKey = snapshot.bodies
+                .map { body in
+                    let radius = Int((body.displayRadius * 1_000).rounded())
+                    return "\(body.id):\(body.body.type.rawValue):\(radius):\(body.body.textureName ?? ""):\(body.body.modelName ?? "")"
+                }
+                .joined(separator: "|")
+            let orbitKey = settings.showOrbits
+                ? snapshot.orbitPaths.map { "\($0.id):\($0.points.count)" }.joined(separator: "|")
+                : "no-orbits"
+
+            return "\(settings.distanceScaleMode.rawValue):\(Int(settings.distanceCompression.rounded())):\(settings.showOrbits)-\(bodyKey)-\(orbitKey)"
         }
 
         private static func material(for body: CelestialBody) -> UnlitMaterial {
@@ -292,6 +369,18 @@ private struct ARBodyPlacement {
     let body: CelestialBody
     let displayRadius: Float
     let position: SIMD3<Float>
+}
+
+private struct ARRenderTree {
+    let root: ModelEntity
+    let center: SIMD3<Float>
+    let bodyEntities: [String: Entity]
+    let orbitDotEntities: [String: [Entity]]
+}
+
+private struct AROrbitTree {
+    let root: Entity
+    let dots: [Entity]
 }
 
 private struct ARPlacementBounds {
