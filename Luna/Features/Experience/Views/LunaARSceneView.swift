@@ -118,7 +118,7 @@ struct LunaARSceneView: UIViewRepresentable {
             let arPlacements = placements.map { placement -> ARBodyPlacement in
                 ARBodyPlacement(
                     body: placement.body,
-                    displayRadius: max(0.0025, placement.displayRadius * 0.11),
+                    displayRadius: max(0.002, placement.displayRadius * 0.11),
                     position: SIMD3<Float>(
                         placement.position.x * 0.11,
                         placement.position.y * 0.11,
@@ -141,9 +141,26 @@ struct LunaARSceneView: UIViewRepresentable {
         }
 
         private static func anchorTransform(for view: ARView) -> simd_float4x4 {
+            let centerPoint = CGPoint(x: view.bounds.midX, y: view.bounds.midY)
+            let existingResults = view.raycast(
+                from: centerPoint,
+                allowing: .existingPlaneGeometry,
+                alignment: .horizontal
+            )
+            let estimatedResults = view.raycast(
+                from: centerPoint,
+                allowing: .estimatedPlane,
+                alignment: .horizontal
+            )
+
+            if var surfaceTransform = (existingResults.first ?? estimatedResults.first)?.worldTransform {
+                surfaceTransform.columns.3.y += 0.08
+                return surfaceTransform
+            }
+
             var translation = matrix_identity_float4x4
-            translation.columns.3.y = -0.08
-            translation.columns.3.z = -1.25
+            translation.columns.3.y = -0.02
+            translation.columns.3.z = -0.82
             return simd_mul(view.cameraTransform.matrix, translation)
         }
 
@@ -197,7 +214,7 @@ struct LunaARSceneView: UIViewRepresentable {
             rightPanel.position.x = 0.046
             root.addChild(rightPanel)
 
-            root.scale = SIMD3<Float>(repeating: max(1, scale * 8))
+            root.scale = SIMD3<Float>(repeating: max(0.32, scale * 5.5))
             return root
         }
 

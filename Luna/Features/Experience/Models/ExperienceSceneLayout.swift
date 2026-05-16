@@ -65,7 +65,6 @@ enum ExperienceSceneLayout {
             let siblingIndex = siblings.firstIndex { $0.id == body.id } ?? 0
             let orbitRadius = childOrbitRadius(
                 for: body,
-                siblings: siblings,
                 settings: settings
             )
             let angle = (Float(siblingIndex) / Float(max(siblings.count, 1))) * (Float.pi * 2)
@@ -124,37 +123,41 @@ enum ExperienceSceneLayout {
 
         switch body.type {
         case .star:
-            return min(0.78, 0.50 * pow(multiplier, 0.12))
+            return min(0.82, 0.54 * pow(multiplier, 0.12))
         case .satellite:
-            return min(0.10, 0.010 * pow(multiplier, 0.58))
+            return min(0.12, 0.014 * pow(multiplier, 0.66))
         case .moon, .asteroid, .dwarfPlanet:
-            let baseRadius = max(0.012, min(0.16, Float(body.radiusKm / 69_911) * 0.42))
-            return min(0.28, baseRadius * pow(multiplier, 0.58))
+            let baseRadius = max(0.024, min(0.20, Float(body.radiusKm / 69_911) * 0.60))
+            return min(0.34, baseRadius * pow(multiplier, 0.66))
         case .planet:
-            let baseRadius = max(0.016, min(0.42, Float(body.radiusKm / 69_911) * 0.42))
-            return min(0.72, baseRadius * pow(multiplier, 0.58))
+            let baseRadius = max(0.024, min(0.54, Float(body.radiusKm / 69_911) * 0.60))
+            return min(0.86, baseRadius * pow(multiplier, 0.66))
         }
     }
 
     private static func childOrbitRadius(
         for body: CelestialBody,
-        siblings: [CelestialBody],
         settings: SolarSystemSceneSettings
     ) -> Float {
-        let siblingDistances = siblings
-            .compactMap(\.averageDistanceFromEarthKm)
-            .filter { $0 > 0 }
-        let maxSiblingDistance = max(siblingDistances.max() ?? 384_400, 384_400)
-        let distance = max(body.averageDistanceFromEarthKm ?? maxSiblingDistance, 1)
-        let normalizedDistance = Float(min(max(distance / maxSiblingDistance, 0), 1))
-        let baseRadius = 0.28 + pow(normalizedDistance, 0.48) * 1.02
+        let baseRadius: Float
 
-        return baseRadius * spacingMultiplier(for: settings)
+        switch body.type {
+        case .moon:
+            baseRadius = 0.58
+        case .satellite:
+            let earthDistance = max(body.averageDistanceFromEarthKm ?? 7_000, 1)
+            let normalizedDistance = Float(min(max(earthDistance / 42_164, 0), 1))
+            baseRadius = 0.26 + pow(normalizedDistance, 0.42) * 0.34
+        default:
+            baseRadius = 0.46
+        }
+
+        return baseRadius * max(1, spacingMultiplier(for: settings) * 0.72)
     }
 
     private static func spacingMultiplier(for settings: SolarSystemSceneSettings) -> Float {
         let multiplier = Float(max(settings.planetSizeMultiplier, 1))
-        return 1 + (sqrt(multiplier) - 1) * 0.22
+        return 1 + (sqrt(multiplier) - 1) * 0.30
     }
 
     private static func normalizedSunDistance(for body: CelestialBody, maxSunDistance: Double) -> Double {

@@ -156,7 +156,7 @@ private enum SolarSystemSceneFactory {
 
         if placement.body.type == .satellite {
             node = satelliteNode()
-            let satelliteScale = max(1, placement.displayRadius * 8)
+            let satelliteScale = max(0.22, placement.displayRadius * 5.5)
             node.scale = SCNVector3(
                 satelliteScale,
                 satelliteScale,
