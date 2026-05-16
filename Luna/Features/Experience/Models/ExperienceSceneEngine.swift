@@ -97,6 +97,7 @@ enum ExperienceSceneEngine {
                 bodies: sortedBodies,
                 parentPositions: parentPositions,
                 settings: settings,
+                content: content,
                 maxSunDistance: maxSunDistance,
                 simulationTimeDays: simulationTimeDays
             )
@@ -139,9 +140,14 @@ enum ExperienceSceneEngine {
         bodies: [CelestialBody],
         parentPositions: [String: SIMD3<Float>],
         settings: ExperienceSceneSettings,
+        content: ExperienceSceneContent,
         maxSunDistance: Double,
         simulationTimeDays: Double
     ) -> SIMD3<Float> {
+        if case .object = content {
+            return .zero
+        }
+
         if body.type == .star {
             return .zero
         }

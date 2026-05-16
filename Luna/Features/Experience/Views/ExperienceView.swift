@@ -20,6 +20,8 @@ struct ExperienceView: View {
     @State private var playbackStartDate = Date()
     @State private var pausedSimulationDays: Double = 0
     @State private var currentSimulationDays: Double = 0
+    @State private var arPlacementState: ARPlacementState = .initializing
+    @State private var showsARDebugSurfaces = false
 
     var body: some View {
         ZStack {
@@ -90,7 +92,9 @@ struct ExperienceView: View {
                 settings: settings,
                 content: .solarSystem,
                 simulationTimeDays: simulationTimeDays,
-                recenterTrigger: recenterTrigger
+                recenterTrigger: recenterTrigger,
+                showsDebugSurfaces: showsARDebugSurfaces,
+                onPlacementStateChange: { arPlacementState = $0 }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -176,15 +180,15 @@ struct ExperienceView: View {
         if isSceneReady, isAREnabled, canUseAR, !appState.celestialBodies.isEmpty {
             ZStack {
                 Circle()
-                    .stroke(.white.opacity(0.88), lineWidth: 2)
+                    .stroke(arPlacementColor.opacity(0.88), lineWidth: 2)
                     .frame(width: 58, height: 58)
 
                 Circle()
-                    .stroke(.white.opacity(0.26), lineWidth: 10)
+                    .stroke(arPlacementColor.opacity(0.26), lineWidth: 10)
                     .frame(width: 58, height: 58)
 
                 Circle()
-                    .fill(Color.accentColor.opacity(0.88))
+                    .fill(arPlacementColor.opacity(0.88))
                     .frame(width: 8, height: 8)
             }
             .shadow(color: .black.opacity(0.42), radius: 12, x: 0, y: 5)
@@ -215,6 +219,8 @@ struct ExperienceView: View {
                     .shadow(color: Color.accentColor.opacity(0.38), radius: 18, x: 0, y: 8)
             }
             .buttonStyle(.plain)
+            .disabled(!arPlacementState.isReady)
+            .opacity(arPlacementState.isReady ? 1 : 0.62)
             .accessibilityLabel(arPlacementAccessibilityLabel)
         }
 #endif
@@ -360,6 +366,22 @@ struct ExperienceView: View {
                         )
                     }
                 }
+
+#if os(iOS)
+                if isAREnabled, canUseAR {
+                    CardDivider(leadingInset: 56)
+
+                    CardRow {
+                        Toggle(isOn: $showsARDebugSurfaces) {
+                            RowLabel(
+                                title: "AR Surface Debug",
+                                subtitle: "Show detected planes, anchor origins, and feature points.",
+                                systemImage: "viewfinder"
+                            )
+                        }
+                    }
+                }
+#endif
             }
         }
     }
@@ -397,20 +419,26 @@ struct ExperienceView: View {
 
     private var sceneSubtitle: String {
         if isAREnabled {
-            return recenterTrigger == 0
-                ? "Line up the target, then place Luna in your space."
-                : "Re-place Luna whenever you want a cleaner anchor."
+            return arPlacementState.isReady
+                ? (recenterTrigger == 0 ? "Line up the target, then place Luna on the surface." : "Re-place Luna flat on the detected surface.")
+                : arPlacementState.message
         }
 
         return "Browse the same scale controls in a non-AR scene."
     }
 
     private var arPlacementTitle: String {
-        recenterTrigger == 0 ? "Place" : "Re-place"
+        arPlacementState.isReady ? (recenterTrigger == 0 ? "Place" : "Re-place") : arPlacementState.title
     }
 
     private var arPlacementAccessibilityLabel: String {
-        recenterTrigger == 0 ? "Place AR scene" : "Re-place AR scene"
+        arPlacementState.isReady
+            ? (recenterTrigger == 0 ? "Place AR scene" : "Re-place AR scene")
+            : arPlacementState.message
+    }
+
+    private var arPlacementColor: Color {
+        arPlacementState.isReady ? Color.accentColor : .white
     }
 
     private var arPlacementBottomPadding: CGFloat {

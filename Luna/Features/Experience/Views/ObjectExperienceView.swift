@@ -7,6 +7,7 @@ struct ObjectExperienceView: View {
     @EnvironmentObject private var appState: LunaAppState
     @State private var isAREnabled = false
     @State private var recenterTrigger = 0
+    @State private var arPlacementState: ARPlacementState = .initializing
 
     let celestialBody: CelestialBody
 
@@ -19,7 +20,8 @@ struct ObjectExperienceView: View {
                     settings: settings,
                     content: .object(celestialBody.id),
                     simulationTimeDays: 0,
-                    recenterTrigger: recenterTrigger
+                    recenterTrigger: recenterTrigger,
+                    onPlacementStateChange: { arPlacementState = $0 }
                 )
                 .ignoresSafeArea(edges: .bottom)
             } else {
@@ -92,7 +94,7 @@ struct ObjectExperienceView: View {
                 Haptics.selection()
                 recenterTrigger += 1
             } label: {
-                Label(recenterTrigger == 0 ? "Place" : "Re-place", systemImage: "scope")
+                Label(arPlacementTitle, systemImage: "scope")
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 20)
@@ -100,8 +102,14 @@ struct ObjectExperienceView: View {
                     .background(Color.accentColor, in: Capsule(style: .continuous))
             }
             .buttonStyle(.plain)
+            .disabled(!arPlacementState.isReady)
+            .opacity(arPlacementState.isReady ? 1 : 0.62)
         }
 #endif
+    }
+
+    private var arPlacementTitle: String {
+        arPlacementState.isReady ? (recenterTrigger == 0 ? "Place" : "Re-place") : arPlacementState.title
     }
 
     private var bodies: [CelestialBody] {

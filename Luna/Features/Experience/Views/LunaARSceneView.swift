@@ -1,5 +1,6 @@
 #if os(iOS)
 import ARKit
+import Combine
 import RealityKit
 import SwiftUI
 import UIKit
@@ -10,6 +11,8 @@ struct LunaARSceneView: UIViewRepresentable {
     var content: ExperienceSceneContent = .solarSystem
     var simulationTimeDays: Double = 0
     let recenterTrigger: Int
+    var showsDebugSurfaces = false
+    var onPlacementStateChange: (ARPlacementState) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -20,13 +23,16 @@ struct LunaARSceneView: UIViewRepresentable {
         view.automaticallyConfigureSession = false
         context.coordinator.configureSession(for: view)
         context.coordinator.installCoachingOverlay(in: view)
+        context.coordinator.startPlacementMonitoring(in: view)
         context.coordinator.update(
             view,
             bodies: bodies,
             settings: settings,
             content: content,
             simulationTimeDays: simulationTimeDays,
-            recenterTrigger: recenterTrigger
+            recenterTrigger: recenterTrigger,
+            showsDebugSurfaces: showsDebugSurfaces,
+            onPlacementStateChange: onPlacementStateChange
         )
         return view
     }
@@ -38,7 +44,9 @@ struct LunaARSceneView: UIViewRepresentable {
             settings: settings,
             content: content,
             simulationTimeDays: simulationTimeDays,
-            recenterTrigger: recenterTrigger
+            recenterTrigger: recenterTrigger,
+            showsDebugSurfaces: showsDebugSurfaces,
+            onPlacementStateChange: onPlacementStateChange
         )
     }
 
@@ -51,6 +59,9 @@ struct LunaARSceneView: UIViewRepresentable {
         private var orbitDotEntities: [String: [Entity]] = [:]
         private var installedGestures: [UIGestureRecognizer] = []
         private var lastRecenterTrigger: Int?
+        private var placementUpdateSubscription: Cancellable?
+        private var lastPlacementState: ARPlacementState?
+        private var onPlacementStateChange: (ARPlacementState) -> Void = { _ in }
 
         func configureSession(for view: ARView) {
             guard ARWorldTrackingConfiguration.isSupported else { return }
@@ -82,14 +93,31 @@ struct LunaARSceneView: UIViewRepresentable {
             ])
         }
 
+        func startPlacementMonitoring(in view: ARView) {
+            guard placementUpdateSubscription == nil else { return }
+
+            placementUpdateSubscription = view.scene.subscribe(to: SceneEvents.Update.self) { [weak self, weak view] _ in
+                guard let self, let view else { return }
+                self.publishPlacementState(for: view)
+            }
+        }
+
         func update(
             _ view: ARView,
             bodies: [CelestialBody],
             settings: ExperienceSceneSettings,
             content: ExperienceSceneContent,
             simulationTimeDays: Double,
-            recenterTrigger: Int
+            recenterTrigger: Int,
+            showsDebugSurfaces: Bool,
+            onPlacementStateChange: @escaping (ARPlacementState) -> Void
         ) {
+            self.onPlacementStateChange = onPlacementStateChange
+            view.debugOptions = showsDebugSurfaces
+                ? [.showFeaturePoints, .showAnchorOrigins, .showAnchorGeometry]
+                : []
+            publishPlacementState(for: view)
+
             guard recenterTrigger > 0 else {
                 if let anchor {
                     view.scene.removeAnchor(anchor)
@@ -111,7 +139,9 @@ struct LunaARSceneView: UIViewRepresentable {
             )
             let shouldRecenter = anchor == nil || lastRecenterTrigger != recenterTrigger
             if shouldRecenter {
-                recenter(in: view)
+                guard recenter(in: view) else {
+                    return
+                }
                 lastRecenterTrigger = recenterTrigger
                 structureKey = nil
             }
@@ -139,14 +169,30 @@ struct LunaARSceneView: UIViewRepresentable {
             }
         }
 
-        private func recenter(in view: ARView) {
+        private func recenter(in view: ARView) -> Bool {
+            guard let surfaceTransform = Self.placementTransform(for: view) else {
+                publishPlacementState(for: view)
+                return false
+            }
+
             if let anchor {
                 view.scene.removeAnchor(anchor)
             }
 
-            let anchor = AnchorEntity(world: Self.anchorTransform(for: view))
+            let anchor = AnchorEntity(world: surfaceTransform)
             self.anchor = anchor
             view.scene.addAnchor(anchor)
+            return true
+        }
+
+        private func publishPlacementState(for view: ARView) {
+            let nextState = Self.placementState(for: view)
+            guard nextState != lastPlacementState else { return }
+
+            lastPlacementState = nextState
+            DispatchQueue.main.async { [onPlacementStateChange] in
+                onPlacementStateChange(nextState)
+            }
         }
 
         private func updateExistingEntities(with snapshot: ExperienceSceneSnapshot) {
@@ -221,28 +267,40 @@ struct LunaARSceneView: UIViewRepresentable {
             )
         }
 
-        private static func anchorTransform(for view: ARView) -> simd_float4x4 {
+        private static func placementState(for view: ARView) -> ARPlacementState {
+            guard ARWorldTrackingConfiguration.isSupported else {
+                return .unavailable
+            }
+
+            guard let frame = view.session.currentFrame else {
+                return .initializing
+            }
+
+            guard case .normal = frame.camera.trackingState else {
+                return .initializing
+            }
+
+            return placementTransform(for: view) == nil ? .findingSurface : .ready
+        }
+
+        private static func placementTransform(for view: ARView) -> simd_float4x4? {
             let centerPoint = CGPoint(x: view.bounds.midX, y: view.bounds.midY)
-            let existingResults = view.raycast(
+
+            guard let frame = view.session.currentFrame,
+                  case .normal = frame.camera.trackingState else {
+                return nil
+            }
+
+            guard var surfaceTransform = view.raycast(
                 from: centerPoint,
                 allowing: .existingPlaneGeometry,
                 alignment: .horizontal
-            )
-            let estimatedResults = view.raycast(
-                from: centerPoint,
-                allowing: .estimatedPlane,
-                alignment: .horizontal
-            )
-
-            if var surfaceTransform = (existingResults.first ?? estimatedResults.first)?.worldTransform {
-                surfaceTransform.columns.3.y += 0.08
-                return surfaceTransform
+            ).first?.worldTransform else {
+                return nil
             }
 
-            var translation = matrix_identity_float4x4
-            translation.columns.3.y = -0.02
-            translation.columns.3.z = -0.82
-            return simd_mul(view.cameraTransform.matrix, translation)
+            surfaceTransform.columns.3.y += 0.08
+            return surfaceTransform
         }
 
         private static func entity(for placement: ARBodyPlacement) -> Entity {

@@ -1,5 +1,42 @@
 import Foundation
 
+enum ARPlacementState: Equatable {
+    case unavailable
+    case initializing
+    case findingSurface
+    case ready
+
+    var isReady: Bool {
+        self == .ready
+    }
+
+    var title: String {
+        switch self {
+        case .unavailable:
+            return "AR Unavailable"
+        case .initializing:
+            return "Starting AR"
+        case .findingSurface:
+            return "Find Surface"
+        case .ready:
+            return "Surface Ready"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .unavailable:
+            return "AR is not available on this device."
+        case .initializing:
+            return "Move your phone slowly so Luna can understand the room."
+        case .findingSurface:
+            return "Point the target at a detected table or floor surface."
+        case .ready:
+            return "Place Luna flat on the detected surface."
+        }
+    }
+}
+
 struct ExperiencePreferences: Identifiable, Equatable {
     var id: UUID
     var prefersARMode: Bool
