@@ -188,6 +188,9 @@ private enum BodyPreviewSceneFactory {
 
     static func scene(for body: CelestialBody) -> SCNScene {
         let scene = SCNScene()
+        scene.background.contents = SceneBackgroundTexture.image(for: .mini)
+            ?? previewColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
+
         scene.rootNode.addChildNode(cameraNode())
         scene.rootNode.addChildNode(ambientLightNode())
         scene.rootNode.addChildNode(keyLightNode())

@@ -11,6 +11,14 @@
           "licenseNote": "Tone-mapped locally from the NASA SVS OpenEXR source. Credit NASA/Goddard SVS and Gaia DR2: ESA/Gaia/DPAC; do not imply NASA endorsement.",
           "sourceURL": "https://svs.gsfc.nasa.gov/4851/",
           "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Milky Way mini preview background",
+          "path": "Textures/Backgrounds/milkyway_2020_2k.jpg",
+          "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio; Gaia DR2: ESA/Gaia/DPAC; visualization by Ernie Wright.",
+          "licenseNote": "Downscaled from Luna's tone-mapped NASA SVS OpenEXR conversion for compact preview scenes. Credit NASA/Goddard SVS and Gaia DR2: ESA/Gaia/DPAC; do not imply NASA endorsement.",
+          "sourceURL": "https://svs.gsfc.nasa.gov/4851/",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
         }
       ]
     },

@@ -257,7 +257,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 private enum SolarSystemSceneFactory {
     static func scene(for snapshot: ExperienceSceneSnapshot, showsLabels: Bool) -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = backgroundImage()
+        scene.background.contents = SceneBackgroundTexture.image(for: .full)
             ?? platformColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
 
         scene.rootNode.addChildNode(cameraNode(for: snapshot))
@@ -365,22 +365,6 @@ private enum SolarSystemSceneFactory {
                 withExtension: "jpg",
                 subdirectory: "Planets"
               ) else {
-            return nil
-        }
-
-#if os(iOS)
-        return PlatformImage(contentsOfFile: url.path)
-#elseif os(macOS)
-        return PlatformImage(contentsOf: url)
-#endif
-    }
-
-    private static func backgroundImage() -> PlatformImage? {
-        guard let url = Bundle.main.url(
-            forResource: "milkyway_2020_8k",
-            withExtension: "jpg",
-            subdirectory: "Backgrounds"
-        ) else {
             return nil
         }
 
