@@ -11,6 +11,7 @@
     "averageDistanceFromEarthKm": 149600000,
     "orbitalPeriodDays": null,
     "rotationPeriodHours": 609.12,
+    "axialTiltDegrees": 7.25,
     "gravity": 274,
     "imageName": "sun",
     "textureName": "sun_texture",
@@ -31,10 +32,19 @@
     "averageDistanceFromEarthKm": 91690000,
     "orbitalPeriodDays": 87.97,
     "rotationPeriodHours": 1407.6,
+    "axialTiltDegrees": 0.034,
     "gravity": 3.7,
     "imageName": "mercury",
     "textureName": "mercury_texture",
     "modelName": null,
+    "orbit": {
+      "semiMajorAxisKm": 57909050,
+      "eccentricity": 0.2056,
+      "inclinationDegrees": 7.005,
+      "longitudeOfAscendingNodeDegrees": 48.331,
+      "argumentOfPeriapsisDegrees": 29.124,
+      "meanAnomalyAtEpochDegrees": 174.796
+    },
     "parentBodyId": "sun",
     "displayOrder": 1,
     "tags": ["planet", "rocky", "inner"]
@@ -51,10 +61,19 @@
     "averageDistanceFromEarthKm": 41400000,
     "orbitalPeriodDays": 224.7,
     "rotationPeriodHours": -5832.5,
+    "axialTiltDegrees": 177.36,
     "gravity": 8.87,
     "imageName": "venus",
     "textureName": "venus_texture",
     "modelName": null,
+    "orbit": {
+      "semiMajorAxisKm": 108208000,
+      "eccentricity": 0.0068,
+      "inclinationDegrees": 3.394,
+      "longitudeOfAscendingNodeDegrees": 76.680,
+      "argumentOfPeriapsisDegrees": 54.884,
+      "meanAnomalyAtEpochDegrees": 50.115
+    },
     "parentBodyId": "sun",
     "displayOrder": 2,
     "tags": ["planet", "rocky", "atmosphere"]
@@ -71,10 +90,19 @@
     "averageDistanceFromEarthKm": 0,
     "orbitalPeriodDays": 365.25,
     "rotationPeriodHours": 23.93,
+    "axialTiltDegrees": 23.44,
     "gravity": 9.81,
     "imageName": "earth",
     "textureName": "earth_texture",
     "modelName": null,
+    "orbit": {
+      "semiMajorAxisKm": 149598023,
+      "eccentricity": 0.0167,
+      "inclinationDegrees": 0,
+      "longitudeOfAscendingNodeDegrees": 0,
+      "argumentOfPeriapsisDegrees": 114.208,
+      "meanAnomalyAtEpochDegrees": 358.617
+    },
     "parentBodyId": "sun",
     "displayOrder": 3,
     "tags": ["planet", "rocky", "life"]
@@ -91,10 +119,19 @@
     "averageDistanceFromEarthKm": 384400,
     "orbitalPeriodDays": 27.32,
     "rotationPeriodHours": 655.7,
+    "axialTiltDegrees": 6.68,
     "gravity": 1.62,
     "imageName": "moon",
     "textureName": "moon_texture",
     "modelName": "moon_small.glb",
+    "orbit": {
+      "semiMajorAxisKm": 384400,
+      "eccentricity": 0.0549,
+      "inclinationDegrees": 5.145,
+      "longitudeOfAscendingNodeDegrees": 125.08,
+      "argumentOfPeriapsisDegrees": 318.15,
+      "meanAnomalyAtEpochDegrees": 135.27
+    },
     "parentBodyId": "earth",
     "displayOrder": 4,
     "tags": ["moon", "rocky", "earth"]
@@ -191,10 +228,19 @@
     "averageDistanceFromEarthKm": 78340000,
     "orbitalPeriodDays": 686.98,
     "rotationPeriodHours": 24.62,
+    "axialTiltDegrees": 25.19,
     "gravity": 3.71,
     "imageName": "mars",
     "textureName": "mars_texture",
     "modelName": null,
+    "orbit": {
+      "semiMajorAxisKm": 227939200,
+      "eccentricity": 0.0934,
+      "inclinationDegrees": 1.850,
+      "longitudeOfAscendingNodeDegrees": 49.558,
+      "argumentOfPeriapsisDegrees": 286.502,
+      "meanAnomalyAtEpochDegrees": 19.373
+    },
     "parentBodyId": "sun",
     "displayOrder": 5,
     "tags": ["planet", "rocky", "mars"]
@@ -211,10 +257,19 @@
     "averageDistanceFromEarthKm": 628730000,
     "orbitalPeriodDays": 4332.59,
     "rotationPeriodHours": 9.93,
+    "axialTiltDegrees": 3.13,
     "gravity": 24.79,
     "imageName": "jupiter",
     "textureName": "jupiter_texture",
     "modelName": null,
+    "orbit": {
+      "semiMajorAxisKm": 778570000,
+      "eccentricity": 0.0489,
+      "inclinationDegrees": 1.304,
+      "longitudeOfAscendingNodeDegrees": 100.464,
+      "argumentOfPeriapsisDegrees": 273.867,
+      "meanAnomalyAtEpochDegrees": 20.020
+    },
     "parentBodyId": "sun",
     "displayOrder": 6,
     "tags": ["planet", "gas giant", "storm"]
@@ -231,10 +286,19 @@
     "averageDistanceFromEarthKm": 1275000000,
     "orbitalPeriodDays": 10759.22,
     "rotationPeriodHours": 10.7,
+    "axialTiltDegrees": 26.73,
     "gravity": 10.44,
     "imageName": "saturn",
     "textureName": "saturn_texture",
     "modelName": null,
+    "orbit": {
+      "semiMajorAxisKm": 1433530000,
+      "eccentricity": 0.0565,
+      "inclinationDegrees": 2.485,
+      "longitudeOfAscendingNodeDegrees": 113.665,
+      "argumentOfPeriapsisDegrees": 339.392,
+      "meanAnomalyAtEpochDegrees": 317.020
+    },
     "parentBodyId": "sun",
     "displayOrder": 7,
     "tags": ["planet", "gas giant", "rings"]
@@ -251,10 +315,19 @@
     "averageDistanceFromEarthKm": 2723950000,
     "orbitalPeriodDays": 30685.4,
     "rotationPeriodHours": -17.24,
+    "axialTiltDegrees": 97.77,
     "gravity": 8.69,
     "imageName": "uranus",
     "textureName": "uranus_texture",
     "modelName": null,
+    "orbit": {
+      "semiMajorAxisKm": 2872460000,
+      "eccentricity": 0.0457,
+      "inclinationDegrees": 0.773,
+      "longitudeOfAscendingNodeDegrees": 74.006,
+      "argumentOfPeriapsisDegrees": 96.999,
+      "meanAnomalyAtEpochDegrees": 142.239
+    },
     "parentBodyId": "sun",
     "displayOrder": 8,
     "tags": ["planet", "ice giant", "tilted"]
@@ -271,10 +344,19 @@
     "averageDistanceFromEarthKm": 4351400000,
     "orbitalPeriodDays": 60189,
     "rotationPeriodHours": 16.11,
+    "axialTiltDegrees": 28.32,
     "gravity": 11.15,
     "imageName": "neptune",
     "textureName": "neptune_texture",
     "modelName": null,
+    "orbit": {
+      "semiMajorAxisKm": 4495060000,
+      "eccentricity": 0.0113,
+      "inclinationDegrees": 1.770,
+      "longitudeOfAscendingNodeDegrees": 131.784,
+      "argumentOfPeriapsisDegrees": 273.187,
+      "meanAnomalyAtEpochDegrees": 256.228
+    },
     "parentBodyId": "sun",
     "displayOrder": 9,
     "tags": ["planet", "ice giant", "outer"]

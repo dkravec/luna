@@ -29,7 +29,7 @@ struct SettingsView: View {
                 NavigationLink {
                     SettingsViewingModeView(
                         prefersARMode: Binding(
-                            get: { appState.userProfile.prefersARMode },
+                            get: { appState.experiencePreferences.prefersARMode },
                             set: { appState.setPrefersARMode($0) }
                         )
                     )
@@ -52,12 +52,16 @@ struct SettingsView: View {
 
                 NavigationLink {
                     SettingsScaleModeView(
-                        preferredScaleMode: Binding(
-                            get: { appState.userProfile.preferredScaleMode },
-                            set: { appState.setPreferredScaleMode($0) }
+                        distanceScaleMode: Binding(
+                            get: { appState.experiencePreferences.distanceScaleMode },
+                            set: { appState.setDistanceScaleMode($0) }
+                        ),
+                        objectScaleMode: Binding(
+                            get: { appState.experiencePreferences.objectScaleMode },
+                            set: { appState.setObjectScaleMode($0) }
                         ),
                         distanceCompression: Binding(
-                            get: { appState.userProfile.distanceCompression },
+                            get: { appState.experiencePreferences.distanceCompression },
                             set: { appState.setDistanceCompression($0) }
                         )
                     )
@@ -68,7 +72,7 @@ struct SettingsView: View {
                             title: "Scaling",
                             subtitle: currentScaleModeSubtitle,
                             systemImage: "scale.3d",
-                            value: appState.userProfile.preferredScaleMode.title,
+                            value: appState.experiencePreferences.distanceScaleMode.title,
                             showsChevron: true
                         )
                     }
@@ -81,7 +85,7 @@ struct SettingsView: View {
                 CardRow {
                     Toggle(
                         isOn: Binding(
-                            get: { appState.userProfile.showLabels },
+                            get: { appState.experiencePreferences.showLabels },
                             set: { setShowLabels($0) }
                         )
                     ) {
@@ -98,7 +102,7 @@ struct SettingsView: View {
                 CardRow {
                     Toggle(
                         isOn: Binding(
-                            get: { appState.userProfile.showOrbits },
+                            get: { appState.experiencePreferences.showOrbits },
                             set: { setShowOrbits($0) }
                         )
                     ) {
@@ -294,25 +298,23 @@ struct SettingsView: View {
     }
 
     private var currentViewModeTitle: String {
-        appState.userProfile.prefersARMode ? "AR First" : "Visual First"
+        appState.experiencePreferences.prefersARMode ? "AR First" : "Visual First"
     }
 
     private var currentViewModeSubtitle: String {
-        appState.userProfile.prefersARMode
+        appState.experiencePreferences.prefersARMode
             ? "Starts space views with AR when available"
             : "Starts with the non-AR visual mode"
     }
 
     private var currentScaleModeSubtitle: String {
-        switch appState.userProfile.preferredScaleMode {
+        switch appState.experiencePreferences.distanceScaleMode {
         case .educational:
-            return "Readable sizes and distances together"
-        case .compressedDistance:
-            return "Compressed to \(Int(appState.userProfile.distanceCompression.rounded()))x for comparison"
-        case .trueDistance:
+            return "Equal readable distances, \(appState.experiencePreferences.objectScaleMode.title.lowercased()) object scale"
+        case .compressed:
+            return "Compressed to \(Int(appState.experiencePreferences.distanceCompression.rounded()))x, \(appState.experiencePreferences.objectScaleMode.title.lowercased()) objects"
+        case .trueScale:
             return "Accurate intent, impractical at room scale"
-        case .custom:
-            return "Uses your custom scale controls"
         }
     }
 }
@@ -337,7 +339,8 @@ private struct SettingsViewingModeView: View {
 }
 
 private struct SettingsScaleModeView: View {
-    @Binding var preferredScaleMode: ScaleMode
+    @Binding var distanceScaleMode: DistanceScaleMode
+    @Binding var objectScaleMode: ObjectScaleMode
     @Binding var distanceCompression: Double
 
     var body: some View {
@@ -348,10 +351,12 @@ private struct SettingsScaleModeView: View {
                     subtitle: "Pick how Luna should balance accurate scale with readable space views."
                 )
 
-                ScaleModeOptionsView(
-                    preferredScaleMode: $preferredScaleMode,
+                DistanceScaleOptionsView(
+                    distanceScaleMode: $distanceScaleMode,
                     distanceCompression: $distanceCompression
                 )
+
+                ObjectScaleOptionsView(objectScaleMode: $objectScaleMode)
             }
             .screenContentPadding()
         }
@@ -366,6 +371,8 @@ struct AboutView: View {
                 appIdentityCard
 
                 appSection
+
+                creditsSection
 
                 websiteSection
 
@@ -439,6 +446,30 @@ struct AboutView: View {
         }
     }
 
+    private var creditsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Credits")
+
+            CardSection {
+                NavigationLink {
+                    CreditsView()
+                        .appBackground()
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "NASA Asset Credits",
+                            subtitle: "Sources, usage notes, and direct links",
+                            systemImage: "sparkles",
+                            showsChevron: true
+                        )
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
+            }
+        }
+    }
+
     private var projectSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Project")
@@ -478,6 +509,154 @@ struct AboutView: View {
 
             Text(value)
                 .font(.subheadline.weight(.semibold))
+        }
+    }
+}
+
+private struct CreditsView: View {
+    private let catalog: AssetCreditCatalog
+
+    init(catalog: AssetCreditCatalog = AssetCreditLoader().load()) {
+        self.catalog = catalog
+    }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                PageHeader(
+                    title: "Credits",
+                    subtitle: "Asset sources, usage notes, and direct links for Luna's NASA-backed visuals."
+                )
+
+                if catalog.groups.isEmpty {
+                    EmptyStateView(
+                        title: "Credits Unavailable",
+                        systemImage: "exclamationmark.triangle",
+                        message: "Luna could not load the bundled asset credit catalog."
+                    )
+                } else {
+                    ForEach(catalog.groups) { group in
+                        creditGroupSection(group)
+                    }
+                }
+            }
+            .screenContentPadding()
+        }
+        .navigationTitle("Credits")
+    }
+
+    private func creditGroupSection(_ group: AssetCreditGroup) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: group.title, subtitle: group.summary)
+
+            CardSection {
+                ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
+                    CardRow {
+                        creditItemView(item)
+                    }
+
+                    if index < group.items.count - 1 {
+                        CardDivider(leadingInset: 56)
+                    }
+                }
+            }
+        }
+    }
+
+    private func creditItemView(_ item: AssetCreditItem) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            RowLabel(
+                title: item.name,
+                subtitle: item.path,
+                systemImage: "photo"
+            )
+
+            Text(item.credit)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(item.licenseNote)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(item.links) { link in
+                    Link(destination: link.url) {
+                        Label(link.title, systemImage: "arrow.up.right")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                    .hapticTap()
+                }
+            }
+        }
+    }
+}
+
+private struct AssetCreditCatalog: Codable, Equatable {
+    let groups: [AssetCreditGroup]
+
+    static let empty = AssetCreditCatalog(groups: [])
+}
+
+private struct AssetCreditGroup: Codable, Equatable, Identifiable {
+    var id: String { title }
+
+    let title: String
+    let summary: String
+    let items: [AssetCreditItem]
+}
+
+private struct AssetCreditItem: Codable, Equatable, Identifiable {
+    var id: String { path }
+
+    let name: String
+    let path: String
+    let credit: String
+    let licenseNote: String
+    let sourceURL: String
+    let usageURL: String
+
+    var links: [AssetCreditLink] {
+        var links: [AssetCreditLink] = []
+
+        if let source = URL(string: sourceURL) {
+            links.append(AssetCreditLink(title: "Source", url: source))
+        }
+
+        if let usage = URL(string: usageURL) {
+            links.append(AssetCreditLink(title: "Usage Guidelines", url: usage))
+        }
+
+        return links
+    }
+}
+
+private struct AssetCreditLink: Equatable, Identifiable {
+    var id: String { url.absoluteString }
+
+    let title: String
+    let url: URL
+}
+
+private struct AssetCreditLoader {
+    var bundle: Bundle = .main
+    var resourceName = "asset_sources"
+    var decoder = JSONDecoder()
+
+    func load() -> AssetCreditCatalog {
+        guard let url = bundle.url(forResource: resourceName, withExtension: "json") else {
+            return .empty
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            return try decoder.decode(AssetCreditCatalog.self, from: data)
+        } catch {
+            return .empty
         }
     }
 }

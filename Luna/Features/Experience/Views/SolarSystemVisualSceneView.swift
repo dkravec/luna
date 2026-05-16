@@ -13,10 +13,22 @@ private typealias PlatformColor = NSColor
 
 struct SolarSystemVisualSceneView: View {
     let bodies: [CelestialBody]
-    let settings: SolarSystemSceneSettings
+    let settings: ExperienceSceneSettings
+    var content: ExperienceSceneContent = .solarSystem
+    var simulationTimeDays: Double = 0
+    var onSelectBody: (CelestialBody) -> Void = { _ in }
 
     var body: some View {
-        VisualSceneContainer(bodies: bodies, settings: settings)
+        VisualSceneContainer(
+            snapshot: ExperienceSceneEngine.snapshot(
+                for: bodies,
+                settings: settings,
+                content: content,
+                simulationTimeDays: simulationTimeDays
+            ),
+            showsLabels: settings.showLabels,
+            onSelectBody: onSelectBody
+        )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
             .overlay(alignment: .bottomLeading) {
@@ -25,7 +37,7 @@ struct SolarSystemVisualSceneView: View {
     }
 
     private var sceneCaption: some View {
-        Text(settings.scaleMode == .compressedDistance ? "Compressed distance view" : settings.scaleMode.title)
+        Text(settings.distanceScaleMode == .compressed ? "Compressed distance view" : settings.distanceScaleMode.title)
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.white.opacity(0.90))
             .padding(.horizontal, 12)
@@ -37,8 +49,9 @@ struct SolarSystemVisualSceneView: View {
 
 #if os(iOS)
 private struct VisualSceneContainer: UIViewRepresentable {
-    let bodies: [CelestialBody]
-    let settings: SolarSystemSceneSettings
+    let snapshot: ExperienceSceneSnapshot
+    let showsLabels: Bool
+    let onSelectBody: (CelestialBody) -> Void
 
     func makeCoordinator() -> VisualSceneCameraCoordinator {
         VisualSceneCameraCoordinator()
@@ -54,8 +67,9 @@ private struct VisualSceneContainer: UIViewRepresentable {
 }
 #elseif os(macOS)
 private struct VisualSceneContainer: NSViewRepresentable {
-    let bodies: [CelestialBody]
-    let settings: SolarSystemSceneSettings
+    let snapshot: ExperienceSceneSnapshot
+    let showsLabels: Bool
+    let onSelectBody: (CelestialBody) -> Void
 
     func makeCoordinator() -> VisualSceneCameraCoordinator {
         VisualSceneCameraCoordinator()
@@ -78,28 +92,34 @@ private extension VisualSceneContainer {
         view.autoenablesDefaultLighting = false
         view.delegate = coordinator
         view.backgroundColor = platformColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
+#if os(iOS)
+        let tapRecognizer = UITapGestureRecognizer(target: coordinator, action: #selector(VisualSceneCameraCoordinator.handleTap(_:)))
+        tapRecognizer.cancelsTouchesInView = false
+        view.addGestureRecognizer(tapRecognizer)
+#elseif os(macOS)
+        let clickRecognizer = NSClickGestureRecognizer(target: coordinator, action: #selector(VisualSceneCameraCoordinator.handleClick(_:)))
+        view.addGestureRecognizer(clickRecognizer)
+#endif
         configure(view)
         return view
     }
 
     func configure(_ view: SCNView) {
-        let placements = ExperienceSceneLayout.placements(for: bodies, settings: settings)
-        let cameraLimit = SceneCameraLimit(placements: placements)
-
-        view.scene = SolarSystemSceneFactory.scene(
-            for: placements,
-            showsLabels: settings.showLabels
-        )
-        view.defaultCameraController.target = cameraLimit.subjectCenter
-
         if let coordinator = view.delegate as? VisualSceneCameraCoordinator {
-            coordinator.update(cameraLimit)
+            coordinator.onSelectBody = onSelectBody
+            coordinator.apply(snapshot: snapshot, showsLabels: showsLabels, to: view)
         }
     }
 }
 
 private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDelegate {
     private var cameraLimit = SceneCameraLimit.default
+    private var structureKey: String?
+    private var bodyNodes: [String: SCNNode] = [:]
+    private var bodyVisualNodes: [String: SCNNode] = [:]
+    private var orbitNodes: [String: SCNNode] = [:]
+    private var bodyLookup: [String: CelestialBody] = [:]
+    var onSelectBody: (CelestialBody) -> Void = { _ in }
 
     func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
         guard let pointOfView = renderer.pointOfView,
@@ -121,13 +141,126 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     func update(_ cameraLimit: SceneCameraLimit) {
         self.cameraLimit = cameraLimit
     }
+
+    func apply(snapshot: ExperienceSceneSnapshot, showsLabels: Bool, to view: SCNView) {
+        let nextStructureKey = Self.structureKey(for: snapshot, showsLabels: showsLabels)
+        let nextCameraLimit = SceneCameraLimit(snapshot: snapshot)
+        bodyLookup = Dictionary(uniqueKeysWithValues: snapshot.bodies.map { ($0.id, $0.body) })
+
+        if view.scene == nil || structureKey != nextStructureKey {
+            let scene = SolarSystemSceneFactory.scene(
+                for: snapshot,
+                showsLabels: showsLabels
+            )
+            view.scene = scene
+            captureNodes(from: scene)
+            view.defaultCameraController.target = nextCameraLimit.subjectCenter
+            structureKey = nextStructureKey
+        } else {
+            updateExistingNodes(with: snapshot)
+        }
+
+        update(nextCameraLimit)
+    }
+
+    private func updateExistingNodes(with snapshot: ExperienceSceneSnapshot) {
+        SCNTransaction.begin()
+        SCNTransaction.disableActions = true
+
+        for placement in snapshot.bodies {
+            bodyNodes[placement.id]?.position = SCNVector3(
+                placement.position.x,
+                placement.position.y,
+                placement.position.z
+            )
+            bodyVisualNodes[placement.id]?.eulerAngles = SolarSystemSceneFactory.rotationEuler(for: placement)
+        }
+
+        for orbitPath in snapshot.orbitPaths {
+            orbitNodes[orbitPath.id]?.geometry = SolarSystemSceneFactory.orbitGeometry(path: orbitPath)
+        }
+
+        SCNTransaction.commit()
+    }
+
+    private func captureNodes(from scene: SCNScene) {
+        bodyNodes.removeAll()
+        bodyVisualNodes.removeAll()
+        orbitNodes.removeAll()
+
+        scene.rootNode.enumerateChildNodes { node, _ in
+            guard let name = node.name else { return }
+
+            if name.hasPrefix("body:") {
+                bodyNodes[String(name.dropFirst(5))] = node
+            } else if name.hasPrefix("bodyVisual:") {
+                bodyVisualNodes[String(name.dropFirst(11))] = node
+            } else if name.hasPrefix("orbit:") {
+                orbitNodes[String(name.dropFirst(6))] = node
+            }
+        }
+    }
+
+#if os(iOS)
+    @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
+        guard let view = recognizer.view as? SCNView else { return }
+        selectBody(at: recognizer.location(in: view), in: view)
+    }
+#elseif os(macOS)
+    @objc func handleClick(_ recognizer: NSClickGestureRecognizer) {
+        guard let view = recognizer.view as? SCNView else { return }
+        selectBody(at: recognizer.location(in: view), in: view)
+    }
+#endif
+
+    private func selectBody(at point: CGPoint, in view: SCNView) {
+        let hits = view.hitTest(point, options: [.boundingBoxOnly: false])
+        guard let bodyID = hits.compactMap({ bodyID(from: $0.node) }).first,
+              let body = bodyLookup[bodyID] else {
+            return
+        }
+
+        onSelectBody(body)
+    }
+
+    private func bodyID(from node: SCNNode) -> String? {
+        var currentNode: SCNNode? = node
+        while let node = currentNode {
+            if let name = node.name {
+                if name.hasPrefix("body:") {
+                    return String(name.dropFirst(5))
+                }
+                if name.hasPrefix("bodyVisual:") {
+                    return String(name.dropFirst(11))
+                }
+            }
+            currentNode = node.parent
+        }
+        return nil
+    }
+
+    private static func structureKey(for snapshot: ExperienceSceneSnapshot, showsLabels: Bool) -> String {
+        let bodyKey = snapshot.bodies
+            .map { body in
+                let radius = Int((body.displayRadius * 1_000).rounded())
+                return "\(body.id):\(body.body.type.rawValue):\(radius):\(body.body.textureName ?? ""):\(body.body.modelName ?? "")"
+            }
+            .joined(separator: "|")
+        let orbitKey = snapshot.orbitPaths
+            .map { "\($0.id):\($0.points.count)" }
+            .joined(separator: "|")
+
+        return "\(showsLabels)-\(bodyKey)-\(orbitKey)"
+    }
 }
 
 private enum SolarSystemSceneFactory {
-    static func scene(for placements: [SceneBodyPlacement], showsLabels: Bool) -> SCNScene {
+    static func scene(for snapshot: ExperienceSceneSnapshot, showsLabels: Bool) -> SCNScene {
         let scene = SCNScene()
+        scene.background.contents = SceneBackgroundTexture.image(for: .full)
+            ?? platformColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
 
-        scene.rootNode.addChildNode(cameraNode(for: placements))
+        scene.rootNode.addChildNode(cameraNode(for: snapshot))
         scene.rootNode.addChildNode(ambientLightNode())
         scene.rootNode.addChildNode(keyLightNode())
 
@@ -135,11 +268,11 @@ private enum SolarSystemSceneFactory {
         root.eulerAngles.x = -.pi / 10
         scene.rootNode.addChildNode(root)
 
-        for placement in placements {
-            if let orbitRadius = placement.orbitRadius, orbitRadius > 0.2 {
-                root.addChildNode(orbitNode(radius: CGFloat(orbitRadius)))
-            }
+        for orbitPath in snapshot.orbitPaths {
+            root.addChildNode(orbitNode(path: orbitPath))
+        }
 
+        for placement in snapshot.bodies {
             let bodyNode = node(for: placement)
             root.addChildNode(bodyNode)
 
@@ -151,13 +284,17 @@ private enum SolarSystemSceneFactory {
         return scene
     }
 
-    private static func node(for placement: SceneBodyPlacement) -> SCNNode {
-        let node: SCNNode
+    private static func node(for placement: ExperienceSceneBody) -> SCNNode {
+        let root = SCNNode()
+        root.name = "body:\(placement.id)"
+        root.position = SCNVector3(placement.position.x, placement.position.y, placement.position.z)
+
+        let visualNode: SCNNode
 
         if placement.body.type == .satellite {
-            node = satelliteNode()
-            let satelliteScale = max(1, placement.displayRadius * 8)
-            node.scale = SCNVector3(
+            visualNode = satelliteNode()
+            let satelliteScale = max(0.22, placement.displayRadius * 5.5)
+            visualNode.scale = SCNVector3(
                 satelliteScale,
                 satelliteScale,
                 satelliteScale
@@ -166,11 +303,21 @@ private enum SolarSystemSceneFactory {
             let sphere = SCNSphere(radius: CGFloat(placement.displayRadius))
             sphere.segmentCount = placement.body.type == .star ? 64 : 48
             sphere.firstMaterial = material(for: placement.body)
-            node = SCNNode(geometry: sphere)
+            visualNode = SCNNode(geometry: sphere)
         }
 
-        node.position = SCNVector3(placement.position.x, placement.position.y, placement.position.z)
-        return node
+        visualNode.name = "bodyVisual:\(placement.id)"
+        visualNode.eulerAngles = rotationEuler(for: placement)
+        root.addChildNode(visualNode)
+        return root
+    }
+
+    static func rotationEuler(for placement: ExperienceSceneBody) -> SCNVector3 {
+        SCNVector3(
+            placement.axialTiltRadians,
+            placement.rotationAngleRadians,
+            0
+        )
     }
 
     private static func satelliteNode() -> SCNNode {
@@ -251,15 +398,15 @@ private enum SolarSystemSceneFactory {
 
     private static func labelNode(for body: CelestialBody, radius: Float) -> SCNNode {
         let text = SCNText(string: body.name, extrusionDepth: 0.006)
-        text.font = .systemFont(ofSize: 1.0, weight: .bold)
+        text.font = .systemFont(ofSize: 1.35, weight: .bold)
         text.flatness = 0.02
         text.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.92)
         text.firstMaterial?.emission.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.18)
         text.alignmentMode = CATextLayerAlignmentMode.center.rawValue
 
         let node = SCNNode(geometry: text)
-        node.scale = SCNVector3(0.32, 0.32, 0.32)
-        node.position = SCNVector3(0, radius + max(0.85, radius * 0.55), 0)
+        node.scale = SCNVector3(0.42, 0.42, 0.42)
+        node.position = SCNVector3(0, radius + max(0.54, radius * 0.55), 0)
         node.constraints = [SCNBillboardConstraint()]
 
         let (minVector, maxVector) = text.boundingBox
@@ -272,19 +419,34 @@ private enum SolarSystemSceneFactory {
         return node
     }
 
-    private static func orbitNode(radius: CGFloat) -> SCNNode {
-        let orbit = SCNTorus(ringRadius: radius, pipeRadius: 0.003)
-        orbit.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.14)
-        orbit.firstMaterial?.lightingModel = .constant
-        let node = SCNNode(geometry: orbit)
-        node.eulerAngles.x = .pi / 2
+    private static func orbitNode(path: ExperienceOrbitPath) -> SCNNode {
+        let node = SCNNode(geometry: orbitGeometry(path: path))
+        node.name = "orbit:\(path.id)"
         return node
     }
 
-    private static func cameraNode(for placements: [SceneBodyPlacement]) -> SCNNode {
+    static func orbitGeometry(path: ExperienceOrbitPath) -> SCNGeometry {
+        let vertices = path.points.map { SCNVector3($0.x, $0.y, $0.z) }
+        let source = SCNGeometrySource(vertices: vertices)
+        var indices: [Int32] = []
+
+        for index in vertices.indices {
+            indices.append(Int32(index))
+            indices.append(Int32((index + 1) % vertices.count))
+        }
+
+        let element = SCNGeometryElement(indices: indices, primitiveType: .line)
+        let geometry = SCNGeometry(sources: [source], elements: [element])
+        geometry.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: path.bodyId == "moon" ? 0.22 : 0.13)
+        geometry.firstMaterial?.emission.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.10)
+        geometry.firstMaterial?.lightingModel = .constant
+        return geometry
+    }
+
+    private static func cameraNode(for snapshot: ExperienceSceneSnapshot) -> SCNNode {
         let camera = SCNCamera()
         camera.usesOrthographicProjection = true
-        camera.orthographicScale = max(10, Double((placements.map { abs($0.position.x) }.max() ?? 8) + 3))
+        camera.orthographicScale = max(7, Double(snapshot.bounds.span + 2.6))
         camera.zFar = 100
 
         let node = SCNNode()
@@ -329,7 +491,8 @@ private struct SceneCameraLimit {
     let maximumOrthographicScale: Double
     let maximumCameraDistance: Float
 
-    init(placements: [SceneBodyPlacement]) {
+    init(snapshot: ExperienceSceneSnapshot) {
+        let placements = snapshot.bodies
         guard !placements.isEmpty else {
             self = .default
             return
@@ -351,7 +514,7 @@ private struct SceneCameraLimit {
         let subjectRadius = max(4, sceneSpan / 2 + 2)
         let largestBodyRadius = placements.map(\.displayRadius).max() ?? 1
         let initialCameraDistance = (SCNVector3(6, 9, 22) - center).length
-        let initialOrthographicScale = max(10, Double((placements.map { abs($0.position.x) }.max() ?? 8) + 3))
+        let initialOrthographicScale = max(7, Double(snapshot.bounds.span + 2.6))
 
         subjectCenter = center
         minimumOrthographicScale = max(0.65, Double(largestBodyRadius) * 2.25)

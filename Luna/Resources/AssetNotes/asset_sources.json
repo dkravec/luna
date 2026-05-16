@@ -1,0 +1,150 @@
+{
+  "groups": [
+    {
+      "title": "Scene Backgrounds",
+      "summary": "All-sky visual backgrounds used in non-AR scene modes.",
+      "items": [
+        {
+          "name": "Milky Way background",
+          "path": "Textures/Backgrounds/milkyway_2020_8k.jpg",
+          "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio; Gaia DR2: ESA/Gaia/DPAC; visualization by Ernie Wright.",
+          "licenseNote": "Tone-mapped locally from the NASA SVS OpenEXR source. Credit NASA/Goddard SVS and Gaia DR2: ESA/Gaia/DPAC; do not imply NASA endorsement.",
+          "sourceURL": "https://svs.gsfc.nasa.gov/4851/",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Milky Way mini preview background",
+          "path": "Textures/Backgrounds/milkyway_2020_2k.jpg",
+          "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio; Gaia DR2: ESA/Gaia/DPAC; visualization by Ernie Wright.",
+          "licenseNote": "Downscaled from Luna's tone-mapped NASA SVS OpenEXR conversion for compact preview scenes. Credit NASA/Goddard SVS and Gaia DR2: ESA/Gaia/DPAC; do not imply NASA endorsement.",
+          "sourceURL": "https://svs.gsfc.nasa.gov/4851/",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        }
+      ]
+    },
+    {
+      "title": "Planet And Moon Textures",
+      "summary": "Compact texture maps for educational visualization, not scientific analysis.",
+      "items": [
+        {
+          "name": "Mercury texture",
+          "path": "Textures/Planets/mercury_texture.jpg",
+          "credit": "NASA/Johns Hopkins University Applied Physics Laboratory MESSENGER complete mono basemap.",
+          "licenseNote": "Public domain NASA mission imagery; credit NASA and avoid implying endorsement.",
+          "sourceURL": "https://commons.wikimedia.org/wiki/File:Mercury_-_complete_mono_basemap_2500mpp_equirectangular.png",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Venus texture",
+          "path": "Textures/Planets/venus_texture.jpg",
+          "credit": "NASA/JPL Solar System Simulator, Venus map.",
+          "licenseNote": "NASA/JPL imagery used for educational visualization.",
+          "sourceURL": "https://space.jpl.nasa.gov/tmaps/venus.html",
+          "usageURL": "https://www.jpl.nasa.gov/jpl-image-use-policy/"
+        },
+        {
+          "name": "Earth texture",
+          "path": "Textures/Planets/earth_texture.jpg",
+          "credit": "NASA/JPL Solar System Simulator, Earth map.",
+          "licenseNote": "NASA/JPL imagery used for educational visualization.",
+          "sourceURL": "https://space.jpl.nasa.gov/tmaps/earth.html",
+          "usageURL": "https://www.jpl.nasa.gov/jpl-image-use-policy/"
+        },
+        {
+          "name": "Moon texture",
+          "path": "Textures/Planets/moon_texture.jpg",
+          "credit": "NASA Scientific Visualization Studio CGI Moon Kit, LROC color map.",
+          "licenseNote": "NASA SVS content is public domain unless otherwise noted.",
+          "sourceURL": "https://svs.gsfc.nasa.gov/4720/",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Mars texture",
+          "path": "Textures/Planets/mars_texture.jpg",
+          "credit": "NASA/JPL Solar System Simulator, Mars map.",
+          "licenseNote": "NASA/JPL imagery used for educational visualization.",
+          "sourceURL": "https://space.jpl.nasa.gov/tmaps/mars.html",
+          "usageURL": "https://www.jpl.nasa.gov/jpl-image-use-policy/"
+        },
+        {
+          "name": "Jupiter texture",
+          "path": "Textures/Planets/jupiter_texture.jpg",
+          "credit": "NASA/JPL Solar System Simulator, Jupiter map.",
+          "licenseNote": "NASA/JPL imagery used for educational visualization.",
+          "sourceURL": "https://space.jpl.nasa.gov/tmaps/jupiter.html",
+          "usageURL": "https://www.jpl.nasa.gov/jpl-image-use-policy/"
+        },
+        {
+          "name": "Saturn texture",
+          "path": "Textures/Planets/saturn_texture.jpg",
+          "credit": "NASA/JPL Solar System Simulator, Saturn map.",
+          "licenseNote": "NASA/JPL imagery used for educational visualization.",
+          "sourceURL": "https://space.jpl.nasa.gov/tmaps/saturn.html",
+          "usageURL": "https://www.jpl.nasa.gov/jpl-image-use-policy/"
+        },
+        {
+          "name": "Uranus texture",
+          "path": "Textures/Planets/uranus_texture.jpg",
+          "credit": "NASA/JPL Solar System Simulator, Uranus map.",
+          "licenseNote": "NASA/JPL imagery used for educational visualization.",
+          "sourceURL": "https://space.jpl.nasa.gov/tmaps/uranus.html",
+          "usageURL": "https://www.jpl.nasa.gov/jpl-image-use-policy/"
+        },
+        {
+          "name": "Neptune texture",
+          "path": "Textures/Planets/neptune_texture.jpg",
+          "credit": "NASA/JPL Solar System Simulator, Neptune map.",
+          "licenseNote": "NASA/JPL imagery used for educational visualization.",
+          "sourceURL": "https://space.jpl.nasa.gov/tmaps/neptune.html",
+          "usageURL": "https://www.jpl.nasa.gov/jpl-image-use-policy/"
+        }
+      ]
+    },
+    {
+      "title": "GLB Models",
+      "summary": "NASA 3D assets used for moons and artificial satellites.",
+      "items": [
+        {
+          "name": "Moon model",
+          "path": "Models/Moons/moon_small.glb",
+          "credit": "NASA Scientific Visualization Studio Moon 3D Models for Web, AR, and Animation.",
+          "licenseNote": "NASA content is generally not subject to copyright in the United States; credit NASA and avoid implying endorsement.",
+          "sourceURL": "https://svs.gsfc.nasa.gov/14959",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Terra model",
+          "path": "Models/Satellites/terra.glb",
+          "credit": "NASA 3D Resources, Terra.",
+          "licenseNote": "Free to download and use subject to NASA image and media usage guidelines.",
+          "sourceURL": "https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Terra",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Aqua model",
+          "path": "Models/Satellites/aqua.glb",
+          "credit": "NASA 3D Resources, Aqua (A).",
+          "licenseNote": "Free to download and use subject to NASA image and media usage guidelines.",
+          "sourceURL": "https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Aqua%20(A)",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "TESS model",
+          "path": "Models/Satellites/tess.glb",
+          "credit": "NASA 3D Resources, Transiting Exoplanet Survey Satellite (TESS) (A).",
+          "licenseNote": "Free to download and use subject to NASA image and media usage guidelines.",
+          "sourceURL": "https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Transiting%20Exoplanet%20Survey%20Satellite%20(TESS)%20(A)",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "TDRS model",
+          "path": "Models/Satellites/tdrs.glb",
+          "credit": "NASA 3D Resources, Tracking and Data Relay Satellites (TDRS) (A).",
+          "licenseNote": "Free to download and use subject to NASA image and media usage guidelines.",
+          "sourceURL": "https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Tracking%20and%20Data%20Relay%20Satellites%20(TDRS)%20(A)",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        }
+      ]
+    }
+  ]
+}

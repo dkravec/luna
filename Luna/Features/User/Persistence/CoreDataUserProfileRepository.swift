@@ -55,7 +55,6 @@ final class CoreDataUserProfileRepository: UserProfileRepository {
 
 extension UserProfile {
     init(managedObject: UserProfileRecord) {
-        let scaleMode = ScaleMode(rawValue: managedObject.preferredScaleModeRaw ?? "") ?? .educational
         let appearance = AppAppearancePreference(rawValue: managedObject.appearancePreferenceRaw ?? "") ?? .system
         let hapticIntensity = HapticIntensity(rawValue: managedObject.hapticIntensityRaw ?? "") ?? .heavy
 
@@ -63,13 +62,7 @@ extension UserProfile {
             id: managedObject.id ?? UUID(),
             displayName: managedObject.displayName,
             hasCompletedOnboarding: managedObject.hasCompletedOnboarding,
-            preferredScaleMode: scaleMode,
-            distanceCompression: managedObject.distanceCompression,
-            planetSizeMultiplier: managedObject.planetSizeMultiplier,
-            prefersARMode: managedObject.prefersARMode,
             appearancePreference: appearance,
-            showLabels: managedObject.showLabels,
-            showOrbits: managedObject.showOrbits,
             hapticsEnabled: managedObject.hapticsEnabled,
             hapticIntensity: hapticIntensity
         )
@@ -102,13 +95,7 @@ extension UserProfileRecord {
         id = profile.id
         displayName = profile.displayName
         hasCompletedOnboarding = profile.hasCompletedOnboarding
-        preferredScaleModeRaw = profile.preferredScaleMode.rawValue
-        distanceCompression = profile.distanceCompression
-        planetSizeMultiplier = profile.planetSizeMultiplier
-        prefersARMode = profile.prefersARMode
         appearancePreferenceRaw = profile.appearancePreference.rawValue
-        showLabels = profile.showLabels
-        showOrbits = profile.showOrbits
         hapticsEnabled = profile.hapticsEnabled
         hapticIntensityRaw = profile.hapticIntensity.rawValue
     }
