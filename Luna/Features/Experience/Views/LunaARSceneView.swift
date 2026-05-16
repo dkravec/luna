@@ -77,6 +77,15 @@ struct LunaARSceneView: UIViewRepresentable {
             settings: SolarSystemSceneSettings,
             recenterTrigger: Int
         ) {
+            guard recenterTrigger > 0 else {
+                if let anchor {
+                    view.scene.removeAnchor(anchor)
+                    self.anchor = nil
+                }
+                lastRecenterTrigger = recenterTrigger
+                return
+            }
+
             let shouldRecenter = anchor == nil || lastRecenterTrigger != recenterTrigger
             if shouldRecenter {
                 recenter(in: view)
@@ -109,7 +118,7 @@ struct LunaARSceneView: UIViewRepresentable {
             let arPlacements = placements.map { placement -> ARBodyPlacement in
                 ARBodyPlacement(
                     body: placement.body,
-                    displayRadius: max(0.015, placement.displayRadius * 0.11),
+                    displayRadius: max(0.0025, placement.displayRadius * 0.11),
                     position: SIMD3<Float>(
                         placement.position.x * 0.11,
                         placement.position.y * 0.11,

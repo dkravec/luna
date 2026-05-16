@@ -12,7 +12,7 @@ struct SolarSystemSceneSettings: Equatable {
         isAREnabled: true,
         scaleMode: .educational,
         distanceCompression: 30,
-        planetSizeMultiplier: 1,
+        planetSizeMultiplier: 5,
         showLabels: true,
         showOrbits: true
     )

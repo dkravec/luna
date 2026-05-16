@@ -20,7 +20,7 @@ struct UserProfile: Identifiable, Equatable {
         hasCompletedOnboarding: false,
         preferredScaleMode: .educational,
         distanceCompression: 30,
-        planetSizeMultiplier: 1,
+        planetSizeMultiplier: 5,
         prefersARMode: true,
         appearancePreference: .system,
         showLabels: true,

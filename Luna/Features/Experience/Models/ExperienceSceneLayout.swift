@@ -63,10 +63,20 @@ enum ExperienceSceneLayout {
            let parentPosition = parentPositions[parentId] {
             let siblings = bodies.filter { $0.parentBodyId == parentId }
             let siblingIndex = siblings.firstIndex { $0.id == body.id } ?? 0
-            let offset = Float(siblingIndex + 1) * 0.42
-            let vertical = siblingIndex.isMultiple(of: 2) ? Float(0.28) : Float(-0.28)
+            let orbitRadius = childOrbitRadius(
+                for: body,
+                siblings: siblings,
+                settings: settings
+            )
+            let angle = (Float(siblingIndex) / Float(max(siblings.count, 1))) * (Float.pi * 2)
+                + Float.pi / 8
+            let vertical = siblingIndex.isMultiple(of: 2) ? Float(0.08) : Float(-0.08)
 
-            return parentPosition + SIMD3<Float>(offset, vertical, Float(siblingIndex) * 0.22)
+            return parentPosition + SIMD3<Float>(
+                cos(angle) * orbitRadius,
+                vertical,
+                sin(angle) * orbitRadius
+            )
         }
 
         let sunOrder = bodies
@@ -78,15 +88,15 @@ enum ExperienceSceneLayout {
 
         switch settings.scaleMode {
         case .educational, .custom:
-            xPosition = Float(orderIndex + 1) * 1.55
+            xPosition = Float(orderIndex + 1) * 1.55 * spacingMultiplier(for: settings)
         case .compressedDistance:
             let normalized = normalizedSunDistance(for: body, maxSunDistance: maxSunDistance)
             let compression = Float(max(settings.distanceCompression, 5))
             let range = max(5.8, 14 - (compression / 10))
-            xPosition = 1.2 + pow(Float(normalized), 0.42) * range
+            xPosition = (1.2 + pow(Float(normalized), 0.42) * range) * spacingMultiplier(for: settings)
         case .trueDistance:
             let normalized = normalizedSunDistance(for: body, maxSunDistance: maxSunDistance)
-            xPosition = 1.2 + pow(Float(normalized), 0.82) * 13.5
+            xPosition = (1.2 + pow(Float(normalized), 0.82) * 13.5) * spacingMultiplier(for: settings)
         }
 
         return SIMD3<Float>(xPosition, 0, 0)
@@ -114,16 +124,37 @@ enum ExperienceSceneLayout {
 
         switch body.type {
         case .star:
-            return min(0.76, 0.48 * pow(multiplier, 0.18))
+            return min(0.78, 0.50 * pow(multiplier, 0.12))
         case .satellite:
-            return min(0.18, 0.035 * pow(multiplier, 0.42))
+            return min(0.10, 0.010 * pow(multiplier, 0.58))
         case .moon, .asteroid, .dwarfPlanet:
-            let baseRadius = max(0.048, Float(log10(body.radiusKm + 10)) / 27)
-            return min(0.36, baseRadius * pow(multiplier, 0.36))
+            let baseRadius = max(0.012, min(0.16, Float(body.radiusKm / 69_911) * 0.42))
+            return min(0.28, baseRadius * pow(multiplier, 0.58))
         case .planet:
-            let baseRadius = max(0.082, Float(log10(body.radiusKm + 10)) / 25)
-            return min(0.58, baseRadius * pow(multiplier, 0.34))
+            let baseRadius = max(0.016, min(0.42, Float(body.radiusKm / 69_911) * 0.42))
+            return min(0.72, baseRadius * pow(multiplier, 0.58))
         }
+    }
+
+    private static func childOrbitRadius(
+        for body: CelestialBody,
+        siblings: [CelestialBody],
+        settings: SolarSystemSceneSettings
+    ) -> Float {
+        let siblingDistances = siblings
+            .compactMap(\.averageDistanceFromEarthKm)
+            .filter { $0 > 0 }
+        let maxSiblingDistance = max(siblingDistances.max() ?? 384_400, 384_400)
+        let distance = max(body.averageDistanceFromEarthKm ?? maxSiblingDistance, 1)
+        let normalizedDistance = Float(min(max(distance / maxSiblingDistance, 0), 1))
+        let baseRadius = 0.28 + pow(normalizedDistance, 0.48) * 1.02
+
+        return baseRadius * spacingMultiplier(for: settings)
+    }
+
+    private static func spacingMultiplier(for settings: SolarSystemSceneSettings) -> Float {
+        let multiplier = Float(max(settings.planetSizeMultiplier, 1))
+        return 1 + (sqrt(multiplier) - 1) * 0.22
     }
 
     private static func normalizedSunDistance(for body: CelestialBody, maxSunDistance: Double) -> Double {
