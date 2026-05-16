@@ -60,6 +60,7 @@ final class LunaPersistenceController {
             attribute("objectScaleModeRaw", type: .stringAttributeType, optional: false, defaultValue: ObjectScaleMode.relative.rawValue),
             attribute("distanceCompression", type: .doubleAttributeType, optional: false, defaultValue: 30),
             attribute("orbitPlaybackSpeedRaw", type: .stringAttributeType, optional: false, defaultValue: OrbitPlaybackSpeed.standard.rawValue),
+            attribute("objectRotationSpeedRaw", type: .stringAttributeType, optional: false, defaultValue: ObjectRotationSpeed.slow.rawValue),
             attribute("showLabels", type: .booleanAttributeType, optional: false, defaultValue: true),
             attribute("showOrbits", type: .booleanAttributeType, optional: false, defaultValue: true)
         ]

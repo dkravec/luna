@@ -44,6 +44,7 @@ struct ExperiencePreferences: Identifiable, Equatable {
     var objectScaleMode: ObjectScaleMode
     var distanceCompression: Double
     var orbitPlaybackSpeed: OrbitPlaybackSpeed
+    var objectRotationSpeed: ObjectRotationSpeed
     var showLabels: Bool
     var showOrbits: Bool
 
@@ -54,6 +55,7 @@ struct ExperiencePreferences: Identifiable, Equatable {
         objectScaleMode: .relative,
         distanceCompression: 30,
         orbitPlaybackSpeed: .standard,
+        objectRotationSpeed: .slow,
         showLabels: true,
         showOrbits: true
     )
@@ -160,6 +162,41 @@ enum OrbitPlaybackSpeed: String, CaseIterable, Codable, Identifiable {
             return 18
         case .fast:
             return 72
+        }
+    }
+}
+
+enum ObjectRotationSpeed: String, CaseIterable, Codable, Identifiable {
+    case off
+    case slow
+    case standard
+    case fast
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .off:
+            return "Off"
+        case .slow:
+            return "Slow"
+        case .standard:
+            return "Standard"
+        case .fast:
+            return "Fast"
+        }
+    }
+
+    var multiplier: Double {
+        switch self {
+        case .off:
+            return 0
+        case .slow:
+            return 0.004
+        case .standard:
+            return 0.010
+        case .fast:
+            return 0.024
         }
     }
 }

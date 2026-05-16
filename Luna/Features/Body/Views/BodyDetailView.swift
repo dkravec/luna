@@ -16,6 +16,7 @@ struct BodyDetailView: View {
             LazyVStack(alignment: .leading, spacing: Spacing.section) {
                 hero
                 factsSection
+                orbitSection
                 descriptionSection
                 relatedSection
             }
@@ -26,6 +27,47 @@ struct BodyDetailView: View {
 #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
 #endif
+    }
+
+    @ViewBuilder
+    private var orbitSection: some View {
+        if let orbit = celestialBody.orbit {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "Orbit")
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+                    MetricTile(
+                        title: "Semi-major Axis",
+                        value: Formatters.distance(orbit.semiMajorAxisKm),
+                        systemImage: "arrow.left.and.right"
+                    )
+
+                    MetricTile(
+                        title: "Eccentricity",
+                        value: Formatters.decimal(orbit.eccentricity, fractionDigits: 3),
+                        systemImage: "oval"
+                    )
+
+                    MetricTile(
+                        title: "Inclination",
+                        value: Formatters.degrees(orbit.inclinationDegrees),
+                        systemImage: "angle"
+                    )
+
+                    MetricTile(
+                        title: "Axial Tilt",
+                        value: Formatters.degrees(celestialBody.axialTiltDegrees ?? Double(ExperienceSceneEngine.axialTiltRadians(for: celestialBody)) * 180 / .pi),
+                        systemImage: "gyroscope"
+                    )
+
+                    MetricTile(
+                        title: "Rotational Speed",
+                        value: Formatters.rotationalSpeed(radiusKm: celestialBody.radiusKm, periodHours: celestialBody.rotationPeriodHours),
+                        systemImage: "speedometer"
+                    )
+                }
+            }
+        }
     }
 
     var body: some View {
@@ -381,6 +423,23 @@ private enum Formatters {
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = value >= 100 ? 0 : 1
         return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    static func decimal(_ value: Double, fractionDigits: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = fractionDigits
+        formatter.maximumFractionDigits = fractionDigits
+        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    static func degrees(_ value: Double) -> String {
+        "\(formatted(value)) deg"
+    }
+
+    static func rotationalSpeed(radiusKm: Double, periodHours: Double?) -> String {
+        guard let periodHours, periodHours != 0 else { return "Not set" }
+        return "\(formatted(2 * Double.pi * radiusKm / abs(periodHours))) km/h"
     }
 }
 

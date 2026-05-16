@@ -39,6 +39,11 @@ struct ExperienceView: View {
             arPlacementButton
                 .padding(.bottom, arPlacementBottomPadding)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+
+            inSceneQuickDetails
+                .padding(.horizontal, 16)
+                .padding(.bottom, quickDetailsBottomPadding)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
         .appBackground()
         .onAppear {
@@ -62,10 +67,6 @@ struct ExperienceView: View {
         .sheet(isPresented: $isControlsPresented) {
             controlsSheetContent
                 .experienceControlsPresentation()
-        }
-        .sheet(item: $selectedQuickDetailsBody) { body in
-            BodyQuickDetailsView(celestialBody: body)
-                .presentationDetents([.medium, .large])
         }
 #if os(iOS)
         .toolbar(.hidden, for: .navigationBar)
@@ -287,6 +288,7 @@ struct ExperienceView: View {
                     )
                     ObjectScaleOptionsView(objectScaleMode: objectScaleModeBinding)
                     orbitPlaybackSection
+                    objectRotationSection
                     sceneOptionsSection
                 }
                 .padding(.horizontal, Spacing.screenHorizontal)
@@ -418,6 +420,31 @@ struct ExperienceView: View {
         }
     }
 
+    private var objectRotationSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Object Rotation")
+
+            CardSection {
+                ForEach(Array(ObjectRotationSpeed.allCases.enumerated()), id: \.element.id) { index, speed in
+                    SelectionRow(
+                        title: speed.title,
+                        subtitle: speed == .off ? "Keep objects still while orbit playback runs." : "Controls visible object spin during playback.",
+                        systemImage: "rotate.3d",
+                        value: speed == .slow ? "Default" : nil,
+                        isSelected: appState.experiencePreferences.objectRotationSpeed == speed
+                    ) {
+                        Haptics.selection()
+                        appState.setObjectRotationSpeed(speed)
+                    }
+
+                    if index < ObjectRotationSpeed.allCases.count - 1 {
+                        CardDivider(leadingInset: 56)
+                    }
+                }
+            }
+        }
+    }
+
     private var settings: ExperienceSceneSettings {
         ExperienceSceneSettings(
             isAREnabled: isAREnabled,
@@ -451,6 +478,24 @@ struct ExperienceView: View {
 
     private var arPlacementBottomPadding: CGFloat {
         (hasCustomTabBarReserve ? Spacing.customTabBarBottomReserve : 0) + 26
+    }
+
+    private var quickDetailsBottomPadding: CGFloat {
+        (hasCustomTabBarReserve ? Spacing.customTabBarBottomReserve : 0) + 92
+    }
+
+    @ViewBuilder
+    private var inSceneQuickDetails: some View {
+        if let selectedQuickDetailsBody {
+            InSceneBodyQuickDetailsCard(
+                celestialBody: selectedQuickDetailsBody,
+                childBodies: childBodies(for: selectedQuickDetailsBody)
+            ) {
+                Haptics.selection()
+                self.selectedQuickDetailsBody = nil
+            }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
     }
 
     private var canUseAR: Bool {
@@ -522,7 +567,15 @@ struct ExperienceView: View {
 
     private func showQuickDetails(for body: CelestialBody) {
         Haptics.selection()
-        selectedQuickDetailsBody = body
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            selectedQuickDetailsBody = body
+        }
+    }
+
+    private func childBodies(for body: CelestialBody) -> [CelestialBody] {
+        appState.celestialBodies
+            .filter { $0.parentBodyId == body.id }
+            .sorted { $0.displayOrder < $1.displayOrder }
     }
 
     private func setShowLabels(_ showLabels: Bool) {
@@ -582,126 +635,110 @@ private struct ExperienceLoadingView: View {
     }
 }
 
-struct BodyQuickDetailsView: View {
+struct InSceneBodyQuickDetailsCard: View {
     let celestialBody: CelestialBody
+    let childBodies: [CelestialBody]
+    let onDismiss: () -> Void
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(celestialBody.name)
-                            .font(.largeTitle.weight(.bold))
-                            .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(celestialBody.name)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.white)
 
-                        Text(celestialBody.subtitle)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    CardSection {
-                        quickRow(title: "Type", value: celestialBody.type.title, systemImage: "circle.hexagongrid")
-                        CardDivider(leadingInset: 56)
-                        quickRow(title: "Radius", value: formattedKilometers(celestialBody.radiusKm), systemImage: "ruler")
-                        CardDivider(leadingInset: 56)
-                        quickRow(title: "Gravity", value: formattedGravity, systemImage: "arrow.down.circle")
-                    }
-
-                    CardSection {
-                        quickRow(title: "Orbit", value: formattedOrbitPeriod, systemImage: "circle.dashed")
-                        CardDivider(leadingInset: 56)
-                        quickRow(title: "Rotation", value: formattedRotationPeriod, systemImage: "rotate.3d")
-                        CardDivider(leadingInset: 56)
-                        quickRow(title: "Rotational Speed", value: formattedRotationalSpeed, systemImage: "speedometer")
-                        CardDivider(leadingInset: 56)
-                        quickRow(title: "Axial Tilt", value: formattedAxialTilt, systemImage: "gyroscope")
-                    }
-
-                    if let orbit = celestialBody.orbit {
-                        CardSection {
-                            quickRow(title: "Semi-major Axis", value: formattedKilometers(orbit.semiMajorAxisKm), systemImage: "arrow.left.and.right")
-                            CardDivider(leadingInset: 56)
-                            quickRow(title: "Eccentricity", value: orbit.eccentricity.formatted(.number.precision(.fractionLength(3))), systemImage: "oval")
-                            CardDivider(leadingInset: 56)
-                            quickRow(title: "Inclination", value: formattedDegrees(orbit.inclinationDegrees), systemImage: "angle")
-                        }
-                    }
+                    Text(celestialBody.type.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.70))
                 }
-                .padding(.horizontal, Spacing.screenHorizontal)
-                .padding(.vertical, 18)
+
+                Spacer(minLength: 8)
+
+                NavigationLink {
+                    BodyDetailView(celestialBody: celestialBody, childBodies: childBodies)
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.title3.weight(.semibold))
+                        .frame(width: 36, height: 36)
+                        .foregroundStyle(.white)
+                        .background(.white.opacity(0.12), in: Circle())
+                }
+                .buttonStyle(.plain)
+
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.caption.weight(.bold))
+                        .frame(width: 36, height: 36)
+                        .foregroundStyle(.white.opacity(0.86))
+                        .background(.white.opacity(0.10), in: Circle())
+                }
+                .buttonStyle(.plain)
             }
-            .appBackground()
-            .navigationTitle("Quick Details")
-#if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-#endif
+
+            HStack(spacing: 10) {
+                compactFact(title: "Orbit", value: orbitValue, systemImage: "circle.dashed")
+                compactFact(title: "Rotation", value: rotationValue, systemImage: "rotate.3d")
+                compactFact(title: "Speed", value: rotationalSpeedValue, systemImage: "speedometer")
+            }
         }
+        .padding(14)
+        .background(.black.opacity(0.58), in: RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Radii.card, style: .continuous)
+                .stroke(.white.opacity(0.14), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.28), radius: 18, x: 0, y: 10)
     }
 
-    private func quickRow(title: String, value: String, systemImage: String) -> some View {
-        CardRow {
-            HStack(spacing: 12) {
+    private func compactFact(title: String, value: String, systemImage: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
                 Image(systemName: systemImage)
-                    .font(.title3.weight(.semibold))
-                    .frame(width: 28, height: 28)
-                    .foregroundStyle(.secondary)
-
                 Text(title)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-
-                Spacer(minLength: 12)
-
-                Text(value)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.trailing)
             }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.62))
+
+            Text(value)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: Radii.tile, style: .continuous))
     }
 
-    private var formattedGravity: String {
-        guard let gravity = celestialBody.gravity else { return "Not available" }
-        return "\(gravity.formatted(.number.precision(.fractionLength(2)))) m/s^2"
-    }
-
-    private var formattedOrbitPeriod: String {
-        guard let days = celestialBody.orbitalPeriodDays else { return "Not applicable" }
+    private var orbitValue: String {
+        guard let days = celestialBody.orbitalPeriodDays else { return "N/A" }
+        if days >= 365 {
+            return "\(format(days / 365.25)) yr"
+        }
         if days < 1 {
-            return "\(hours(fromDays: days).formatted(.number.precision(.fractionLength(1)))) hours"
+            return "\(format(days * 24)) hr"
         }
-        return "\(days.formatted(.number.precision(.fractionLength(1)))) days"
+        return "\(format(days)) d"
     }
 
-    private var formattedRotationPeriod: String {
-        guard let hours = celestialBody.rotationPeriodHours else { return "Not available" }
-        let direction = hours < 0 ? " retrograde" : ""
-        return "\(abs(hours).formatted(.number.precision(.fractionLength(1)))) hours\(direction)"
+    private var rotationValue: String {
+        guard let hours = celestialBody.rotationPeriodHours else { return "N/A" }
+        return "\(format(abs(hours))) hr"
     }
 
-    private var formattedRotationalSpeed: String {
-        guard let hours = celestialBody.rotationPeriodHours, hours != 0 else { return "Not available" }
-        let circumferenceKm = 2 * Double.pi * celestialBody.radiusKm
-        let speed = circumferenceKm / abs(hours)
-        return "\(speed.formatted(.number.precision(.fractionLength(0)))) km/h"
+    private var rotationalSpeedValue: String {
+        guard let hours = celestialBody.rotationPeriodHours, hours != 0 else { return "N/A" }
+        let speed = 2 * Double.pi * celestialBody.radiusKm / abs(hours)
+        if speed >= 1_000 {
+            return "\(format(speed / 1_000))k km/h"
+        }
+        return "\(format(speed)) km/h"
     }
 
-    private var formattedAxialTilt: String {
-        formattedDegrees(celestialBody.axialTiltDegrees ?? Double(ExperienceSceneEngine.axialTiltRadians(for: celestialBody)) * 180 / .pi)
-    }
-
-    private func formattedKilometers(_ kilometers: Double) -> String {
-        "\(kilometers.formatted(.number.precision(.fractionLength(0)).grouping(.automatic))) km"
-    }
-
-    private func formattedDegrees(_ degrees: Double) -> String {
-        "\(degrees.formatted(.number.precision(.fractionLength(2)))) deg"
-    }
-
-    private func hours(fromDays days: Double) -> Double {
-        days * 24
+    private func format(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(value >= 100 ? 0 : 1)))
     }
 }
 

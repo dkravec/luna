@@ -64,6 +64,8 @@ private extension BodyPreviewSceneContainer {
         let view = SCNView()
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = false
+        view.isPlaying = true
+        view.preferredFramesPerSecond = 30
         view.delegate = coordinator
         view.defaultCameraController.target = SCNVector3Zero
         view.backgroundColor = previewColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)

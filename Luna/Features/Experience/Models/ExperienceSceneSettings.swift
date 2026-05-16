@@ -6,6 +6,7 @@ struct ExperienceSceneSettings: Equatable {
     var objectScaleMode: ObjectScaleMode
     var distanceCompression: Double
     var orbitPlaybackSpeed: OrbitPlaybackSpeed
+    var objectRotationSpeed: ObjectRotationSpeed
     var showLabels: Bool
     var showOrbits: Bool
 
@@ -15,6 +16,7 @@ struct ExperienceSceneSettings: Equatable {
         objectScaleMode: .relative,
         distanceCompression: 30,
         orbitPlaybackSpeed: .standard,
+        objectRotationSpeed: .slow,
         showLabels: true,
         showOrbits: true
     )
@@ -26,6 +28,7 @@ struct ExperienceSceneSettings: Equatable {
             objectScaleMode: preferences.objectScaleMode,
             distanceCompression: preferences.distanceCompression,
             orbitPlaybackSpeed: preferences.orbitPlaybackSpeed,
+            objectRotationSpeed: preferences.objectRotationSpeed,
             showLabels: preferences.showLabels,
             showOrbits: preferences.showOrbits
         )
@@ -37,6 +40,7 @@ struct ExperienceSceneSettings: Equatable {
         objectScaleMode: ObjectScaleMode,
         distanceCompression: Double,
         orbitPlaybackSpeed: OrbitPlaybackSpeed,
+        objectRotationSpeed: ObjectRotationSpeed,
         showLabels: Bool,
         showOrbits: Bool
     ) {
@@ -45,6 +49,7 @@ struct ExperienceSceneSettings: Equatable {
         self.objectScaleMode = objectScaleMode
         self.distanceCompression = distanceCompression
         self.orbitPlaybackSpeed = orbitPlaybackSpeed
+        self.objectRotationSpeed = objectRotationSpeed
         self.showLabels = showLabels
         self.showOrbits = showOrbits
     }

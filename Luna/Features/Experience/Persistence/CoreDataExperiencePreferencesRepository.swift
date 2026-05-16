@@ -72,6 +72,7 @@ extension ExperiencePreferences {
         let distanceMode = DistanceScaleMode(rawValue: managedObject.distanceScaleModeRaw ?? "") ?? .educational
         let objectMode = ObjectScaleMode(rawValue: managedObject.objectScaleModeRaw ?? "") ?? .relative
         let playbackSpeed = OrbitPlaybackSpeed(rawValue: managedObject.orbitPlaybackSpeedRaw ?? "") ?? .standard
+        let rotationSpeed = ObjectRotationSpeed(rawValue: managedObject.objectRotationSpeedRaw ?? "") ?? .slow
 
         self.init(
             id: managedObject.id ?? UUID(),
@@ -80,6 +81,7 @@ extension ExperiencePreferences {
             objectScaleMode: objectMode,
             distanceCompression: managedObject.distanceCompression,
             orbitPlaybackSpeed: playbackSpeed,
+            objectRotationSpeed: rotationSpeed,
             showLabels: managedObject.showLabels,
             showOrbits: managedObject.showOrbits
         )
@@ -94,6 +96,7 @@ final class ExperiencePreferencesRecord: NSManagedObject {
     @NSManaged var objectScaleModeRaw: String?
     @NSManaged var distanceCompression: Double
     @NSManaged var orbitPlaybackSpeedRaw: String?
+    @NSManaged var objectRotationSpeedRaw: String?
     @NSManaged var showLabels: Bool
     @NSManaged var showOrbits: Bool
 }
@@ -111,6 +114,7 @@ extension ExperiencePreferencesRecord {
         objectScaleModeRaw = preferences.objectScaleMode.rawValue
         distanceCompression = preferences.distanceCompression
         orbitPlaybackSpeedRaw = preferences.orbitPlaybackSpeed.rawValue
+        objectRotationSpeedRaw = preferences.objectRotationSpeed.rawValue
         showLabels = preferences.showLabels
         showOrbits = preferences.showOrbits
     }

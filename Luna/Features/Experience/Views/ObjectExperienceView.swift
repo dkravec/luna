@@ -40,6 +40,11 @@ struct ObjectExperienceView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
+
+            inSceneQuickDetails
+                .padding(.horizontal, 16)
+                .padding(.bottom, 84)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
         .appBackground()
         .navigationTitle("\(celestialBody.name) Experience")
@@ -49,10 +54,6 @@ struct ObjectExperienceView: View {
             isAREnabled = canUseAR && appState.experiencePreferences.prefersARMode
         }
 #endif
-        .sheet(item: $selectedQuickDetailsBody) { body in
-            BodyQuickDetailsView(celestialBody: body)
-                .presentationDetents([.medium, .large])
-        }
     }
 
     private var visualScene: some View {
@@ -119,9 +120,31 @@ struct ObjectExperienceView: View {
         arPlacementState.isReady ? (recenterTrigger == 0 ? "Place" : "Re-place") : arPlacementState.title
     }
 
+    @ViewBuilder
+    private var inSceneQuickDetails: some View {
+        if let selectedQuickDetailsBody {
+            InSceneBodyQuickDetailsCard(
+                celestialBody: selectedQuickDetailsBody,
+                childBodies: childBodies(for: selectedQuickDetailsBody)
+            ) {
+                Haptics.selection()
+                self.selectedQuickDetailsBody = nil
+            }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
     private func showQuickDetails(for body: CelestialBody) {
         Haptics.selection()
-        selectedQuickDetailsBody = body
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            selectedQuickDetailsBody = body
+        }
+    }
+
+    private func childBodies(for body: CelestialBody) -> [CelestialBody] {
+        appState.celestialBodies
+            .filter { $0.parentBodyId == body.id }
+            .sorted { $0.displayOrder < $1.displayOrder }
     }
 
     private var bodies: [CelestialBody] {

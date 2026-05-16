@@ -109,7 +109,11 @@ enum ExperienceSceneEngine {
                 position: position,
                 displayRadius: radius,
                 labelPosition: position + SIMD3<Float>(0, radius + max(0.28, radius * 0.58), 0),
-                rotationAngleRadians: rotationAngleRadians(for: body, simulationTimeDays: simulationTimeDays),
+                rotationAngleRadians: rotationAngleRadians(
+                    for: body,
+                    simulationTimeDays: simulationTimeDays,
+                    speed: settings.objectRotationSpeed
+                ),
                 axialTiltRadians: axialTiltRadians(for: body)
             )
 
@@ -340,7 +344,11 @@ enum ExperienceSceneEngine {
         return Float(degrees.truncatingRemainder(dividingBy: 360) * .pi / 180)
     }
 
-    static func rotationAngleRadians(for body: CelestialBody, simulationTimeDays: Double) -> Float {
+    static func rotationAngleRadians(
+        for body: CelestialBody,
+        simulationTimeDays: Double,
+        speed: ObjectRotationSpeed = .standard
+    ) -> Float {
         guard let rotationPeriodHours = body.rotationPeriodHours,
               rotationPeriodHours != 0 else {
             return 0
@@ -348,7 +356,7 @@ enum ExperienceSceneEngine {
 
         let rotationDays = abs(rotationPeriodHours) / 24
         let direction = rotationPeriodHours < 0 ? -1.0 : 1.0
-        let rotations = simulationTimeDays / max(rotationDays, 0.001)
+        let rotations = simulationTimeDays / max(rotationDays, 0.001) * speed.multiplier
         let radians = rotations.truncatingRemainder(dividingBy: 1) * .pi * 2 * direction
         return Float(radians)
     }

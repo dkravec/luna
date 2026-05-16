@@ -72,6 +72,7 @@ enum ExperienceScaleAudit {
             objectScaleMode: object,
             distanceCompression: 30,
             orbitPlaybackSpeed: .standard,
+            objectRotationSpeed: .slow,
             showLabels: true,
             showOrbits: true
         )

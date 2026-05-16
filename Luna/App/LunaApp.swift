@@ -90,6 +90,11 @@ final class LunaAppState: ObservableObject {
         saveExperiencePreferences()
     }
 
+    func setObjectRotationSpeed(_ speed: ObjectRotationSpeed) {
+        experiencePreferences.objectRotationSpeed = speed
+        saveExperiencePreferences()
+    }
+
     func setShowLabels(_ showLabels: Bool) {
         experiencePreferences.showLabels = showLabels
         saveExperiencePreferences()
