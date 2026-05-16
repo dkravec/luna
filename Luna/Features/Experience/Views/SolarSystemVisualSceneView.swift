@@ -16,6 +16,7 @@ struct SolarSystemVisualSceneView: View {
     let settings: ExperienceSceneSettings
     var content: ExperienceSceneContent = .solarSystem
     var simulationTimeDays: Double = 0
+    var onSelectBody: (CelestialBody) -> Void = { _ in }
 
     var body: some View {
         VisualSceneContainer(
@@ -25,7 +26,8 @@ struct SolarSystemVisualSceneView: View {
                 content: content,
                 simulationTimeDays: simulationTimeDays
             ),
-            showsLabels: settings.showLabels
+            showsLabels: settings.showLabels,
+            onSelectBody: onSelectBody
         )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
@@ -49,6 +51,7 @@ struct SolarSystemVisualSceneView: View {
 private struct VisualSceneContainer: UIViewRepresentable {
     let snapshot: ExperienceSceneSnapshot
     let showsLabels: Bool
+    let onSelectBody: (CelestialBody) -> Void
 
     func makeCoordinator() -> VisualSceneCameraCoordinator {
         VisualSceneCameraCoordinator()
@@ -66,6 +69,7 @@ private struct VisualSceneContainer: UIViewRepresentable {
 private struct VisualSceneContainer: NSViewRepresentable {
     let snapshot: ExperienceSceneSnapshot
     let showsLabels: Bool
+    let onSelectBody: (CelestialBody) -> Void
 
     func makeCoordinator() -> VisualSceneCameraCoordinator {
         VisualSceneCameraCoordinator()
@@ -88,12 +92,21 @@ private extension VisualSceneContainer {
         view.autoenablesDefaultLighting = false
         view.delegate = coordinator
         view.backgroundColor = platformColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
+#if os(iOS)
+        let tapRecognizer = UITapGestureRecognizer(target: coordinator, action: #selector(VisualSceneCameraCoordinator.handleTap(_:)))
+        tapRecognizer.cancelsTouchesInView = false
+        view.addGestureRecognizer(tapRecognizer)
+#elseif os(macOS)
+        let clickRecognizer = NSClickGestureRecognizer(target: coordinator, action: #selector(VisualSceneCameraCoordinator.handleClick(_:)))
+        view.addGestureRecognizer(clickRecognizer)
+#endif
         configure(view)
         return view
     }
 
     func configure(_ view: SCNView) {
         if let coordinator = view.delegate as? VisualSceneCameraCoordinator {
+            coordinator.onSelectBody = onSelectBody
             coordinator.apply(snapshot: snapshot, showsLabels: showsLabels, to: view)
         }
     }
@@ -103,7 +116,10 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     private var cameraLimit = SceneCameraLimit.default
     private var structureKey: String?
     private var bodyNodes: [String: SCNNode] = [:]
+    private var bodyVisualNodes: [String: SCNNode] = [:]
     private var orbitNodes: [String: SCNNode] = [:]
+    private var bodyLookup: [String: CelestialBody] = [:]
+    var onSelectBody: (CelestialBody) -> Void = { _ in }
 
     func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
         guard let pointOfView = renderer.pointOfView,
@@ -129,6 +145,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     func apply(snapshot: ExperienceSceneSnapshot, showsLabels: Bool, to view: SCNView) {
         let nextStructureKey = Self.structureKey(for: snapshot, showsLabels: showsLabels)
         let nextCameraLimit = SceneCameraLimit(snapshot: snapshot)
+        bodyLookup = Dictionary(uniqueKeysWithValues: snapshot.bodies.map { ($0.id, $0.body) })
 
         if view.scene == nil || structureKey != nextStructureKey {
             let scene = SolarSystemSceneFactory.scene(
@@ -156,6 +173,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
                 placement.position.y,
                 placement.position.z
             )
+            bodyVisualNodes[placement.id]?.eulerAngles = SolarSystemSceneFactory.rotationEuler(for: placement)
         }
 
         for orbitPath in snapshot.orbitPaths {
@@ -167,6 +185,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
     private func captureNodes(from scene: SCNScene) {
         bodyNodes.removeAll()
+        bodyVisualNodes.removeAll()
         orbitNodes.removeAll()
 
         scene.rootNode.enumerateChildNodes { node, _ in
@@ -174,10 +193,50 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
             if name.hasPrefix("body:") {
                 bodyNodes[String(name.dropFirst(5))] = node
+            } else if name.hasPrefix("bodyVisual:") {
+                bodyVisualNodes[String(name.dropFirst(11))] = node
             } else if name.hasPrefix("orbit:") {
                 orbitNodes[String(name.dropFirst(6))] = node
             }
         }
+    }
+
+#if os(iOS)
+    @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
+        guard let view = recognizer.view as? SCNView else { return }
+        selectBody(at: recognizer.location(in: view), in: view)
+    }
+#elseif os(macOS)
+    @objc func handleClick(_ recognizer: NSClickGestureRecognizer) {
+        guard let view = recognizer.view as? SCNView else { return }
+        selectBody(at: recognizer.location(in: view), in: view)
+    }
+#endif
+
+    private func selectBody(at point: CGPoint, in view: SCNView) {
+        let hits = view.hitTest(point, options: [.boundingBoxOnly: false])
+        guard let bodyID = hits.compactMap({ bodyID(from: $0.node) }).first,
+              let body = bodyLookup[bodyID] else {
+            return
+        }
+
+        onSelectBody(body)
+    }
+
+    private func bodyID(from node: SCNNode) -> String? {
+        var currentNode: SCNNode? = node
+        while let node = currentNode {
+            if let name = node.name {
+                if name.hasPrefix("body:") {
+                    return String(name.dropFirst(5))
+                }
+                if name.hasPrefix("bodyVisual:") {
+                    return String(name.dropFirst(11))
+                }
+            }
+            currentNode = node.parent
+        }
+        return nil
     }
 
     private static func structureKey(for snapshot: ExperienceSceneSnapshot, showsLabels: Bool) -> String {
@@ -213,7 +272,6 @@ private enum SolarSystemSceneFactory {
 
         for placement in snapshot.bodies {
             let bodyNode = node(for: placement)
-            bodyNode.name = "body:\(placement.id)"
             root.addChildNode(bodyNode)
 
             if showsLabels {
@@ -225,12 +283,16 @@ private enum SolarSystemSceneFactory {
     }
 
     private static func node(for placement: ExperienceSceneBody) -> SCNNode {
-        let node: SCNNode
+        let root = SCNNode()
+        root.name = "body:\(placement.id)"
+        root.position = SCNVector3(placement.position.x, placement.position.y, placement.position.z)
+
+        let visualNode: SCNNode
 
         if placement.body.type == .satellite {
-            node = satelliteNode()
+            visualNode = satelliteNode()
             let satelliteScale = max(0.22, placement.displayRadius * 5.5)
-            node.scale = SCNVector3(
+            visualNode.scale = SCNVector3(
                 satelliteScale,
                 satelliteScale,
                 satelliteScale
@@ -239,11 +301,21 @@ private enum SolarSystemSceneFactory {
             let sphere = SCNSphere(radius: CGFloat(placement.displayRadius))
             sphere.segmentCount = placement.body.type == .star ? 64 : 48
             sphere.firstMaterial = material(for: placement.body)
-            node = SCNNode(geometry: sphere)
+            visualNode = SCNNode(geometry: sphere)
         }
 
-        node.position = SCNVector3(placement.position.x, placement.position.y, placement.position.z)
-        return node
+        visualNode.name = "bodyVisual:\(placement.id)"
+        visualNode.eulerAngles = rotationEuler(for: placement)
+        root.addChildNode(visualNode)
+        return root
+    }
+
+    static func rotationEuler(for placement: ExperienceSceneBody) -> SCNVector3 {
+        SCNVector3(
+            placement.axialTiltRadians,
+            placement.rotationAngleRadians,
+            0
+        )
     }
 
     private static func satelliteNode() -> SCNNode {

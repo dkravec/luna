@@ -13,6 +13,7 @@ struct LunaARSceneView: UIViewRepresentable {
     let recenterTrigger: Int
     var showsDebugSurfaces = false
     var onPlacementStateChange: (ARPlacementState) -> Void = { _ in }
+    var onSelectBody: (CelestialBody) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -24,6 +25,7 @@ struct LunaARSceneView: UIViewRepresentable {
         context.coordinator.configureSession(for: view)
         context.coordinator.installCoachingOverlay(in: view)
         context.coordinator.startPlacementMonitoring(in: view)
+        context.coordinator.installSelectionGesture(in: view)
         context.coordinator.update(
             view,
             bodies: bodies,
@@ -32,7 +34,8 @@ struct LunaARSceneView: UIViewRepresentable {
             simulationTimeDays: simulationTimeDays,
             recenterTrigger: recenterTrigger,
             showsDebugSurfaces: showsDebugSurfaces,
-            onPlacementStateChange: onPlacementStateChange
+            onPlacementStateChange: onPlacementStateChange,
+            onSelectBody: onSelectBody
         )
         return view
     }
@@ -46,7 +49,8 @@ struct LunaARSceneView: UIViewRepresentable {
             simulationTimeDays: simulationTimeDays,
             recenterTrigger: recenterTrigger,
             showsDebugSurfaces: showsDebugSurfaces,
-            onPlacementStateChange: onPlacementStateChange
+            onPlacementStateChange: onPlacementStateChange,
+            onSelectBody: onSelectBody
         )
     }
 
@@ -62,6 +66,8 @@ struct LunaARSceneView: UIViewRepresentable {
         private var placementUpdateSubscription: Cancellable?
         private var lastPlacementState: ARPlacementState?
         private var onPlacementStateChange: (ARPlacementState) -> Void = { _ in }
+        private var bodyLookup: [String: CelestialBody] = [:]
+        private var onSelectBody: (CelestialBody) -> Void = { _ in }
 
         func configureSession(for view: ARView) {
             guard ARWorldTrackingConfiguration.isSupported else { return }
@@ -102,6 +108,17 @@ struct LunaARSceneView: UIViewRepresentable {
             }
         }
 
+        func installSelectionGesture(in view: ARView) {
+            guard view.gestureRecognizers?.contains(where: { $0.name == "LunaARBodySelection" }) != true else {
+                return
+            }
+
+            let recognizer = UITapGestureRecognizer(target: self, action: #selector(handleBodyTap(_:)))
+            recognizer.name = "LunaARBodySelection"
+            recognizer.cancelsTouchesInView = false
+            view.addGestureRecognizer(recognizer)
+        }
+
         func update(
             _ view: ARView,
             bodies: [CelestialBody],
@@ -110,9 +127,11 @@ struct LunaARSceneView: UIViewRepresentable {
             simulationTimeDays: Double,
             recenterTrigger: Int,
             showsDebugSurfaces: Bool,
-            onPlacementStateChange: @escaping (ARPlacementState) -> Void
+            onPlacementStateChange: @escaping (ARPlacementState) -> Void,
+            onSelectBody: @escaping (CelestialBody) -> Void
         ) {
             self.onPlacementStateChange = onPlacementStateChange
+            self.onSelectBody = onSelectBody
             view.debugOptions = showsDebugSurfaces
                 ? [.showFeaturePoints, .showAnchorOrigins, .showAnchorGeometry]
                 : []
@@ -137,6 +156,7 @@ struct LunaARSceneView: UIViewRepresentable {
                 content: content,
                 simulationTimeDays: simulationTimeDays
             )
+            bodyLookup = Dictionary(uniqueKeysWithValues: snapshot.bodies.map { ($0.id, $0.body) })
             let shouldRecenter = anchor == nil || lastRecenterTrigger != recenterTrigger
             if shouldRecenter {
                 guard recenter(in: view) else {
@@ -204,12 +224,16 @@ struct LunaARSceneView: UIViewRepresentable {
                         placement.position.x * 0.095,
                         placement.position.y * 0.095,
                         placement.position.z * 0.095
-                    )
+                    ),
+                    rotationAngleRadians: placement.rotationAngleRadians,
+                    axialTiltRadians: placement.axialTiltRadians
                 )
             }
 
             for placement in arPlacements {
-                bodyEntities[placement.body.id]?.position = placement.position - rootCenter
+                guard let entity = bodyEntities[placement.body.id] else { continue }
+                entity.position = placement.position - rootCenter
+                entity.orientation = Self.rotationOrientation(for: placement)
             }
 
             for orbitPath in snapshot.orbitPaths {
@@ -234,11 +258,14 @@ struct LunaARSceneView: UIViewRepresentable {
                         placement.position.x * 0.095,
                         placement.position.y * 0.095,
                         placement.position.z * 0.095
-                    )
+                    ),
+                    rotationAngleRadians: placement.rotationAngleRadians,
+                    axialTiltRadians: placement.axialTiltRadians
                 )
             }
             let bounds = ARPlacementBounds(placements: arPlacements)
             let root = ModelEntity()
+            root.name = "sceneRoot"
             root.position = bounds.center
             root.collision = CollisionComponent(shapes: [.generateBox(size: bounds.size)])
             var bodyEntities: [String: Entity] = [:]
@@ -246,7 +273,10 @@ struct LunaARSceneView: UIViewRepresentable {
 
             for placement in arPlacements {
                 let entity = entity(for: placement)
+                entity.name = "body:\(placement.body.id)"
                 entity.position = placement.position - bounds.center
+                entity.orientation = rotationOrientation(for: placement)
+                entity.generateCollisionShapes(recursive: true)
                 root.addChild(entity)
                 bodyEntities[placement.body.id] = entity
             }
@@ -283,6 +313,26 @@ struct LunaARSceneView: UIViewRepresentable {
             return placementTransform(for: view) == nil ? .findingSurface : .ready
         }
 
+        @objc private func handleBodyTap(_ recognizer: UITapGestureRecognizer) {
+            guard let view = recognizer.view as? ARView else { return }
+
+            let hits = view.entities(at: recognizer.location(in: view))
+            guard let body = hits.compactMap({ body(for: $0) }).first else { return }
+
+            onSelectBody(body)
+        }
+
+        private func body(for entity: Entity) -> CelestialBody? {
+            var currentEntity: Entity? = entity
+            while let entity = currentEntity {
+                if entity.name.hasPrefix("body:") {
+                    return bodyLookup[String(entity.name.dropFirst(5))]
+                }
+                currentEntity = entity.parent
+            }
+            return nil
+        }
+
         private static func placementTransform(for view: ARView) -> simd_float4x4? {
             let centerPoint = CGPoint(x: view.bounds.midX, y: view.bounds.midY)
 
@@ -311,6 +361,12 @@ struct LunaARSceneView: UIViewRepresentable {
             let mesh = MeshResource.generateSphere(radius: placement.displayRadius)
             let material = material(for: placement.body)
             return ModelEntity(mesh: mesh, materials: [material])
+        }
+
+        private static func rotationOrientation(for placement: ARBodyPlacement) -> simd_quatf {
+            let tilt = simd_quatf(angle: placement.axialTiltRadians, axis: SIMD3<Float>(0, 0, 1))
+            let spin = simd_quatf(angle: placement.rotationAngleRadians, axis: SIMD3<Float>(0, 1, 0))
+            return tilt * spin
         }
 
         private static func orbitDots(for path: ExperienceOrbitPath, scale: Float, center: SIMD3<Float>) -> AROrbitTree {
@@ -427,6 +483,8 @@ private struct ARBodyPlacement {
     let body: CelestialBody
     let displayRadius: Float
     let position: SIMD3<Float>
+    let rotationAngleRadians: Float
+    let axialTiltRadians: Float
 }
 
 private struct ARRenderTree {

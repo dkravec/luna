@@ -8,6 +8,7 @@ struct ObjectExperienceView: View {
     @State private var isAREnabled = false
     @State private var recenterTrigger = 0
     @State private var arPlacementState: ARPlacementState = .initializing
+    @State private var selectedQuickDetailsBody: CelestialBody?
 
     let celestialBody: CelestialBody
 
@@ -21,7 +22,8 @@ struct ObjectExperienceView: View {
                     content: .object(celestialBody.id),
                     simulationTimeDays: 0,
                     recenterTrigger: recenterTrigger,
-                    onPlacementStateChange: { arPlacementState = $0 }
+                    onPlacementStateChange: { arPlacementState = $0 },
+                    onSelectBody: showQuickDetails(for:)
                 )
                 .ignoresSafeArea(edges: .bottom)
             } else {
@@ -47,6 +49,10 @@ struct ObjectExperienceView: View {
             isAREnabled = canUseAR && appState.experiencePreferences.prefersARMode
         }
 #endif
+        .sheet(item: $selectedQuickDetailsBody) { body in
+            BodyQuickDetailsView(celestialBody: body)
+                .presentationDetents([.medium, .large])
+        }
     }
 
     private var visualScene: some View {
@@ -54,7 +60,8 @@ struct ObjectExperienceView: View {
             bodies: bodies,
             settings: settings,
             content: .object(celestialBody.id),
-            simulationTimeDays: 0
+            simulationTimeDays: 0,
+            onSelectBody: showQuickDetails(for:)
         )
         .ignoresSafeArea(edges: .bottom)
     }
@@ -110,6 +117,11 @@ struct ObjectExperienceView: View {
 
     private var arPlacementTitle: String {
         arPlacementState.isReady ? (recenterTrigger == 0 ? "Place" : "Re-place") : arPlacementState.title
+    }
+
+    private func showQuickDetails(for body: CelestialBody) {
+        Haptics.selection()
+        selectedQuickDetailsBody = body
     }
 
     private var bodies: [CelestialBody] {

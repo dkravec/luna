@@ -19,6 +19,8 @@ struct ExperienceSceneBody: Identifiable, Equatable {
     let position: SIMD3<Float>
     let displayRadius: Float
     let labelPosition: SIMD3<Float>
+    let rotationAngleRadians: Float
+    let axialTiltRadians: Float
 }
 
 struct ExperienceOrbitPath: Identifiable, Equatable {
@@ -106,7 +108,9 @@ enum ExperienceSceneEngine {
                 body: body,
                 position: position,
                 displayRadius: radius,
-                labelPosition: position + SIMD3<Float>(0, radius + max(0.28, radius * 0.58), 0)
+                labelPosition: position + SIMD3<Float>(0, radius + max(0.28, radius * 0.58), 0),
+                rotationAngleRadians: rotationAngleRadians(for: body, simulationTimeDays: simulationTimeDays),
+                axialTiltRadians: axialTiltRadians(for: body)
             )
 
             sceneBodies.append(sceneBody)
@@ -336,6 +340,23 @@ enum ExperienceSceneEngine {
         return Float(degrees.truncatingRemainder(dividingBy: 360) * .pi / 180)
     }
 
+    static func rotationAngleRadians(for body: CelestialBody, simulationTimeDays: Double) -> Float {
+        guard let rotationPeriodHours = body.rotationPeriodHours,
+              rotationPeriodHours != 0 else {
+            return 0
+        }
+
+        let rotationDays = abs(rotationPeriodHours) / 24
+        let direction = rotationPeriodHours < 0 ? -1.0 : 1.0
+        let rotations = simulationTimeDays / max(rotationDays, 0.001)
+        let radians = rotations.truncatingRemainder(dividingBy: 1) * .pi * 2 * direction
+        return Float(radians)
+    }
+
+    static func axialTiltRadians(for body: CelestialBody) -> Float {
+        Float((body.axialTiltDegrees ?? defaultAxialTiltDegrees(for: body)) * .pi / 180)
+    }
+
     private static func orbitYOffset(for body: CelestialBody) -> Float {
         Float((body.orbit?.inclinationDegrees ?? 0) / 180) * 0.10
     }
@@ -346,6 +367,33 @@ enum ExperienceSceneEngine {
         }
 
         return min(max(distance / maxSunDistance, 0), 1)
+    }
+
+    private static func defaultAxialTiltDegrees(for body: CelestialBody) -> Double {
+        switch body.id {
+        case "sun":
+            return 7.25
+        case "mercury":
+            return 0.034
+        case "venus":
+            return 177.36
+        case "earth":
+            return 23.44
+        case "moon":
+            return 6.68
+        case "mars":
+            return 25.19
+        case "jupiter":
+            return 3.13
+        case "saturn":
+            return 26.73
+        case "uranus":
+            return 97.77
+        case "neptune":
+            return 28.32
+        default:
+            return 0
+        }
     }
 }
 

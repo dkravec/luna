@@ -12,6 +12,7 @@ struct CelestialBody: Codable, Identifiable, Equatable {
     let averageDistanceFromEarthKm: Double?
     let orbitalPeriodDays: Double?
     let rotationPeriodHours: Double?
+    let axialTiltDegrees: Double?
     let gravity: Double?
     let imageName: String?
     let textureName: String?

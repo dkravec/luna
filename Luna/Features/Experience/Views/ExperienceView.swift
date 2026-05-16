@@ -22,6 +22,7 @@ struct ExperienceView: View {
     @State private var currentSimulationDays: Double = 0
     @State private var arPlacementState: ARPlacementState = .initializing
     @State private var showsARDebugSurfaces = false
+    @State private var selectedQuickDetailsBody: CelestialBody?
 
     var body: some View {
         ZStack {
@@ -62,6 +63,10 @@ struct ExperienceView: View {
             controlsSheetContent
                 .experienceControlsPresentation()
         }
+        .sheet(item: $selectedQuickDetailsBody) { body in
+            BodyQuickDetailsView(celestialBody: body)
+                .presentationDetents([.medium, .large])
+        }
 #if os(iOS)
         .toolbar(.hidden, for: .navigationBar)
 #endif
@@ -94,7 +99,8 @@ struct ExperienceView: View {
                 simulationTimeDays: simulationTimeDays,
                 recenterTrigger: recenterTrigger,
                 showsDebugSurfaces: showsARDebugSurfaces,
-                onPlacementStateChange: { arPlacementState = $0 }
+                onPlacementStateChange: { arPlacementState = $0 },
+                onSelectBody: showQuickDetails(for:)
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -102,7 +108,8 @@ struct ExperienceView: View {
                 bodies: appState.celestialBodies,
                 settings: settings,
                 content: .solarSystem,
-                simulationTimeDays: simulationTimeDays
+                simulationTimeDays: simulationTimeDays,
+                onSelectBody: showQuickDetails(for:)
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -111,7 +118,8 @@ struct ExperienceView: View {
             bodies: appState.celestialBodies,
             settings: settings,
             content: .solarSystem,
-            simulationTimeDays: simulationTimeDays
+            simulationTimeDays: simulationTimeDays,
+            onSelectBody: showQuickDetails(for:)
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
 #endif
@@ -512,6 +520,11 @@ struct ExperienceView: View {
         recenterTrigger += 1
     }
 
+    private func showQuickDetails(for body: CelestialBody) {
+        Haptics.selection()
+        selectedQuickDetailsBody = body
+    }
+
     private func setShowLabels(_ showLabels: Bool) {
         Haptics.selection()
         appState.setShowLabels(showLabels)
@@ -566,6 +579,129 @@ private struct ExperienceLoadingView: View {
                     .stroke(Color.white.opacity(0.12), lineWidth: 1)
             }
         }
+    }
+}
+
+struct BodyQuickDetailsView: View {
+    let celestialBody: CelestialBody
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(celestialBody.name)
+                            .font(.largeTitle.weight(.bold))
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(celestialBody.subtitle)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    CardSection {
+                        quickRow(title: "Type", value: celestialBody.type.title, systemImage: "circle.hexagongrid")
+                        CardDivider(leadingInset: 56)
+                        quickRow(title: "Radius", value: formattedKilometers(celestialBody.radiusKm), systemImage: "ruler")
+                        CardDivider(leadingInset: 56)
+                        quickRow(title: "Gravity", value: formattedGravity, systemImage: "arrow.down.circle")
+                    }
+
+                    CardSection {
+                        quickRow(title: "Orbit", value: formattedOrbitPeriod, systemImage: "circle.dashed")
+                        CardDivider(leadingInset: 56)
+                        quickRow(title: "Rotation", value: formattedRotationPeriod, systemImage: "rotate.3d")
+                        CardDivider(leadingInset: 56)
+                        quickRow(title: "Rotational Speed", value: formattedRotationalSpeed, systemImage: "speedometer")
+                        CardDivider(leadingInset: 56)
+                        quickRow(title: "Axial Tilt", value: formattedAxialTilt, systemImage: "gyroscope")
+                    }
+
+                    if let orbit = celestialBody.orbit {
+                        CardSection {
+                            quickRow(title: "Semi-major Axis", value: formattedKilometers(orbit.semiMajorAxisKm), systemImage: "arrow.left.and.right")
+                            CardDivider(leadingInset: 56)
+                            quickRow(title: "Eccentricity", value: orbit.eccentricity.formatted(.number.precision(.fractionLength(3))), systemImage: "oval")
+                            CardDivider(leadingInset: 56)
+                            quickRow(title: "Inclination", value: formattedDegrees(orbit.inclinationDegrees), systemImage: "angle")
+                        }
+                    }
+                }
+                .padding(.horizontal, Spacing.screenHorizontal)
+                .padding(.vertical, 18)
+            }
+            .appBackground()
+            .navigationTitle("Quick Details")
+#if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+#endif
+        }
+    }
+
+    private func quickRow(title: String, value: String, systemImage: String) -> some View {
+        CardRow {
+            HStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .font(.title3.weight(.semibold))
+                    .frame(width: 28, height: 28)
+                    .foregroundStyle(.secondary)
+
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+
+                Spacer(minLength: 12)
+
+                Text(value)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.trailing)
+            }
+        }
+    }
+
+    private var formattedGravity: String {
+        guard let gravity = celestialBody.gravity else { return "Not available" }
+        return "\(gravity.formatted(.number.precision(.fractionLength(2)))) m/s^2"
+    }
+
+    private var formattedOrbitPeriod: String {
+        guard let days = celestialBody.orbitalPeriodDays else { return "Not applicable" }
+        if days < 1 {
+            return "\(hours(fromDays: days).formatted(.number.precision(.fractionLength(1)))) hours"
+        }
+        return "\(days.formatted(.number.precision(.fractionLength(1)))) days"
+    }
+
+    private var formattedRotationPeriod: String {
+        guard let hours = celestialBody.rotationPeriodHours else { return "Not available" }
+        let direction = hours < 0 ? " retrograde" : ""
+        return "\(abs(hours).formatted(.number.precision(.fractionLength(1)))) hours\(direction)"
+    }
+
+    private var formattedRotationalSpeed: String {
+        guard let hours = celestialBody.rotationPeriodHours, hours != 0 else { return "Not available" }
+        let circumferenceKm = 2 * Double.pi * celestialBody.radiusKm
+        let speed = circumferenceKm / abs(hours)
+        return "\(speed.formatted(.number.precision(.fractionLength(0)))) km/h"
+    }
+
+    private var formattedAxialTilt: String {
+        formattedDegrees(celestialBody.axialTiltDegrees ?? Double(ExperienceSceneEngine.axialTiltRadians(for: celestialBody)) * 180 / .pi)
+    }
+
+    private func formattedKilometers(_ kilometers: Double) -> String {
+        "\(kilometers.formatted(.number.precision(.fractionLength(0)).grouping(.automatic))) km"
+    }
+
+    private func formattedDegrees(_ degrees: Double) -> String {
+        "\(degrees.formatted(.number.precision(.fractionLength(2)))) deg"
+    }
+
+    private func hours(fromDays days: Double) -> Double {
+        days * 24
     }
 }
 

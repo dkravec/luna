@@ -72,10 +72,16 @@ private extension BodyPreviewSceneContainer {
     }
 
     func configure(_ view: SCNView) {
-        view.scene = BodyPreviewSceneFactory.scene(for: celestialBody)
-        if let coordinator = view.delegate as? BodyPreviewCameraCoordinator {
-            coordinator.update(subjectRadius: BodyPreviewSceneFactory.subjectRadius(for: celestialBody))
+        let coordinator = view.delegate as? BodyPreviewCameraCoordinator
+        if view.scene == nil || coordinator?.currentBodyID != celestialBody.id {
+            view.scene = BodyPreviewSceneFactory.scene(for: celestialBody)
+            coordinator?.attach(
+                body: celestialBody,
+                subjectNode: view.scene?.rootNode.childNode(withName: BodyPreviewSceneFactory.subjectNodeName, recursively: true)
+            )
         }
+
+        coordinator?.update(subjectRadius: BodyPreviewSceneFactory.subjectRadius(for: celestialBody))
     }
 }
 
@@ -83,6 +89,15 @@ private final class BodyPreviewCameraCoordinator: NSObject, SCNSceneRendererDele
     private var minimumOrthographicScale: Double = 1.1
     private var maximumOrthographicScale: Double = 3.0
     private let maximumCameraDistance: Float = 8.0
+    private weak var subjectNode: SCNNode?
+    private var body: CelestialBody?
+    private var rotationAngle: Float = 0
+    private var lastUpdateTime: TimeInterval?
+    private var lastInteractionTime: TimeInterval = -5
+    private var lastCameraPosition: SCNVector3?
+    private var lastCameraEulerAngles: SCNVector3?
+
+    private(set) var currentBodyID: String?
 
     func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
         guard let pointOfView = renderer.pointOfView,
@@ -99,15 +114,72 @@ private final class BodyPreviewCameraCoordinator: NSObject, SCNSceneRendererDele
         if distance > maximumCameraDistance, distance > 0 {
             pointOfView.position = offset.normalized * maximumCameraDistance
         }
+
+        if didCameraMove(pointOfView) {
+            lastInteractionTime = time
+        }
+
+        defer {
+            lastUpdateTime = time
+            lastCameraPosition = pointOfView.position
+            lastCameraEulerAngles = pointOfView.eulerAngles
+        }
+
+        guard let body, let subjectNode else { return }
+        let deltaTime = lastUpdateTime.map { max(0, time - $0) } ?? 0
+
+        if time - lastInteractionTime >= 5 {
+            rotationAngle += Float(deltaTime) * previewRotationSpeed(for: body)
+        }
+
+        subjectNode.eulerAngles = SCNVector3(
+            ExperienceSceneEngine.axialTiltRadians(for: body),
+            rotationAngle,
+            0
+        )
     }
 
     func update(subjectRadius: CGFloat) {
         minimumOrthographicScale = max(0.72, Double(subjectRadius) * 1.35)
         maximumOrthographicScale = max(2.2, Double(subjectRadius) * 3.5)
     }
+
+    func attach(body: CelestialBody, subjectNode: SCNNode?) {
+        self.body = body
+        self.subjectNode = subjectNode
+        currentBodyID = body.id
+        rotationAngle = 0
+        lastUpdateTime = nil
+        lastInteractionTime = -5
+        lastCameraPosition = nil
+        lastCameraEulerAngles = nil
+    }
+
+    private func didCameraMove(_ cameraNode: SCNNode) -> Bool {
+        defer {
+            lastCameraPosition = cameraNode.position
+            lastCameraEulerAngles = cameraNode.eulerAngles
+        }
+
+        guard let lastCameraPosition, let lastCameraEulerAngles else {
+            return false
+        }
+
+        let positionDelta = (cameraNode.position - lastCameraPosition).length
+        let angleDelta = (cameraNode.eulerAngles - lastCameraEulerAngles).length
+        return positionDelta > 0.002 || angleDelta > 0.002
+    }
+
+    private func previewRotationSpeed(for body: CelestialBody) -> Float {
+        let direction: Float = (body.rotationPeriodHours ?? 1) < 0 ? -1 : 1
+        let baseSpeed: Float = body.id == "neptune" ? 0.18 : 0.22
+        return baseSpeed * direction
+    }
 }
 
 private enum BodyPreviewSceneFactory {
+    static let subjectNodeName = "previewSubject"
+
     static func subjectRadius(for body: CelestialBody) -> CGFloat {
         body.type == .star ? 0.95 : 0.82
     }
@@ -118,13 +190,15 @@ private enum BodyPreviewSceneFactory {
         scene.rootNode.addChildNode(ambientLightNode())
         scene.rootNode.addChildNode(keyLightNode())
 
-        let node = previewNode(for: body)
-        scene.rootNode.addChildNode(node)
+        let subjectNode = SCNNode()
+        subjectNode.name = subjectNodeName
+        subjectNode.addChildNode(previewNode(for: body))
 
         if body.id == "saturn" {
-            scene.rootNode.addChildNode(ringNode())
+            subjectNode.addChildNode(ringNode())
         }
 
+        scene.rootNode.addChildNode(subjectNode)
         return scene
     }
 
@@ -268,6 +342,10 @@ private func previewColor(red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CG
 }
 
 private extension SCNVector3 {
+    static func - (lhs: SCNVector3, rhs: SCNVector3) -> SCNVector3 {
+        SCNVector3(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z)
+    }
+
     static func * (lhs: SCNVector3, rhs: Float) -> SCNVector3 {
 #if os(macOS)
         let multiplier = CGFloat(rhs)
