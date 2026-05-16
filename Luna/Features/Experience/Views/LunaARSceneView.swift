@@ -6,7 +6,9 @@ import UIKit
 
 struct LunaARSceneView: UIViewRepresentable {
     let bodies: [CelestialBody]
-    let settings: SolarSystemSceneSettings
+    let settings: ExperienceSceneSettings
+    var content: ExperienceSceneContent = .solarSystem
+    var simulationTimeDays: Double = 0
     let recenterTrigger: Int
 
     func makeCoordinator() -> Coordinator {
@@ -22,6 +24,8 @@ struct LunaARSceneView: UIViewRepresentable {
             view,
             bodies: bodies,
             settings: settings,
+            content: content,
+            simulationTimeDays: simulationTimeDays,
             recenterTrigger: recenterTrigger
         )
         return view
@@ -32,6 +36,8 @@ struct LunaARSceneView: UIViewRepresentable {
             view,
             bodies: bodies,
             settings: settings,
+            content: content,
+            simulationTimeDays: simulationTimeDays,
             recenterTrigger: recenterTrigger
         )
     }
@@ -74,7 +80,9 @@ struct LunaARSceneView: UIViewRepresentable {
         func update(
             _ view: ARView,
             bodies: [CelestialBody],
-            settings: SolarSystemSceneSettings,
+            settings: ExperienceSceneSettings,
+            content: ExperienceSceneContent,
+            simulationTimeDays: Double,
             recenterTrigger: Int
         ) {
             guard recenterTrigger > 0 else {
@@ -98,7 +106,12 @@ struct LunaARSceneView: UIViewRepresentable {
             installedGestures.removeAll()
             anchor.children.removeAll()
 
-            let root = Self.gestureRoot(for: bodies, settings: settings)
+            let root = Self.gestureRoot(
+                for: bodies,
+                settings: settings,
+                content: content,
+                simulationTimeDays: simulationTimeDays
+            )
             anchor.addChild(root)
             installedGestures = view.installGestures([.translation, .rotation, .scale], for: root)
         }
@@ -113,16 +126,26 @@ struct LunaARSceneView: UIViewRepresentable {
             view.scene.addAnchor(anchor)
         }
 
-        private static func gestureRoot(for bodies: [CelestialBody], settings: SolarSystemSceneSettings) -> ModelEntity {
-            let placements = ExperienceSceneLayout.placements(for: bodies, settings: settings)
-            let arPlacements = placements.map { placement -> ARBodyPlacement in
+        private static func gestureRoot(
+            for bodies: [CelestialBody],
+            settings: ExperienceSceneSettings,
+            content: ExperienceSceneContent,
+            simulationTimeDays: Double
+        ) -> ModelEntity {
+            let snapshot = ExperienceSceneEngine.snapshot(
+                for: bodies,
+                settings: settings,
+                content: content,
+                simulationTimeDays: simulationTimeDays
+            )
+            let arPlacements = snapshot.bodies.map { placement -> ARBodyPlacement in
                 ARBodyPlacement(
                     body: placement.body,
-                    displayRadius: max(0.002, placement.displayRadius * 0.11),
+                    displayRadius: max(0.002, placement.displayRadius * 0.095),
                     position: SIMD3<Float>(
-                        placement.position.x * 0.11,
-                        placement.position.y * 0.11,
-                        placement.position.z * 0.11
+                        placement.position.x * 0.095,
+                        placement.position.y * 0.095,
+                        placement.position.z * 0.095
                     )
                 )
             }
@@ -135,6 +158,13 @@ struct LunaARSceneView: UIViewRepresentable {
                 let entity = entity(for: placement)
                 entity.position = placement.position - bounds.center
                 root.addChild(entity)
+            }
+
+            if settings.showOrbits {
+                for orbitPath in snapshot.orbitPaths {
+                    let dots = orbitDots(for: orbitPath, scale: 0.095, center: bounds.center)
+                    root.addChild(dots)
+                }
             }
 
             return root
@@ -172,6 +202,23 @@ struct LunaARSceneView: UIViewRepresentable {
             let mesh = MeshResource.generateSphere(radius: placement.displayRadius)
             let material = material(for: placement.body)
             return ModelEntity(mesh: mesh, materials: [material])
+        }
+
+        private static func orbitDots(for path: ExperienceOrbitPath, scale: Float, center: SIMD3<Float>) -> Entity {
+            let root = Entity()
+            let material = SimpleMaterial(
+                color: UIColor.white.withAlphaComponent(path.bodyId == "moon" ? 0.36 : 0.20),
+                roughness: 0.6,
+                isMetallic: false
+            )
+
+            for point in path.points.enumerated() where point.offset.isMultiple(of: 6) {
+                let dot = ModelEntity(mesh: .generateSphere(radius: path.bodyId == "moon" ? 0.0028 : 0.0021), materials: [material])
+                dot.position = point.element * scale - center
+                root.addChild(dot)
+            }
+
+            return root
         }
 
         private static func material(for body: CelestialBody) -> UnlitMaterial {

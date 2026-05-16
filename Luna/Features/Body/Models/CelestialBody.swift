@@ -16,9 +16,19 @@ struct CelestialBody: Codable, Identifiable, Equatable {
     let imageName: String?
     let textureName: String?
     let modelName: String?
+    let orbit: CelestialOrbit?
     let parentBodyId: String?
     let displayOrder: Int
     let tags: [String]
+}
+
+struct CelestialOrbit: Codable, Equatable {
+    let semiMajorAxisKm: Double
+    let eccentricity: Double
+    let inclinationDegrees: Double
+    let longitudeOfAscendingNodeDegrees: Double
+    let argumentOfPeriapsisDegrees: Double
+    let meanAnomalyAtEpochDegrees: Double
 }
 
 enum CelestialBodyType: String, Codable, CaseIterable, Identifiable {

@@ -39,7 +39,7 @@ final class LunaPersistenceController {
             attribute("id", type: .UUIDAttributeType, optional: false),
             attribute("displayName", type: .stringAttributeType, optional: true),
             attribute("hasCompletedOnboarding", type: .booleanAttributeType, optional: false, defaultValue: false),
-            attribute("preferredScaleModeRaw", type: .stringAttributeType, optional: false, defaultValue: ScaleMode.educational.rawValue),
+            attribute("preferredScaleModeRaw", type: .stringAttributeType, optional: false, defaultValue: DistanceScaleMode.educational.rawValue),
             attribute("distanceCompression", type: .doubleAttributeType, optional: false, defaultValue: 30),
             attribute("planetSizeMultiplier", type: .doubleAttributeType, optional: false, defaultValue: 5),
             attribute("prefersARMode", type: .booleanAttributeType, optional: false, defaultValue: true),
@@ -50,7 +50,21 @@ final class LunaPersistenceController {
             attribute("hapticIntensityRaw", type: .stringAttributeType, optional: false, defaultValue: HapticIntensity.heavy.rawValue)
         ]
 
-        model.entities = [profileEntity]
+        let experienceEntity = NSEntityDescription()
+        experienceEntity.name = "ExperiencePreferencesRecord"
+        experienceEntity.managedObjectClassName = NSStringFromClass(ExperiencePreferencesRecord.self)
+        experienceEntity.properties = [
+            attribute("id", type: .UUIDAttributeType, optional: false),
+            attribute("prefersARMode", type: .booleanAttributeType, optional: false, defaultValue: true),
+            attribute("distanceScaleModeRaw", type: .stringAttributeType, optional: false, defaultValue: DistanceScaleMode.educational.rawValue),
+            attribute("objectScaleModeRaw", type: .stringAttributeType, optional: false, defaultValue: ObjectScaleMode.relative.rawValue),
+            attribute("distanceCompression", type: .doubleAttributeType, optional: false, defaultValue: 30),
+            attribute("orbitPlaybackSpeedRaw", type: .stringAttributeType, optional: false, defaultValue: OrbitPlaybackSpeed.standard.rawValue),
+            attribute("showLabels", type: .booleanAttributeType, optional: false, defaultValue: true),
+            attribute("showOrbits", type: .booleanAttributeType, optional: false, defaultValue: true)
+        ]
+
+        model.entities = [profileEntity, experienceEntity]
         return model
     }
 

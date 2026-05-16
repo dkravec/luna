@@ -15,19 +15,23 @@ struct LunaApp: App {
 
 final class LunaAppState: ObservableObject {
     let userProfileRepository: UserProfileRepository
+    let experiencePreferencesRepository: ExperiencePreferencesRepository
     let celestialBodyRepository: CelestialBodyRepository
 
     @Published var selectedTab: LunaTab = .home
     @Published var appearancePreference: AppAppearancePreference = .system
     @Published private(set) var userProfile: UserProfile
+    @Published private(set) var experiencePreferences: ExperiencePreferences
     @Published private(set) var celestialBodies: [CelestialBody] = []
     @Published private(set) var lastRepositoryError: String?
 
     init(
         userProfileRepository: UserProfileRepository = CoreDataUserProfileRepository(),
+        experiencePreferencesRepository: ExperiencePreferencesRepository = CoreDataExperiencePreferencesRepository(),
         celestialBodyRepository: CelestialBodyRepository = LocalCelestialBodyRepository()
     ) {
         self.userProfileRepository = userProfileRepository
+        self.experiencePreferencesRepository = experiencePreferencesRepository
         self.celestialBodyRepository = celestialBodyRepository
 
         do {
@@ -44,6 +48,13 @@ final class LunaAppState: ObservableObject {
             lastRepositoryError = error.localizedDescription
         }
 
+        do {
+            experiencePreferences = try experiencePreferencesRepository.fetchOrCreatePreferences()
+        } catch {
+            experiencePreferences = .defaults
+            lastRepositoryError = error.localizedDescription
+        }
+
         loadCelestialBodies()
     }
 
@@ -55,33 +66,38 @@ final class LunaAppState: ObservableObject {
     }
 
     func setPrefersARMode(_ prefersARMode: Bool) {
-        userProfile.prefersARMode = prefersARMode
-        saveUserProfile()
+        experiencePreferences.prefersARMode = prefersARMode
+        saveExperiencePreferences()
     }
 
-    func setPreferredScaleMode(_ scaleMode: ScaleMode) {
-        userProfile.preferredScaleMode = scaleMode
-        saveUserProfile()
+    func setDistanceScaleMode(_ scaleMode: DistanceScaleMode) {
+        experiencePreferences.distanceScaleMode = scaleMode
+        saveExperiencePreferences()
     }
 
     func setDistanceCompression(_ distanceCompression: Double) {
-        userProfile.distanceCompression = distanceCompression
-        saveUserProfile()
+        experiencePreferences.distanceCompression = distanceCompression
+        saveExperiencePreferences()
     }
 
-    func setPlanetSizeMultiplier(_ planetSizeMultiplier: Double) {
-        userProfile.planetSizeMultiplier = planetSizeMultiplier
-        saveUserProfile()
+    func setObjectScaleMode(_ objectScaleMode: ObjectScaleMode) {
+        experiencePreferences.objectScaleMode = objectScaleMode
+        saveExperiencePreferences()
+    }
+
+    func setOrbitPlaybackSpeed(_ speed: OrbitPlaybackSpeed) {
+        experiencePreferences.orbitPlaybackSpeed = speed
+        saveExperiencePreferences()
     }
 
     func setShowLabels(_ showLabels: Bool) {
-        userProfile.showLabels = showLabels
-        saveUserProfile()
+        experiencePreferences.showLabels = showLabels
+        saveExperiencePreferences()
     }
 
     func setShowOrbits(_ showOrbits: Bool) {
-        userProfile.showOrbits = showOrbits
-        saveUserProfile()
+        experiencePreferences.showOrbits = showOrbits
+        saveExperiencePreferences()
     }
 
     func setHapticsEnabled(_ isEnabled: Bool) {
@@ -99,16 +115,19 @@ final class LunaAppState: ObservableObject {
     func completeOnboarding(
         displayName: String?,
         prefersARMode: Bool,
-        preferredScaleMode: ScaleMode,
+        distanceScaleMode: DistanceScaleMode,
+        objectScaleMode: ObjectScaleMode,
         distanceCompression: Double
     ) {
         userProfile.displayName = displayName
-        userProfile.prefersARMode = prefersARMode
-        userProfile.preferredScaleMode = preferredScaleMode
-        userProfile.distanceCompression = distanceCompression
         userProfile.hasCompletedOnboarding = true
+        experiencePreferences.prefersARMode = prefersARMode
+        experiencePreferences.distanceScaleMode = distanceScaleMode
+        experiencePreferences.objectScaleMode = objectScaleMode
+        experiencePreferences.distanceCompression = distanceCompression
 
         saveUserProfile()
+        saveExperiencePreferences()
         selectedTab = prefersARMode ? .arExperience : .solarSystem
     }
 
@@ -125,6 +144,7 @@ final class LunaAppState: ObservableObject {
     func resetUserProfile() {
         do {
             userProfile = try userProfileRepository.resetProfile()
+            experiencePreferences = try experiencePreferencesRepository.resetPreferences()
             appearancePreference = userProfile.appearancePreference
             Haptics.configure(isEnabled: userProfile.hapticsEnabled, intensity: userProfile.hapticIntensity)
             selectedTab = .home
@@ -147,6 +167,15 @@ final class LunaAppState: ObservableObject {
     private func saveUserProfile() {
         do {
             try userProfileRepository.save(userProfile)
+            lastRepositoryError = nil
+        } catch {
+            lastRepositoryError = error.localizedDescription
+        }
+    }
+
+    private func saveExperiencePreferences() {
+        do {
+            try experiencePreferencesRepository.save(experiencePreferences)
             lastRepositoryError = nil
         } catch {
             lastRepositoryError = error.localizedDescription

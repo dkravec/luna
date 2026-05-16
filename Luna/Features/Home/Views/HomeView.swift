@@ -67,7 +67,7 @@ struct HomeView: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 MetricTile(
                     title: "Viewing Mode",
-                    value: appState.userProfile.prefersARMode ? "AR First" : "Visual First",
+                    value: appState.experiencePreferences.prefersARMode ? "AR First" : "Visual First",
                     systemImage: "viewfinder"
                 )
                 MetricTile(

@@ -50,7 +50,8 @@ struct OnboardingFlowView: View {
             ViewingModeStepView(prefersARMode: $viewModel.prefersARMode)
         case .scaleMode:
             ScaleModeStepView(
-                preferredScaleMode: $viewModel.preferredScaleMode,
+                distanceScaleMode: $viewModel.distanceScaleMode,
+                objectScaleMode: $viewModel.objectScaleMode,
                 distanceCompression: $viewModel.distanceCompression
             )
         }
@@ -82,7 +83,8 @@ struct OnboardingFlowView: View {
             appState.completeOnboarding(
                 displayName: viewModel.trimmedDisplayName,
                 prefersARMode: viewModel.prefersARMode,
-                preferredScaleMode: viewModel.preferredScaleMode,
+                distanceScaleMode: viewModel.distanceScaleMode,
+                objectScaleMode: viewModel.objectScaleMode,
                 distanceCompression: viewModel.distanceCompression
             )
         } else {
@@ -190,7 +192,8 @@ private struct ProfileStepView: View {
 }
 
 private struct ScaleModeStepView: View {
-    @Binding var preferredScaleMode: ScaleMode
+    @Binding var distanceScaleMode: DistanceScaleMode
+    @Binding var objectScaleMode: ObjectScaleMode
     @Binding var distanceCompression: Double
 
     var body: some View {
@@ -200,10 +203,12 @@ private struct ScaleModeStepView: View {
                 subtitle: "Pick how Luna should balance accurate scale with readable space views."
             )
 
-            ScaleModeOptionsView(
-                preferredScaleMode: $preferredScaleMode,
+            DistanceScaleOptionsView(
+                distanceScaleMode: $distanceScaleMode,
                 distanceCompression: $distanceCompression
             )
+
+            ObjectScaleOptionsView(objectScaleMode: $objectScaleMode)
         }
     }
 }
@@ -240,14 +245,14 @@ struct ViewingModeOptionsView: View {
     }
 }
 
-struct ScaleModeOptionsView: View {
-    @Binding var preferredScaleMode: ScaleMode
+struct DistanceScaleOptionsView: View {
+    @Binding var distanceScaleMode: DistanceScaleMode
     var distanceCompression: Binding<Double>? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.section) {
             VStack(alignment: .leading, spacing: 8) {
-                SectionHeader(title: "Scale Mode")
+                SectionHeader(title: "Distance Scale")
 
                 CardSection {
                     ForEach(Array(scaleOptions.enumerated()), id: \.element.mode) { index, option in
@@ -256,9 +261,9 @@ struct ScaleModeOptionsView: View {
                             subtitle: option.subtitle,
                             systemImage: option.systemImage,
                             value: option.value,
-                            isSelected: preferredScaleMode == option.mode
+                            isSelected: distanceScaleMode == option.mode
                         ) {
-                            preferredScaleMode = option.mode
+                            distanceScaleMode = option.mode
                         }
 
                         if index < scaleOptions.count - 1 {
@@ -268,7 +273,7 @@ struct ScaleModeOptionsView: View {
                 }
             }
 
-            if preferredScaleMode == .compressedDistance, let distanceCompression {
+            if distanceScaleMode == .compressed, let distanceCompression {
                 compressionSection(distanceCompression)
             }
         }
@@ -307,19 +312,19 @@ struct ScaleModeOptionsView: View {
         [
             ScaleOption(
                 mode: .educational,
-                subtitle: "Keeps planet sizes and distances readable together.",
+                subtitle: "Keeps distances equally spaced and readable.",
                 systemImage: "graduationcap",
                 value: "Recommended"
             ),
             ScaleOption(
-                mode: .compressedDistance,
-                subtitle: "Brings bodies closer for room-scale comparison.",
+                mode: .compressed,
+                subtitle: "Preserves distance order while pulling worlds closer.",
                 systemImage: "arrow.left.and.right",
                 value: "Compressed"
             ),
             ScaleOption(
-                mode: .trueDistance,
-                subtitle: "Uses accurate distance intent, but it may be impractical in AR.",
+                mode: .trueScale,
+                subtitle: "Uses the closest practical accurate distance mapping.",
                 systemImage: "exclamationmark.triangle",
                 value: "Huge"
             )
@@ -328,10 +333,49 @@ struct ScaleModeOptionsView: View {
 }
 
 struct ScaleOption {
-    let mode: ScaleMode
+    let mode: DistanceScaleMode
     let subtitle: String
     let systemImage: String
     let value: String
+}
+
+struct ObjectScaleOptionsView: View {
+    @Binding var objectScaleMode: ObjectScaleMode
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Object Scale")
+
+            CardSection {
+                ForEach(Array(ObjectScaleMode.allCases.enumerated()), id: \.element.id) { index, mode in
+                    SelectionRow(
+                        title: mode.title,
+                        subtitle: mode.subtitle,
+                        systemImage: systemImage(for: mode),
+                        value: mode == .relative ? "Recommended" : nil,
+                        isSelected: objectScaleMode == mode
+                    ) {
+                        objectScaleMode = mode
+                    }
+
+                    if index < ObjectScaleMode.allCases.count - 1 {
+                        CardDivider(leadingInset: 56)
+                    }
+                }
+            }
+        }
+    }
+
+    private func systemImage(for mode: ObjectScaleMode) -> String {
+        switch mode {
+        case .uniform:
+            return "circle.grid.2x2"
+        case .relative:
+            return "scale.3d"
+        case .trueScale:
+            return "ruler"
+        }
+    }
 }
 
 struct SelectionRow: View {

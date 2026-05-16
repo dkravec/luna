@@ -13,10 +13,20 @@ private typealias PlatformColor = NSColor
 
 struct SolarSystemVisualSceneView: View {
     let bodies: [CelestialBody]
-    let settings: SolarSystemSceneSettings
+    let settings: ExperienceSceneSettings
+    var content: ExperienceSceneContent = .solarSystem
+    var simulationTimeDays: Double = 0
 
     var body: some View {
-        VisualSceneContainer(bodies: bodies, settings: settings)
+        VisualSceneContainer(
+            snapshot: ExperienceSceneEngine.snapshot(
+                for: bodies,
+                settings: settings,
+                content: content,
+                simulationTimeDays: simulationTimeDays
+            ),
+            showsLabels: settings.showLabels
+        )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
             .overlay(alignment: .bottomLeading) {
@@ -25,7 +35,7 @@ struct SolarSystemVisualSceneView: View {
     }
 
     private var sceneCaption: some View {
-        Text(settings.scaleMode == .compressedDistance ? "Compressed distance view" : settings.scaleMode.title)
+        Text(settings.distanceScaleMode == .compressed ? "Compressed distance view" : settings.distanceScaleMode.title)
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.white.opacity(0.90))
             .padding(.horizontal, 12)
@@ -37,8 +47,8 @@ struct SolarSystemVisualSceneView: View {
 
 #if os(iOS)
 private struct VisualSceneContainer: UIViewRepresentable {
-    let bodies: [CelestialBody]
-    let settings: SolarSystemSceneSettings
+    let snapshot: ExperienceSceneSnapshot
+    let showsLabels: Bool
 
     func makeCoordinator() -> VisualSceneCameraCoordinator {
         VisualSceneCameraCoordinator()
@@ -54,8 +64,8 @@ private struct VisualSceneContainer: UIViewRepresentable {
 }
 #elseif os(macOS)
 private struct VisualSceneContainer: NSViewRepresentable {
-    let bodies: [CelestialBody]
-    let settings: SolarSystemSceneSettings
+    let snapshot: ExperienceSceneSnapshot
+    let showsLabels: Bool
 
     func makeCoordinator() -> VisualSceneCameraCoordinator {
         VisualSceneCameraCoordinator()
@@ -83,12 +93,11 @@ private extension VisualSceneContainer {
     }
 
     func configure(_ view: SCNView) {
-        let placements = ExperienceSceneLayout.placements(for: bodies, settings: settings)
-        let cameraLimit = SceneCameraLimit(placements: placements)
+        let cameraLimit = SceneCameraLimit(snapshot: snapshot)
 
         view.scene = SolarSystemSceneFactory.scene(
-            for: placements,
-            showsLabels: settings.showLabels
+            for: snapshot,
+            showsLabels: showsLabels
         )
         view.defaultCameraController.target = cameraLimit.subjectCenter
 
@@ -124,10 +133,10 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 }
 
 private enum SolarSystemSceneFactory {
-    static func scene(for placements: [SceneBodyPlacement], showsLabels: Bool) -> SCNScene {
+    static func scene(for snapshot: ExperienceSceneSnapshot, showsLabels: Bool) -> SCNScene {
         let scene = SCNScene()
 
-        scene.rootNode.addChildNode(cameraNode(for: placements))
+        scene.rootNode.addChildNode(cameraNode(for: snapshot))
         scene.rootNode.addChildNode(ambientLightNode())
         scene.rootNode.addChildNode(keyLightNode())
 
@@ -135,11 +144,11 @@ private enum SolarSystemSceneFactory {
         root.eulerAngles.x = -.pi / 10
         scene.rootNode.addChildNode(root)
 
-        for placement in placements {
-            if let orbitRadius = placement.orbitRadius, orbitRadius > 0.2 {
-                root.addChildNode(orbitNode(radius: CGFloat(orbitRadius)))
-            }
+        for orbitPath in snapshot.orbitPaths {
+            root.addChildNode(orbitNode(path: orbitPath))
+        }
 
+        for placement in snapshot.bodies {
             let bodyNode = node(for: placement)
             root.addChildNode(bodyNode)
 
@@ -151,7 +160,7 @@ private enum SolarSystemSceneFactory {
         return scene
     }
 
-    private static func node(for placement: SceneBodyPlacement) -> SCNNode {
+    private static func node(for placement: ExperienceSceneBody) -> SCNNode {
         let node: SCNNode
 
         if placement.body.type == .satellite {
@@ -251,15 +260,15 @@ private enum SolarSystemSceneFactory {
 
     private static func labelNode(for body: CelestialBody, radius: Float) -> SCNNode {
         let text = SCNText(string: body.name, extrusionDepth: 0.006)
-        text.font = .systemFont(ofSize: 1.0, weight: .bold)
+        text.font = .systemFont(ofSize: 1.35, weight: .bold)
         text.flatness = 0.02
         text.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.92)
         text.firstMaterial?.emission.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.18)
         text.alignmentMode = CATextLayerAlignmentMode.center.rawValue
 
         let node = SCNNode(geometry: text)
-        node.scale = SCNVector3(0.32, 0.32, 0.32)
-        node.position = SCNVector3(0, radius + max(0.85, radius * 0.55), 0)
+        node.scale = SCNVector3(0.42, 0.42, 0.42)
+        node.position = SCNVector3(0, radius + max(0.54, radius * 0.55), 0)
         node.constraints = [SCNBillboardConstraint()]
 
         let (minVector, maxVector) = text.boundingBox
@@ -272,19 +281,28 @@ private enum SolarSystemSceneFactory {
         return node
     }
 
-    private static func orbitNode(radius: CGFloat) -> SCNNode {
-        let orbit = SCNTorus(ringRadius: radius, pipeRadius: 0.003)
-        orbit.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.14)
-        orbit.firstMaterial?.lightingModel = .constant
-        let node = SCNNode(geometry: orbit)
-        node.eulerAngles.x = .pi / 2
-        return node
+    private static func orbitNode(path: ExperienceOrbitPath) -> SCNNode {
+        let vertices = path.points.map { SCNVector3($0.x, $0.y, $0.z) }
+        let source = SCNGeometrySource(vertices: vertices)
+        var indices: [Int32] = []
+
+        for index in vertices.indices {
+            indices.append(Int32(index))
+            indices.append(Int32((index + 1) % vertices.count))
+        }
+
+        let element = SCNGeometryElement(indices: indices, primitiveType: .line)
+        let geometry = SCNGeometry(sources: [source], elements: [element])
+        geometry.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: path.bodyId == "moon" ? 0.22 : 0.13)
+        geometry.firstMaterial?.emission.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.10)
+        geometry.firstMaterial?.lightingModel = .constant
+        return SCNNode(geometry: geometry)
     }
 
-    private static func cameraNode(for placements: [SceneBodyPlacement]) -> SCNNode {
+    private static func cameraNode(for snapshot: ExperienceSceneSnapshot) -> SCNNode {
         let camera = SCNCamera()
         camera.usesOrthographicProjection = true
-        camera.orthographicScale = max(10, Double((placements.map { abs($0.position.x) }.max() ?? 8) + 3))
+        camera.orthographicScale = max(7, Double(snapshot.bounds.span + 2.6))
         camera.zFar = 100
 
         let node = SCNNode()
@@ -329,7 +347,8 @@ private struct SceneCameraLimit {
     let maximumOrthographicScale: Double
     let maximumCameraDistance: Float
 
-    init(placements: [SceneBodyPlacement]) {
+    init(snapshot: ExperienceSceneSnapshot) {
+        let placements = snapshot.bodies
         guard !placements.isEmpty else {
             self = .default
             return
@@ -351,7 +370,7 @@ private struct SceneCameraLimit {
         let subjectRadius = max(4, sceneSpan / 2 + 2)
         let largestBodyRadius = placements.map(\.displayRadius).max() ?? 1
         let initialCameraDistance = (SCNVector3(6, 9, 22) - center).length
-        let initialOrthographicScale = max(10, Double((placements.map { abs($0.position.x) }.max() ?? 8) + 3))
+        let initialOrthographicScale = max(7, Double(snapshot.bounds.span + 2.6))
 
         subjectCenter = center
         minimumOrthographicScale = max(0.65, Double(largestBodyRadius) * 2.25)

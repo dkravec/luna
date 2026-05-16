@@ -52,6 +52,14 @@ struct BodyDetailView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+
+                NavigationLink {
+                    ObjectExperienceView(celestialBody: celestialBody)
+                } label: {
+                    Label("View in AR", systemImage: "arkit")
+                        .frame(maxWidth: .infinity)
+                }
+                .primaryActionButton()
             }
         }
     }

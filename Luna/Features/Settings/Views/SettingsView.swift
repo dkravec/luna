@@ -29,7 +29,7 @@ struct SettingsView: View {
                 NavigationLink {
                     SettingsViewingModeView(
                         prefersARMode: Binding(
-                            get: { appState.userProfile.prefersARMode },
+                            get: { appState.experiencePreferences.prefersARMode },
                             set: { appState.setPrefersARMode($0) }
                         )
                     )
@@ -52,12 +52,16 @@ struct SettingsView: View {
 
                 NavigationLink {
                     SettingsScaleModeView(
-                        preferredScaleMode: Binding(
-                            get: { appState.userProfile.preferredScaleMode },
-                            set: { appState.setPreferredScaleMode($0) }
+                        distanceScaleMode: Binding(
+                            get: { appState.experiencePreferences.distanceScaleMode },
+                            set: { appState.setDistanceScaleMode($0) }
+                        ),
+                        objectScaleMode: Binding(
+                            get: { appState.experiencePreferences.objectScaleMode },
+                            set: { appState.setObjectScaleMode($0) }
                         ),
                         distanceCompression: Binding(
-                            get: { appState.userProfile.distanceCompression },
+                            get: { appState.experiencePreferences.distanceCompression },
                             set: { appState.setDistanceCompression($0) }
                         )
                     )
@@ -68,7 +72,7 @@ struct SettingsView: View {
                             title: "Scaling",
                             subtitle: currentScaleModeSubtitle,
                             systemImage: "scale.3d",
-                            value: appState.userProfile.preferredScaleMode.title,
+                            value: appState.experiencePreferences.distanceScaleMode.title,
                             showsChevron: true
                         )
                     }
@@ -81,7 +85,7 @@ struct SettingsView: View {
                 CardRow {
                     Toggle(
                         isOn: Binding(
-                            get: { appState.userProfile.showLabels },
+                            get: { appState.experiencePreferences.showLabels },
                             set: { setShowLabels($0) }
                         )
                     ) {
@@ -98,7 +102,7 @@ struct SettingsView: View {
                 CardRow {
                     Toggle(
                         isOn: Binding(
-                            get: { appState.userProfile.showOrbits },
+                            get: { appState.experiencePreferences.showOrbits },
                             set: { setShowOrbits($0) }
                         )
                     ) {
@@ -294,25 +298,23 @@ struct SettingsView: View {
     }
 
     private var currentViewModeTitle: String {
-        appState.userProfile.prefersARMode ? "AR First" : "Visual First"
+        appState.experiencePreferences.prefersARMode ? "AR First" : "Visual First"
     }
 
     private var currentViewModeSubtitle: String {
-        appState.userProfile.prefersARMode
+        appState.experiencePreferences.prefersARMode
             ? "Starts space views with AR when available"
             : "Starts with the non-AR visual mode"
     }
 
     private var currentScaleModeSubtitle: String {
-        switch appState.userProfile.preferredScaleMode {
+        switch appState.experiencePreferences.distanceScaleMode {
         case .educational:
-            return "Readable sizes and distances together"
-        case .compressedDistance:
-            return "Compressed to \(Int(appState.userProfile.distanceCompression.rounded()))x for comparison"
-        case .trueDistance:
+            return "Equal readable distances, \(appState.experiencePreferences.objectScaleMode.title.lowercased()) object scale"
+        case .compressed:
+            return "Compressed to \(Int(appState.experiencePreferences.distanceCompression.rounded()))x, \(appState.experiencePreferences.objectScaleMode.title.lowercased()) objects"
+        case .trueScale:
             return "Accurate intent, impractical at room scale"
-        case .custom:
-            return "Uses your custom scale controls"
         }
     }
 }
@@ -337,7 +339,8 @@ private struct SettingsViewingModeView: View {
 }
 
 private struct SettingsScaleModeView: View {
-    @Binding var preferredScaleMode: ScaleMode
+    @Binding var distanceScaleMode: DistanceScaleMode
+    @Binding var objectScaleMode: ObjectScaleMode
     @Binding var distanceCompression: Double
 
     var body: some View {
@@ -348,10 +351,12 @@ private struct SettingsScaleModeView: View {
                     subtitle: "Pick how Luna should balance accurate scale with readable space views."
                 )
 
-                ScaleModeOptionsView(
-                    preferredScaleMode: $preferredScaleMode,
+                DistanceScaleOptionsView(
+                    distanceScaleMode: $distanceScaleMode,
                     distanceCompression: $distanceCompression
                 )
+
+                ObjectScaleOptionsView(objectScaleMode: $objectScaleMode)
             }
             .screenContentPadding()
         }

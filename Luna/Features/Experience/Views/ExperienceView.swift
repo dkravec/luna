@@ -11,6 +11,9 @@ struct ExperienceView: View {
     @State private var isControlsPresented = false
     @State private var isSceneReady = false
     @State private var recenterTrigger = 0
+    @State private var isOrbitPlaybackEnabled = false
+    @State private var playbackStartDate = Date()
+    @State private var pausedSimulationDays: Double = 0
 
     var body: some View {
         ZStack {
@@ -57,23 +60,42 @@ struct ExperienceView: View {
             )
             .padding()
         } else {
-#if os(iOS)
-            if isAREnabled, canUseAR {
-                LunaARSceneView(
-                    bodies: appState.celestialBodies,
-                    settings: settings,
-                    recenterTrigger: recenterTrigger
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                SolarSystemVisualSceneView(bodies: appState.celestialBodies, settings: settings)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            TimelineView(.animation) { timeline in
+                sceneContent(simulationTimeDays: simulationTimeDays(at: timeline.date))
             }
-#else
-            SolarSystemVisualSceneView(bodies: appState.celestialBodies, settings: settings)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-#endif
         }
+    }
+
+    @ViewBuilder
+    private func sceneContent(simulationTimeDays: Double) -> some View {
+#if os(iOS)
+        if isAREnabled, canUseAR {
+            LunaARSceneView(
+                bodies: appState.celestialBodies,
+                settings: settings,
+                content: .solarSystem,
+                simulationTimeDays: simulationTimeDays,
+                recenterTrigger: recenterTrigger
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            SolarSystemVisualSceneView(
+                bodies: appState.celestialBodies,
+                settings: settings,
+                content: .solarSystem,
+                simulationTimeDays: simulationTimeDays
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+#else
+        SolarSystemVisualSceneView(
+            bodies: appState.celestialBodies,
+            settings: settings,
+            content: .solarSystem,
+            simulationTimeDays: simulationTimeDays
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+#endif
     }
 
     private var topBar: some View {
@@ -114,6 +136,21 @@ struct ExperienceView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Show experience controls")
+
+                Button {
+                    toggleOrbitPlayback()
+                } label: {
+                    Image(systemName: isOrbitPlaybackEnabled ? "pause.fill" : "play.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .frame(width: 46, height: 46)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .overlay {
+                            Circle()
+                                .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isOrbitPlaybackEnabled ? "Pause orbits" : "Play orbits")
             }
         }
     }
@@ -215,11 +252,12 @@ struct ExperienceView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Spacing.section) {
                     viewModeSection
-                    ScaleModeOptionsView(
-                        preferredScaleMode: preferredScaleModeBinding,
+                    DistanceScaleOptionsView(
+                        distanceScaleMode: distanceScaleModeBinding,
                         distanceCompression: distanceCompressionBinding
                     )
-                    PlanetSizeOptionsView(planetSizeMultiplier: planetSizeMultiplierBinding)
+                    ObjectScaleOptionsView(objectScaleMode: objectScaleModeBinding)
+                    orbitPlaybackSection
                     sceneOptionsSection
                 }
                 .padding(.horizontal, Spacing.screenHorizontal)
@@ -279,7 +317,7 @@ struct ExperienceView: View {
                 CardRow {
                     Toggle(
                         isOn: Binding(
-                            get: { appState.userProfile.showLabels },
+                            get: { appState.experiencePreferences.showLabels },
                             set: { setShowLabels($0) }
                         )
                     ) {
@@ -296,7 +334,7 @@ struct ExperienceView: View {
                 CardRow {
                     Toggle(
                         isOn: Binding(
-                            get: { appState.userProfile.showOrbits },
+                            get: { appState.experiencePreferences.showOrbits },
                             set: { setShowOrbits($0) }
                         )
                     ) {
@@ -311,14 +349,34 @@ struct ExperienceView: View {
         }
     }
 
-    private var settings: SolarSystemSceneSettings {
-        SolarSystemSceneSettings(
+    private var orbitPlaybackSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Orbit Playback")
+
+            CardSection {
+                ForEach(Array(OrbitPlaybackSpeed.allCases.enumerated()), id: \.element.id) { index, speed in
+                    SelectionRow(
+                        title: speed.title,
+                        subtitle: "\(Int(speed.daysPerSecond)) simulated days per second.",
+                        systemImage: "play.circle",
+                        value: speed == .standard ? "Default" : nil,
+                        isSelected: appState.experiencePreferences.orbitPlaybackSpeed == speed
+                    ) {
+                        appState.setOrbitPlaybackSpeed(speed)
+                    }
+
+                    if index < OrbitPlaybackSpeed.allCases.count - 1 {
+                        CardDivider(leadingInset: 56)
+                    }
+                }
+            }
+        }
+    }
+
+    private var settings: ExperienceSceneSettings {
+        ExperienceSceneSettings(
             isAREnabled: isAREnabled,
-            scaleMode: appState.userProfile.preferredScaleMode,
-            distanceCompression: appState.userProfile.distanceCompression,
-            planetSizeMultiplier: appState.userProfile.planetSizeMultiplier,
-            showLabels: appState.userProfile.showLabels,
-            showOrbits: appState.userProfile.showOrbits
+            preferences: appState.experiencePreferences
         )
     }
 
@@ -355,7 +413,7 @@ struct ExperienceView: View {
     private func initializePreferredModeIfNeeded() {
         guard !hasInitializedMode else { return }
 
-        isAREnabled = appState.userProfile.prefersARMode && canUseAR
+        isAREnabled = appState.experiencePreferences.prefersARMode && canUseAR
         hasInitializedMode = true
     }
 
@@ -376,6 +434,22 @@ struct ExperienceView: View {
         appState.setPrefersARMode(isAREnabled)
     }
 
+    private func toggleOrbitPlayback() {
+        Haptics.selection()
+        if isOrbitPlaybackEnabled {
+            pausedSimulationDays = simulationTimeDays(at: Date())
+            isOrbitPlaybackEnabled = false
+        } else {
+            playbackStartDate = Date()
+            isOrbitPlaybackEnabled = true
+        }
+    }
+
+    private func simulationTimeDays(at date: Date) -> Double {
+        guard isOrbitPlaybackEnabled else { return pausedSimulationDays }
+        return pausedSimulationDays + date.timeIntervalSince(playbackStartDate) * appState.experiencePreferences.orbitPlaybackSpeed.daysPerSecond
+    }
+
     private func placeARScene() {
         Haptics.selection()
         recenterTrigger += 1
@@ -391,24 +465,24 @@ struct ExperienceView: View {
         appState.setShowOrbits(showOrbits)
     }
 
-    private var preferredScaleModeBinding: Binding<ScaleMode> {
+    private var distanceScaleModeBinding: Binding<DistanceScaleMode> {
         Binding(
-            get: { appState.userProfile.preferredScaleMode },
-            set: { appState.setPreferredScaleMode($0) }
+            get: { appState.experiencePreferences.distanceScaleMode },
+            set: { appState.setDistanceScaleMode($0) }
         )
     }
 
     private var distanceCompressionBinding: Binding<Double> {
         Binding(
-            get: { appState.userProfile.distanceCompression },
+            get: { appState.experiencePreferences.distanceCompression },
             set: { appState.setDistanceCompression($0) }
         )
     }
 
-    private var planetSizeMultiplierBinding: Binding<Double> {
+    private var objectScaleModeBinding: Binding<ObjectScaleMode> {
         Binding(
-            get: { appState.userProfile.planetSizeMultiplier },
-            set: { appState.setPlanetSizeMultiplier($0) }
+            get: { appState.experiencePreferences.objectScaleMode },
+            set: { appState.setObjectScaleMode($0) }
         )
     }
 }
@@ -449,56 +523,5 @@ private extension View {
         self
             .frame(minWidth: 390, minHeight: 560)
 #endif
-    }
-}
-
-struct PlanetSizeOptionsView: View {
-    @Binding var planetSizeMultiplier: Double
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Planet Size")
-
-            CardSection {
-                ForEach(Array(PlanetSizeMultiplier.allCases.enumerated()), id: \.element.id) { index, option in
-                    SelectionRow(
-                        title: option.title,
-                        subtitle: subtitle(for: option),
-                        systemImage: "plus.magnifyingglass",
-                        value: value(for: option),
-                        isSelected: isSelected(option)
-                    ) {
-                        planetSizeMultiplier = option.rawValue
-                    }
-
-                    if index < PlanetSizeMultiplier.allCases.count - 1 {
-                        CardDivider(leadingInset: 56)
-                    }
-                }
-            }
-        }
-    }
-
-    private func isSelected(_ option: PlanetSizeMultiplier) -> Bool {
-        abs(planetSizeMultiplier - option.rawValue) < 0.01
-    }
-
-    private func subtitle(for option: PlanetSizeMultiplier) -> String {
-        switch option {
-        case .one:
-            return "Closer to the real relative sizes of the planets."
-        case .two:
-            return "A small readability boost with restrained scale."
-        case .five:
-            return "Default readable scale for AR and visual mode."
-        case .ten:
-            return "Strong enlargement for room-scale viewing."
-        case .twenty:
-            return "Maximum enlargement for demos and comparison."
-        }
-    }
-
-    private func value(for option: PlanetSizeMultiplier) -> String? {
-        option == .five ? "Default" : nil
     }
 }
