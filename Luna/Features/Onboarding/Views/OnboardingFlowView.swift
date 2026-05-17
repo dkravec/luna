@@ -324,7 +324,7 @@ struct DistanceScaleOptionsView: View {
             ),
             ScaleOption(
                 mode: .trueScale,
-                subtitle: "Uses the closest practical accurate distance mapping.",
+                subtitle: "Uses real distance ratios; objects may be very far apart.",
                 systemImage: "exclamationmark.triangle",
                 value: "Huge"
             )

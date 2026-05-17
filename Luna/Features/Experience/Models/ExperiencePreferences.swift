@@ -86,7 +86,7 @@ enum DistanceScaleMode: String, CaseIterable, Codable, Identifiable {
         case .compressed:
             return "Keeps relative distance order while pulling bodies closer together."
         case .trueScale:
-            return "Uses the closest practical accurate distance mapping."
+            return "Uses real distance ratios; objects may be very far apart."
         }
     }
 
@@ -127,7 +127,7 @@ enum ObjectScaleMode: String, CaseIterable, Codable, Identifiable {
         case .relative:
             return "Shows size differences while keeping small objects visible."
         case .trueScale:
-            return "Preserves the strongest practical real-radius differences."
+            return "Uses real radius ratios with a tiny visibility floor."
         }
     }
 

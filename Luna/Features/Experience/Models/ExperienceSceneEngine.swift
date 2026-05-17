@@ -77,6 +77,10 @@ protocol ExperienceSceneRenderer {
 }
 
 enum ExperienceSceneEngine {
+    private static let trueDistanceKilometersPerSceneUnit: Double = 316_553_521
+    private static let trueRadiusKilometersPerSceneUnit: Double = 129_465
+    private static let trueRadiusVisualFloor: Float = 0.004
+
     static func snapshot(
         for bodies: [CelestialBody],
         settings: ExperienceSceneSettings,
@@ -173,6 +177,15 @@ enum ExperienceSceneEngine {
         let distance = sunDistance(for: body, index: index, maxSunDistance: maxSunDistance, settings: settings)
         let angle = orbitalAngle(for: body, simulationTimeDays: simulationTimeDays)
 
+        if settings.distanceScaleMode == .trueScale {
+            return orbitOffset(
+                for: body,
+                radius: distance,
+                angle: angle,
+                isTrueScale: true
+            )
+        }
+
         return SIMD3<Float>(
             cos(angle) * distance,
             orbitYOffset(for: body),
@@ -195,8 +208,7 @@ enum ExperienceSceneEngine {
             let range = max(4.2, 10.4 - compression * 0.045)
             return 0.9 + pow(normalized, 0.44) * range
         case .trueScale:
-            let normalized = Float(normalizedSunDistance(for: body, maxSunDistance: maxSunDistance))
-            return 1.0 + pow(normalized, 0.82) * 13.2
+            return trueDistance(for: body, fallbackDistance: body.averageDistanceFromSunKm)
         }
     }
 
@@ -215,13 +227,23 @@ enum ExperienceSceneEngine {
             case .compressed:
                 radius = 0.54
             case .trueScale:
-                radius = 0.72
+                radius = trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm)
             }
         } else {
-            radius = 0.42
+            switch settings.distanceScaleMode {
+            case .trueScale:
+                radius = trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm)
+            default:
+                radius = 0.42
+            }
         }
 
-        return SIMD3<Float>(cos(angle) * radius, 0.06, sin(angle) * radius)
+        return orbitOffset(
+            for: body,
+            radius: radius,
+            angle: angle,
+            isTrueScale: settings.distanceScaleMode == .trueScale
+        )
     }
 
     private static func displayRadius(
@@ -261,13 +283,10 @@ enum ExperienceSceneEngine {
             }
         case .trueScale:
             switch body.type {
-            case .star:
-                return 0.58
-            case .satellite:
-                return 0.045
             default:
-                let normalized = Float(max(body.radiusKm, 1) / 69_911)
-                return min(0.54, max(0.045, pow(normalized, 0.74) * 0.54))
+                // Interaction still needs a tiny renderable target, but true-size ratios are
+                // otherwise a single fixed kilometer-to-scene-unit conversion.
+                return max(trueRadiusVisualFloor, Float(body.radiusKm / trueRadiusKilometersPerSceneUnit))
             }
         }
     }
@@ -326,13 +345,14 @@ enum ExperienceSceneEngine {
 
         let eccentricity = Float(body.orbit?.eccentricity ?? 0)
         let inclination = Float((body.orbit?.inclinationDegrees ?? 0) * .pi / 180)
+        let isTrueScale = settings.distanceScaleMode == .trueScale
 
         return (0..<128).map { index in
             let angle = Float(index) / 128 * Float.pi * 2
             let semiMinor = radius * sqrt(max(0.1, 1 - eccentricity * eccentricity))
             let x = cos(angle) * radius
             let z = sin(angle) * semiMinor
-            let y = z * sin(inclination) * 0.18
+            let y = z * sin(inclination) * (isTrueScale ? 1 : 0.18)
             return parentPosition + SIMD3<Float>(x, y, z * cos(inclination))
         }
     }
@@ -367,6 +387,26 @@ enum ExperienceSceneEngine {
 
     private static func orbitYOffset(for body: CelestialBody) -> Float {
         Float((body.orbit?.inclinationDegrees ?? 0) / 180) * 0.10
+    }
+
+    private static func orbitOffset(
+        for body: CelestialBody,
+        radius: Float,
+        angle: Float,
+        isTrueScale: Bool
+    ) -> SIMD3<Float> {
+        let eccentricity = Float(body.orbit?.eccentricity ?? 0)
+        let inclination = Float((body.orbit?.inclinationDegrees ?? 0) * .pi / 180)
+        let semiMinor = radius * sqrt(max(0.1, 1 - eccentricity * eccentricity))
+        let x = cos(angle) * radius
+        let z = sin(angle) * semiMinor
+        let y = z * sin(inclination) * (isTrueScale ? 1 : 0.18)
+        return SIMD3<Float>(x, y, z * cos(inclination))
+    }
+
+    private static func trueDistance(for body: CelestialBody, fallbackDistance: Double?) -> Float {
+        let distance = body.orbit?.semiMajorAxisKm ?? fallbackDistance ?? 0
+        return Float(max(distance, 0) / trueDistanceKilometersPerSceneUnit)
     }
 
     private static func normalizedSunDistance(for body: CelestialBody, maxSunDistance: Double) -> Double {

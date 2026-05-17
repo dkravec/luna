@@ -56,6 +56,7 @@
 		7A6B092924B1000000000000 /* NASAImageOfTheDayRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B092824B1000000000000 /* NASAImageOfTheDayRepository.swift */; };
 		7A6B091124B0000000000000 /* LunaImageOfTheDayWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B091024B0000000000000 /* LunaImageOfTheDayWidget.swift */; };
 		7A6B091424B0000000000000 /* LunaWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 7A6B091324B0000000000000 /* LunaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7A6B0A0224C0000000000000 /* ExperienceSceneEngineScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,6 +66,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 7A6B091A24B0000000000000;
 			remoteInfo = LunaWidget;
+		};
+		7A6B0A0C24C0000000000000 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7A6B028324A3156800535EA4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7A6B028E24A3156B00535EA4;
+			remoteInfo = Luna;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -138,6 +146,8 @@
 		7A6B091224B0000000000000 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7A6B092A24B1000000000000 /* LunaWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LunaWidget.entitlements; sourceTree = "<group>"; };
 		7A6B091324B0000000000000 /* LunaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LunaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceSceneEngineScaleTests.swift; sourceTree = "<group>"; };
+		7A6B0A0624C0000000000000 /* LunaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LunaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -155,6 +165,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7A6B0A0424C0000000000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -163,6 +180,7 @@
 			children = (
 				7A6B028724A3156800535EA4 /* Luna */,
 				7A6B091524B0000000000000 /* LunaWidget */,
+				7A6B0A0024C0000000000000 /* LunaTests */,
 				7A6B029124A3156B00535EA4 /* iOS */,
 				7A6B029824A3156B00535EA4 /* macOS */,
 				7A6B029024A3156B00535EA4 /* Products */,
@@ -186,8 +204,17 @@
 			children = (
 				7A6B028F24A3156B00535EA4 /* Luna.app */,
 				7A6B091324B0000000000000 /* LunaWidget.appex */,
+				7A6B0A0624C0000000000000 /* LunaTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		7A6B0A0024C0000000000000 /* LunaTests */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */,
+			);
+			path = LunaTests;
 			sourceTree = "<group>";
 		};
 		7A6B029124A3156B00535EA4 /* iOS */ = {
@@ -658,6 +685,24 @@
 			productReference = 7A6B091324B0000000000000 /* LunaWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		7A6B0A0524C0000000000000 /* LunaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A6B0A0924C0000000000000 /* Build configuration list for PBXNativeTarget "LunaTests" */;
+			buildPhases = (
+				7A6B0A0324C0000000000000 /* Sources */,
+				7A6B0A0424C0000000000000 /* Frameworks */,
+				7A6B0A0824C0000000000000 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7A6B0A0D24C0000000000000 /* PBXTargetDependency */,
+			);
+			name = LunaTests;
+			productName = LunaTests;
+			productReference = 7A6B0A0624C0000000000000 /* LunaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -673,6 +718,10 @@
 					};
 					7A6B091A24B0000000000000 = {
 						CreatedOnToolsVersion = 26.0;
+					};
+					7A6B0A0524C0000000000000 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = 7A6B028E24A3156B00535EA4;
 					};
 				};
 			};
@@ -691,6 +740,7 @@
 			targets = (
 				7A6B028E24A3156B00535EA4 /* Luna */,
 				7A6B091A24B0000000000000 /* LunaWidget */,
+				7A6B0A0524C0000000000000 /* LunaTests */,
 			);
 		};
 /* End PBXProject section */
@@ -712,6 +762,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		7A6B091E24B0000000000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A6B0A0824C0000000000000 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -775,6 +832,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7A6B0A0324C0000000000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A6B0A0224C0000000000000 /* ExperienceSceneEngineScaleTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -782,6 +847,11 @@
 			isa = PBXTargetDependency;
 			target = 7A6B091A24B0000000000000 /* LunaWidget */;
 			targetProxy = 7A6B092324B0000000000000 /* PBXContainerItemProxy */;
+		};
+		7A6B0A0D24C0000000000000 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7A6B028E24A3156B00535EA4 /* Luna */;
+			targetProxy = 7A6B0A0C24C0000000000000 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1042,6 +1112,52 @@
 			};
 			name = Release;
 		};
+		7A6B0A0A24C0000000000000 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.LunaTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Luna.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Luna";
+			};
+			name = Debug;
+		};
+		7A6B0A0B24C0000000000000 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.LunaTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Luna.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Luna";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1068,6 +1184,15 @@
 			buildConfigurations = (
 				7A6B091824B0000000000000 /* Debug */,
 				7A6B091924B0000000000000 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7A6B0A0924C0000000000000 /* Build configuration list for PBXNativeTarget "LunaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A6B0A0A24C0000000000000 /* Debug */,
+				7A6B0A0B24C0000000000000 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
