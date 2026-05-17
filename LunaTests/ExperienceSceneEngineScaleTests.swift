@@ -25,23 +25,6 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         )
     }
 
-    func testTrueDistancePreservesMoonDistanceRatio() throws {
-        let snapshot = ExperienceSceneEngine.snapshot(
-            for: Self.bodies,
-            settings: settings(distance: .trueScale, object: .relative)
-        )
-
-        let earth = try body("earth", in: snapshot)
-        let moon = try body("moon", in: snapshot)
-        let moonOffset = moon.position - earth.position
-
-        XCTAssertEqual(
-            Double(length(moonOffset)) / Double(length(earth.position)),
-            sourceDistanceRatio("moon", "earth"),
-            accuracy: 0.01
-        )
-    }
-
     func testTrueDistanceOrbitPathMatchesPlacementScale() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,
@@ -59,6 +42,40 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
             1,
             accuracy: 0.01
         )
+    }
+
+    func testTrueDistanceMercuryClearsSunForEveryObjectScale() throws {
+        for objectMode in ObjectScaleMode.allCases {
+            let snapshot = ExperienceSceneEngine.snapshot(
+                for: Self.bodies,
+                settings: settings(distance: .trueScale, object: objectMode)
+            )
+
+            let sun = try body("sun", in: snapshot)
+            let mercury = try body("mercury", in: snapshot)
+            XCTAssertGreaterThan(
+                length(mercury.position),
+                sun.displayRadius + mercury.displayRadius + 0.01,
+                "Mercury should clear the Sun in \(objectMode.rawValue)"
+            )
+        }
+    }
+
+    func testMoonClearsEarthInCompressedAndTrueDistanceModes() throws {
+        for distanceMode in [DistanceScaleMode.compressed, .trueScale] {
+            let snapshot = ExperienceSceneEngine.snapshot(
+                for: Self.bodies,
+                settings: settings(distance: distanceMode, object: .relative)
+            )
+
+            let earth = try body("earth", in: snapshot)
+            let moon = try body("moon", in: snapshot)
+            XCTAssertGreaterThan(
+                length(moon.position - earth.position),
+                earth.displayRadius + moon.displayRadius + 0.01,
+                "Moon should clear Earth in \(distanceMode.rawValue)"
+            )
+        }
     }
 
     func testTrueSizePreservesRadiusRatios() throws {
@@ -93,13 +110,29 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertGreaterThan(compressed.bounds.span, 5)
     }
 
+    func testEducationalRelativeBaselineStaysCompact() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .educational, object: .relative)
+        )
+
+        let mercury = try body("mercury", in: snapshot)
+        let venus = try body("venus", in: snapshot)
+        let earth = try body("earth", in: snapshot)
+
+        XCTAssertEqual(length(mercury.position), 1.18, accuracy: 0.02)
+        XCTAssertEqual(length(venus.position), 2.36, accuracy: 0.02)
+        XCTAssertEqual(length(earth.position), 3.54, accuracy: 0.02)
+    }
+
     private static let bodies: [CelestialBody] = [
         makeBody(id: "sun", name: "Sun", type: .star, radiusKm: 696_340, parentBodyId: nil, displayOrder: 0),
         makeBody(id: "mercury", name: "Mercury", radiusKm: 2_439.7, averageDistanceFromSunKm: 57_900_000, orbit: orbit(57_909_050, eccentricity: 0.2056, inclination: 7.005, meanAnomaly: 174.796), displayOrder: 1),
-        makeBody(id: "earth", name: "Earth", radiusKm: 6_371, averageDistanceFromSunKm: 149_600_000, orbit: orbit(149_598_023, eccentricity: 0.0167, inclination: 0, meanAnomaly: 358.617), displayOrder: 2),
-        makeBody(id: "moon", name: "Moon", type: .moon, radiusKm: 1_737.4, averageDistanceFromSunKm: 149_600_000, averageDistanceFromEarthKm: 384_400, orbit: orbit(384_400, eccentricity: 0.0549, inclination: 5.145, meanAnomaly: 135.27), parentBodyId: "earth", displayOrder: 3),
-        makeBody(id: "jupiter", name: "Jupiter", radiusKm: 69_911, averageDistanceFromSunKm: 778_500_000, orbit: orbit(778_570_000, eccentricity: 0.0489, inclination: 1.304, meanAnomaly: 20.020), displayOrder: 4),
-        makeBody(id: "neptune", name: "Neptune", radiusKm: 24_622, averageDistanceFromSunKm: 4_495_100_000, orbit: orbit(4_495_060_000, eccentricity: 0.0113, inclination: 1.770, meanAnomaly: 256.228), displayOrder: 5)
+        makeBody(id: "venus", name: "Venus", radiusKm: 6_051.8, averageDistanceFromSunKm: 108_200_000, orbit: orbit(108_208_000, eccentricity: 0.0068, inclination: 3.394, meanAnomaly: 50.115), displayOrder: 2),
+        makeBody(id: "earth", name: "Earth", radiusKm: 6_371, averageDistanceFromSunKm: 149_600_000, orbit: orbit(149_598_023, eccentricity: 0.0167, inclination: 0, meanAnomaly: 358.617), displayOrder: 3),
+        makeBody(id: "moon", name: "Moon", type: .moon, radiusKm: 1_737.4, averageDistanceFromSunKm: 149_600_000, averageDistanceFromEarthKm: 384_400, orbit: orbit(384_400, eccentricity: 0.0549, inclination: 5.145, meanAnomaly: 135.27), parentBodyId: "earth", displayOrder: 4),
+        makeBody(id: "jupiter", name: "Jupiter", radiusKm: 69_911, averageDistanceFromSunKm: 778_500_000, orbit: orbit(778_570_000, eccentricity: 0.0489, inclination: 1.304, meanAnomaly: 20.020), displayOrder: 5),
+        makeBody(id: "neptune", name: "Neptune", radiusKm: 24_622, averageDistanceFromSunKm: 4_495_100_000, orbit: orbit(4_495_060_000, eccentricity: 0.0113, inclination: 1.770, meanAnomaly: 256.228), displayOrder: 6)
     ]
 
     private static func makeBody(

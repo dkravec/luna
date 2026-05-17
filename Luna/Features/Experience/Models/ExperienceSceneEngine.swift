@@ -70,6 +70,13 @@ struct ExperienceSceneBounds: Equatable {
     }
 }
 
+private struct ExperienceSceneScaleContext {
+    let displayRadii: [String: Float]
+    let sunOrbitRadii: [String: Float]
+    let childOrbitRadii: [String: Float]
+    let maxSunDistance: Double
+}
+
 protocol ExperienceSceneRenderer {
     associatedtype RenderTarget
 
@@ -93,6 +100,17 @@ enum ExperienceSceneEngine {
             sortedBodies.compactMap(\.averageDistanceFromSunKm).filter { $0 > 0 }.max() ?? 1,
             1
         )
+        let displayRadii = Dictionary(
+            uniqueKeysWithValues: sortedBodies.map { body in
+                (body.id, displayRadius(for: body, settings: settings, content: content))
+            }
+        )
+        let scaleContext = scaleContext(
+            for: sortedBodies,
+            displayRadii: displayRadii,
+            maxSunDistance: maxSunDistance,
+            settings: settings
+        )
 
         var parentPositions: [String: SIMD3<Float>] = [:]
         var sceneBodies: [ExperienceSceneBody] = []
@@ -104,10 +122,10 @@ enum ExperienceSceneEngine {
                 parentPositions: parentPositions,
                 settings: settings,
                 content: content,
-                maxSunDistance: maxSunDistance,
+                scaleContext: scaleContext,
                 simulationTimeDays: simulationTimeDays
             )
-            let radius = displayRadius(for: body, settings: settings, content: content)
+            let radius = displayRadii[body.id] ?? displayRadius(for: body, settings: settings, content: content)
             let sceneBody = ExperienceSceneBody(
                 body: body,
                 position: position,
@@ -126,7 +144,13 @@ enum ExperienceSceneEngine {
         }
 
         let orbitPaths = settings.showOrbits
-            ? orbitPaths(for: sortedBodies, parentPositions: parentPositions, settings: settings, content: content)
+            ? orbitPaths(
+                for: sortedBodies,
+                parentPositions: parentPositions,
+                settings: settings,
+                content: content,
+                scaleContext: scaleContext
+            )
             : []
 
         return ExperienceSceneSnapshot(
@@ -153,7 +177,7 @@ enum ExperienceSceneEngine {
         parentPositions: [String: SIMD3<Float>],
         settings: ExperienceSceneSettings,
         content: ExperienceSceneContent,
-        maxSunDistance: Double,
+        scaleContext: ExperienceSceneScaleContext,
         simulationTimeDays: Double
     ) -> SIMD3<Float> {
         if case .object = content {
@@ -167,14 +191,16 @@ enum ExperienceSceneEngine {
         if let parentId = body.parentBodyId,
            parentId != "sun",
            let parentPosition = parentPositions[parentId] {
-            return parentPosition + childOffset(for: body, settings: settings, simulationTimeDays: simulationTimeDays)
+            return parentPosition + childOffset(
+                for: body,
+                settings: settings,
+                scaleContext: scaleContext,
+                simulationTimeDays: simulationTimeDays
+            )
         }
 
-        let sunChildren = bodies
-            .filter { $0.parentBodyId == "sun" && $0.type != .star }
-            .sorted { $0.displayOrder < $1.displayOrder }
-        let index = sunChildren.firstIndex { $0.id == body.id } ?? 0
-        let distance = sunDistance(for: body, index: index, maxSunDistance: maxSunDistance, settings: settings)
+        let distance = scaleContext.sunOrbitRadii[body.id]
+            ?? baseSunDistance(for: body, maxSunDistance: scaleContext.maxSunDistance, settings: settings)
         let angle = orbitalAngle(for: body, simulationTimeDays: simulationTimeDays)
 
         if settings.distanceScaleMode == .trueScale {
@@ -193,50 +219,14 @@ enum ExperienceSceneEngine {
         )
     }
 
-    private static func sunDistance(
-        for body: CelestialBody,
-        index: Int,
-        maxSunDistance: Double,
-        settings: ExperienceSceneSettings
-    ) -> Float {
-        switch settings.distanceScaleMode {
-        case .educational:
-            return Float(index + 1) * 1.18
-        case .compressed:
-            let normalized = Float(normalizedSunDistance(for: body, maxSunDistance: maxSunDistance))
-            let compression = Float(max(settings.distanceCompression, 5))
-            let range = max(4.2, 10.4 - compression * 0.045)
-            return 0.9 + pow(normalized, 0.44) * range
-        case .trueScale:
-            return trueDistance(for: body, fallbackDistance: body.averageDistanceFromSunKm)
-        }
-    }
-
     private static func childOffset(
         for body: CelestialBody,
         settings: ExperienceSceneSettings,
+        scaleContext: ExperienceSceneScaleContext,
         simulationTimeDays: Double
     ) -> SIMD3<Float> {
         let angle = orbitalAngle(for: body, simulationTimeDays: simulationTimeDays)
-        let radius: Float
-
-        if body.id == "moon" {
-            switch settings.distanceScaleMode {
-            case .educational:
-                radius = 0.44
-            case .compressed:
-                radius = 0.54
-            case .trueScale:
-                radius = trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm)
-            }
-        } else {
-            switch settings.distanceScaleMode {
-            case .trueScale:
-                radius = trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm)
-            default:
-                radius = 0.42
-            }
-        }
+        let radius = scaleContext.childOrbitRadii[body.id] ?? baseChildOrbitRadius(for: body, settings: settings)
 
         return orbitOffset(
             for: body,
@@ -277,6 +267,9 @@ enum ExperienceSceneEngine {
                 return 0.46
             case .satellite:
                 return 0.08
+            case .moon:
+                let normalized = Float(max(body.radiusKm, 1) / 69_911)
+                return min(0.16, max(0.13, 0.11 + pow(normalized, 0.42) * 0.34))
             default:
                 let normalized = Float(max(body.radiusKm, 1) / 69_911)
                 return min(0.42, max(0.13, 0.11 + pow(normalized, 0.42) * 0.34))
@@ -295,7 +288,8 @@ enum ExperienceSceneEngine {
         for bodies: [CelestialBody],
         parentPositions: [String: SIMD3<Float>],
         settings: ExperienceSceneSettings,
-        content: ExperienceSceneContent
+        content: ExperienceSceneContent,
+        scaleContext: ExperienceSceneScaleContext
     ) -> [ExperienceOrbitPath] {
         guard content == .solarSystem else { return [] }
 
@@ -310,7 +304,8 @@ enum ExperienceSceneEngine {
                 for: body,
                 parentPosition: parentPosition,
                 bodies: bodies,
-                settings: settings
+                settings: settings,
+                scaleContext: scaleContext
             )
 
             guard points.count > 2 else { return nil }
@@ -328,19 +323,16 @@ enum ExperienceSceneEngine {
         for body: CelestialBody,
         parentPosition: SIMD3<Float>,
         bodies: [CelestialBody],
-        settings: ExperienceSceneSettings
+        settings: ExperienceSceneSettings,
+        scaleContext: ExperienceSceneScaleContext
     ) -> [SIMD3<Float>] {
         let radius: Float
 
         if body.parentBodyId == "sun" {
-            let maxSunDistance = max(bodies.compactMap(\.averageDistanceFromSunKm).filter { $0 > 0 }.max() ?? 1, 1)
-            let index = bodies
-                .filter { $0.parentBodyId == "sun" && $0.type != .star }
-                .sorted { $0.displayOrder < $1.displayOrder }
-                .firstIndex { $0.id == body.id } ?? 0
-            radius = sunDistance(for: body, index: index, maxSunDistance: maxSunDistance, settings: settings)
+            radius = scaleContext.sunOrbitRadii[body.id]
+                ?? baseSunDistance(for: body, maxSunDistance: scaleContext.maxSunDistance, settings: settings)
         } else {
-            radius = body.id == "moon" ? childOffset(for: body, settings: settings, simulationTimeDays: 0).xzLength : 0.42
+            radius = scaleContext.childOrbitRadii[body.id] ?? baseChildOrbitRadius(for: body, settings: settings)
         }
 
         let eccentricity = Float(body.orbit?.eccentricity ?? 0)
@@ -387,6 +379,220 @@ enum ExperienceSceneEngine {
 
     private static func orbitYOffset(for body: CelestialBody) -> Float {
         Float((body.orbit?.inclinationDegrees ?? 0) / 180) * 0.10
+    }
+
+    private static func scaleContext(
+        for bodies: [CelestialBody],
+        displayRadii: [String: Float],
+        maxSunDistance: Double,
+        settings: ExperienceSceneSettings
+    ) -> ExperienceSceneScaleContext {
+        let childOrbitRadii = childOrbitRadii(
+            for: bodies,
+            displayRadii: displayRadii,
+            settings: settings
+        )
+        let sunOrbitRadii = sunOrbitRadii(
+            for: bodies,
+            displayRadii: displayRadii,
+            childOrbitRadii: childOrbitRadii,
+            maxSunDistance: maxSunDistance,
+            settings: settings
+        )
+
+        return ExperienceSceneScaleContext(
+            displayRadii: displayRadii,
+            sunOrbitRadii: sunOrbitRadii,
+            childOrbitRadii: childOrbitRadii,
+            maxSunDistance: maxSunDistance
+        )
+    }
+
+    private static func childOrbitRadii(
+        for bodies: [CelestialBody],
+        displayRadii: [String: Float],
+        settings: ExperienceSceneSettings
+    ) -> [String: Float] {
+        Dictionary(
+            uniqueKeysWithValues: bodies.compactMap { body in
+                guard let parentId = body.parentBodyId,
+                      parentId != "sun" else {
+                    return nil
+                }
+
+                let baseRadius = baseChildOrbitRadius(for: body, settings: settings)
+                let parentRadius = displayRadii[parentId] ?? 0
+                let bodyRadius = displayRadii[body.id] ?? 0
+                let minimumRadius = parentRadius + bodyRadius + childOrbitClearanceMargin(for: settings)
+                return (body.id, max(baseRadius, minimumRadius))
+            }
+        )
+    }
+
+    private static func sunOrbitRadii(
+        for bodies: [CelestialBody],
+        displayRadii: [String: Float],
+        childOrbitRadii: [String: Float],
+        maxSunDistance: Double,
+        settings: ExperienceSceneSettings
+    ) -> [String: Float] {
+        let sunChildren = bodies
+            .filter { $0.parentBodyId == "sun" && $0.type != .star }
+            .sorted { $0.displayOrder < $1.displayOrder }
+        guard !sunChildren.isEmpty else { return [:] }
+
+        let multiplier = settings.distanceScaleMode == .trueScale
+            ? trueDistancePlanetMultiplier(
+                for: sunChildren,
+                bodies: bodies,
+                displayRadii: displayRadii,
+                childOrbitRadii: childOrbitRadii,
+                maxSunDistance: maxSunDistance,
+                settings: settings
+            )
+            : 1
+
+        var result: [String: Float] = [:]
+        var previousRadius: Float?
+        var previousEnvelope: Float = 0
+
+        for (index, body) in sunChildren.enumerated() {
+            var radius = baseSunDistance(
+                for: body,
+                index: index,
+                maxSunDistance: maxSunDistance,
+                settings: settings
+            ) * multiplier
+            let envelope = systemEnvelopeRadius(
+                for: body,
+                bodies: bodies,
+                displayRadii: displayRadii,
+                childOrbitRadii: childOrbitRadii
+            )
+            let sunRadius = displayRadii["sun"] ?? 0
+            let minimumFromSun = sunRadius + envelope + sunOrbitClearanceMargin(for: settings)
+
+            if settings.distanceScaleMode != .trueScale {
+                radius = max(radius, minimumFromSun)
+
+                if let previousRadius {
+                    radius = max(radius, previousRadius + previousEnvelope + envelope + interOrbitClearanceMargin(for: settings))
+                }
+            }
+
+            result[body.id] = radius
+            previousRadius = radius
+            previousEnvelope = envelope
+        }
+
+        return result
+    }
+
+    private static func trueDistancePlanetMultiplier(
+        for sunChildren: [CelestialBody],
+        bodies: [CelestialBody],
+        displayRadii: [String: Float],
+        childOrbitRadii: [String: Float],
+        maxSunDistance: Double,
+        settings: ExperienceSceneSettings
+    ) -> Float {
+        let sunRadius = displayRadii["sun"] ?? 0
+
+        return sunChildren.reduce(Float(1)) { multiplier, body in
+            let baseRadius = baseSunDistance(for: body, maxSunDistance: maxSunDistance, settings: settings)
+            guard baseRadius > 0 else { return multiplier }
+
+            let envelope = systemEnvelopeRadius(
+                for: body,
+                bodies: bodies,
+                displayRadii: displayRadii,
+                childOrbitRadii: childOrbitRadii
+            )
+            let requiredRadius = sunRadius + envelope + sunOrbitClearanceMargin(for: settings)
+            return max(multiplier, requiredRadius / baseRadius)
+        }
+    }
+
+    private static func systemEnvelopeRadius(
+        for body: CelestialBody,
+        bodies: [CelestialBody],
+        displayRadii: [String: Float],
+        childOrbitRadii: [String: Float]
+    ) -> Float {
+        let bodyRadius = displayRadii[body.id] ?? 0
+        let childEnvelope = bodies
+            .filter { $0.parentBodyId == body.id }
+            .map { child in
+                (childOrbitRadii[child.id] ?? 0) + (displayRadii[child.id] ?? 0)
+            }
+            .max() ?? 0
+
+        return max(bodyRadius, childEnvelope)
+    }
+
+    private static func baseSunDistance(
+        for body: CelestialBody,
+        index: Int? = nil,
+        maxSunDistance: Double,
+        settings: ExperienceSceneSettings
+    ) -> Float {
+        switch settings.distanceScaleMode {
+        case .educational:
+            return Float((index ?? max(body.displayOrder - 1, 0)) + 1) * 1.18
+        case .compressed:
+            let normalized = Float(normalizedSunDistance(for: body, maxSunDistance: maxSunDistance))
+            let compression = Float(max(settings.distanceCompression, 5))
+            let range = max(4.2, 10.4 - compression * 0.045)
+            return 0.9 + pow(normalized, 0.44) * range
+        case .trueScale:
+            return trueDistance(for: body, fallbackDistance: body.averageDistanceFromSunKm)
+        }
+    }
+
+    private static func baseChildOrbitRadius(for body: CelestialBody, settings: ExperienceSceneSettings) -> Float {
+        if body.id == "moon" {
+            switch settings.distanceScaleMode {
+            case .educational:
+                return 0.44
+            case .compressed:
+                return 0.54
+            case .trueScale:
+                return trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm)
+            }
+        }
+
+        switch settings.distanceScaleMode {
+        case .trueScale:
+            return trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm)
+        default:
+            return 0.42
+        }
+    }
+
+    private static func sunOrbitClearanceMargin(for settings: ExperienceSceneSettings) -> Float {
+        switch settings.distanceScaleMode {
+        case .educational:
+            return 0.08
+        case .compressed:
+            return 0.12
+        case .trueScale:
+            return settings.objectScaleMode == .trueScale ? 0.22 : 0.16
+        }
+    }
+
+    private static func childOrbitClearanceMargin(for settings: ExperienceSceneSettings) -> Float {
+        switch settings.distanceScaleMode {
+        case .educational:
+            return 0.05
+        case .compressed:
+            return 0.08
+        case .trueScale:
+            return 0.10
+        }
+    }
+
+    private static func interOrbitClearanceMargin(for settings: ExperienceSceneSettings) -> Float {
+        settings.distanceScaleMode == .compressed ? 0.12 : 0.08
     }
 
     private static func orbitOffset(
