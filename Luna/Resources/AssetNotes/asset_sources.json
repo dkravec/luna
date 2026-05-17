@@ -143,6 +143,54 @@
           "licenseNote": "Free to download and use subject to NASA image and media usage guidelines.",
           "sourceURL": "https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Tracking%20and%20Data%20Relay%20Satellites%20(TDRS)%20(A)",
           "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Apollo Lunar Module model",
+          "path": "Models/NASA/apollo_lunar_module.glb",
+          "credit": "NASA 3D Resources, Apollo Lunar Module.",
+          "licenseNote": "Free to download and use subject to NASA image and media usage guidelines.",
+          "sourceURL": "https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Apollo%20Lunar%20Module",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Saturn V model",
+          "path": "Models/NASA/saturn_v.glb",
+          "credit": "NASA 3D Resources, Saturn V.",
+          "licenseNote": "Free to download and use subject to NASA image and media usage guidelines.",
+          "sourceURL": "https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Saturn%20V",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Astronaut model",
+          "path": "Models/NASA/astronaut.glb",
+          "credit": "NASA 3D Resources, Astronaut.",
+          "licenseNote": "Free to download and use subject to NASA image and media usage guidelines.",
+          "sourceURL": "https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Astronaut",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "International Space Station model",
+          "path": "Models/NASA/iss.glb",
+          "credit": "NASA 3D Resources, International Space Station (ISS) (B).",
+          "licenseNote": "Free to download and use subject to NASA image and media usage guidelines.",
+          "sourceURL": "https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/International%20Space%20Station%20(ISS)%20(B)",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Hubble Space Telescope model",
+          "path": "Models/NASA/hubble.glb",
+          "credit": "NASA 3D Resources, Hubble Space Telescope (A).",
+          "licenseNote": "Free to download and use subject to NASA image and media usage guidelines.",
+          "sourceURL": "https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Hubble%20Space%20Telescope%20(A)",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Space Shuttle model",
+          "path": "Models/NASA/space_shuttle.glb",
+          "credit": "NASA 3D Resources, Space Shuttle (A).",
+          "licenseNote": "Free to download and use subject to NASA image and media usage guidelines.",
+          "sourceURL": "https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Space%20Shuttle%20(A)",
+          "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
         }
       ]
     }

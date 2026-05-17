@@ -36,7 +36,9 @@
 		7A6B040024AB000000000000 /* Planets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041024AB000000000000 /* Planets */; };
 		7A6B040224AB000000000000 /* Satellites in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041224AB000000000000 /* Satellites */; };
 		7A6B040424AB000000000000 /* Moons in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041324AB000000000000 /* Moons */; };
+		7A6B040624AB000000000000 /* NASA in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041424AB000000000000 /* NASA */; };
 		7A6B050124AC000000000000 /* ExperienceSceneEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050024AC000000000000 /* ExperienceSceneEngine.swift */; };
+		7A6B050224AC000000000000 /* BundledSceneModelLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050524AC000000000000 /* BundledSceneModelLoader.swift */; };
 		7A6B050424AC000000000000 /* SolarSystemVisualSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050324AC000000000000 /* SolarSystemVisualSceneView.swift */; };
 		7A6B050724AC000000000000 /* LunaARSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050624AC000000000000 /* LunaARSceneView.swift */; };
 		7A6B051124AC100000000000 /* BodyPreviewSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */; };
@@ -125,8 +127,10 @@
 		7A6B041024AB000000000000 /* Planets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Planets; sourceTree = "<group>"; };
 		7A6B041224AB000000000000 /* Satellites */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Satellites; sourceTree = "<group>"; };
 		7A6B041324AB000000000000 /* Moons */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Moons; sourceTree = "<group>"; };
+		7A6B041424AB000000000000 /* NASA */ = {isa = PBXFileReference; lastKnownFileType = folder; path = NASA; sourceTree = "<group>"; };
 		7A6B050024AC000000000000 /* ExperienceSceneEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceSceneEngine.swift; sourceTree = "<group>"; };
 		7A6B050324AC000000000000 /* SolarSystemVisualSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarSystemVisualSceneView.swift; sourceTree = "<group>"; };
+		7A6B050524AC000000000000 /* BundledSceneModelLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundledSceneModelLoader.swift; sourceTree = "<group>"; };
 		7A6B050624AC000000000000 /* LunaARSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaARSceneView.swift; sourceTree = "<group>"; };
 		7A6B051024AC100000000000 /* BodyPreviewSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyPreviewSceneView.swift; sourceTree = "<group>"; };
 		7A6B060024AD000000000000 /* ExperiencePreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperiencePreferences.swift; sourceTree = "<group>"; };
@@ -239,6 +243,7 @@
 			isa = PBXGroup;
 			children = (
 				7A6B041324AB000000000000 /* Moons */,
+				7A6B041424AB000000000000 /* NASA */,
 				7A6B041224AB000000000000 /* Satellites */,
 			);
 			path = Models;
@@ -482,6 +487,7 @@
 			children = (
 				7A6B030324A5000000000000 /* ExperienceSceneSettings.swift */,
 				7A6B050024AC000000000000 /* ExperienceSceneEngine.swift */,
+				7A6B050524AC000000000000 /* BundledSceneModelLoader.swift */,
 				7A6B060024AD000000000000 /* ExperiencePreferences.swift */,
 			);
 			path = Models;
@@ -753,6 +759,7 @@
 				6581301E2FB966EB009C58AA /* Luna.icon in Resources */,
 				7A6B029F24A3156B00535EA4 /* Assets.xcassets in Resources */,
 				7A6B040424AB000000000000 /* Moons in Resources */,
+				7A6B040624AB000000000000 /* NASA in Resources */,
 				7A6B070024AE000000000000 /* Backgrounds in Resources */,
 				7A6B040024AB000000000000 /* Planets in Resources */,
 				7A6B040224AB000000000000 /* Satellites in Resources */,
@@ -815,6 +822,7 @@
 				7A6B034024A8000000000000 /* ExploreViewModel.swift in Sources */,
 				7A6B034224A8000000000000 /* BodyDetailView.swift in Sources */,
 				7A6B050124AC000000000000 /* ExperienceSceneEngine.swift in Sources */,
+				7A6B050224AC000000000000 /* BundledSceneModelLoader.swift in Sources */,
 				7A6B050424AC000000000000 /* SolarSystemVisualSceneView.swift in Sources */,
 				7A6B050724AC000000000000 /* LunaARSceneView.swift in Sources */,
 				7A6B060A24AD000000000000 /* ObjectExperienceView.swift in Sources */,

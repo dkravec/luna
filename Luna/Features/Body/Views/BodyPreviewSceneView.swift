@@ -212,6 +212,19 @@ private enum BodyPreviewSceneFactory {
     }
 
     private static func previewNode(for body: CelestialBody) -> SCNNode {
+        if let modelNode = BundledSceneModelLoader.node(named: body.modelName) {
+            let root = SCNNode()
+            root.addChildNode(modelNode)
+            let scale = Float(subjectRadius(for: body) * 1.55)
+            modelNode.scale = SCNVector3(
+                modelNode.scale.x * scale,
+                modelNode.scale.y * scale,
+                modelNode.scale.z * scale
+            )
+            root.eulerAngles = SCNVector3(-0.18, 0.42, 0)
+            return root
+        }
+
         if body.type == .satellite {
             return satelliteNode()
         }

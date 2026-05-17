@@ -1,0 +1,394 @@
+import SceneKit
+#if os(iOS)
+import UIKit
+private typealias LoaderColor = UIColor
+#elseif os(macOS)
+import AppKit
+private typealias LoaderColor = NSColor
+#endif
+
+enum BundledSceneModelLoader {
+    private final class BundleToken {}
+
+    private static let modelSubdirectories = [
+        "NASA",
+        "Satellites",
+        "Moons"
+    ]
+
+    static func node(named modelName: String?) -> SCNNode? {
+        guard let modelName, !modelName.isEmpty else { return nil }
+        let resourceName = (modelName as NSString).deletingPathExtension
+        let resourceExtension = (modelName as NSString).pathExtension.isEmpty
+            ? "glb"
+            : (modelName as NSString).pathExtension
+
+        guard let url = modelURL(
+            resourceName: resourceName,
+            resourceExtension: resourceExtension
+        ) else {
+            return nil
+        }
+
+        let loadedNode: SCNNode?
+        if let scene = try? SCNScene(url: url) {
+            let root = SCNNode()
+            for child in scene.rootNode.childNodes {
+                root.addChildNode(child.clone())
+            }
+            loadedNode = root
+        } else if resourceExtension.lowercased() == "glb" {
+            loadedNode = GLBSceneKitLoader.node(url: url)
+        } else {
+            loadedNode = nil
+        }
+
+        guard let root = loadedNode else { return nil }
+        normalize(root)
+        return root
+    }
+
+    private static func modelURL(resourceName: String, resourceExtension: String) -> URL? {
+        for bundle in candidateBundles {
+            for subdirectory in modelSubdirectories {
+                if let url = bundle.url(
+                    forResource: resourceName,
+                    withExtension: resourceExtension,
+                    subdirectory: subdirectory
+                ) {
+                    return url
+                }
+            }
+
+            if let url = bundle.url(forResource: resourceName, withExtension: resourceExtension) {
+                return url
+            }
+        }
+
+        return nil
+    }
+
+    private static var candidateBundles: [Bundle] {
+        let bundles = [
+            Bundle.main,
+            Bundle(for: BundleToken.self)
+        ] + Bundle.allBundles + Bundle.allFrameworks
+        return bundles.reduce(into: []) { result, bundle in
+            guard !result.contains(bundle) else { return }
+            result.append(bundle)
+        }
+    }
+
+    private static func normalize(_ node: SCNNode) {
+        let bounds = node.boundingBox
+        let minVector = bounds.min
+        let maxVector = bounds.max
+        let size = SCNVector3(
+            maxVector.x - minVector.x,
+            maxVector.y - minVector.y,
+            maxVector.z - minVector.z
+        )
+        let longestAxis = max(size.x, max(size.y, size.z))
+        guard longestAxis.isFinite, longestAxis > 0 else { return }
+
+        let center = SCNVector3(
+            (minVector.x + maxVector.x) / 2,
+            (minVector.y + maxVector.y) / 2,
+            (minVector.z + maxVector.z) / 2
+        )
+        let scale = 1 / longestAxis
+
+        node.scale = SCNVector3(scale, scale, scale)
+        node.position = SCNVector3(
+            -center.x * scale,
+            -center.y * scale,
+            -center.z * scale
+        )
+    }
+}
+
+private enum GLBSceneKitLoader {
+    static func node(url: URL) -> SCNNode? {
+        guard let data = try? Data(contentsOf: url),
+              data.count >= 20,
+              data.uint32(at: 0) == 0x4654_6C67 else {
+            return nil
+        }
+
+        var offset = 12
+        var jsonData: Data?
+        var binaryData: Data?
+
+        while offset + 8 <= data.count {
+            let chunkLength = Int(data.uint32(at: offset))
+            let chunkType = data.uint32(at: offset + 4)
+            let chunkStart = offset + 8
+            let chunkEnd = min(chunkStart + chunkLength, data.count)
+            guard chunkStart <= data.count, chunkEnd <= data.count else { return nil }
+
+            let chunk = data.subdata(in: chunkStart..<chunkEnd)
+            if chunkType == 0x4E4F_534A {
+                jsonData = chunk
+            } else if chunkType == 0x004E_4942 {
+                binaryData = chunk
+            }
+            offset = chunkEnd
+        }
+
+        guard let jsonData,
+              let binaryData,
+              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            return nil
+        }
+
+        let context = GLBContext(json: json, binaryData: binaryData)
+        return context.rootNode()
+    }
+}
+
+private struct GLBContext {
+    let json: [String: Any]
+    let binaryData: Data
+
+    var accessors: [[String: Any]] { json["accessors"] as? [[String: Any]] ?? [] }
+    var bufferViews: [[String: Any]] { json["bufferViews"] as? [[String: Any]] ?? [] }
+    var meshes: [[String: Any]] { json["meshes"] as? [[String: Any]] ?? [] }
+    var nodes: [[String: Any]] { json["nodes"] as? [[String: Any]] ?? [] }
+    var scenes: [[String: Any]] { json["scenes"] as? [[String: Any]] ?? [] }
+    var materials: [[String: Any]] { json["materials"] as? [[String: Any]] ?? [] }
+
+    func rootNode() -> SCNNode? {
+        let root = SCNNode()
+        let sceneIndex = json["scene"] as? Int ?? 0
+        let sceneNodes = scenes[safe: sceneIndex]?["nodes"] as? [Int]
+            ?? Array(nodes.indices)
+
+        for nodeIndex in sceneNodes {
+            if let child = makeNode(index: nodeIndex) {
+                root.addChildNode(child)
+            }
+        }
+
+        return root.childNodes.isEmpty ? nil : root
+    }
+
+    private func makeNode(index: Int) -> SCNNode? {
+        guard let nodeJSON = nodes[safe: index] else { return nil }
+        let node = SCNNode()
+        node.name = nodeJSON["name"] as? String
+
+        if let meshIndex = nodeJSON["mesh"] as? Int,
+           let meshNode = makeMeshNode(index: meshIndex) {
+            node.addChildNode(meshNode)
+        }
+
+        for childIndex in nodeJSON["children"] as? [Int] ?? [] {
+            if let child = makeNode(index: childIndex) {
+                node.addChildNode(child)
+            }
+        }
+
+        applyTransform(nodeJSON, to: node)
+        return node
+    }
+
+    private func makeMeshNode(index: Int) -> SCNNode? {
+        guard let mesh = meshes[safe: index],
+              let primitives = mesh["primitives"] as? [[String: Any]] else {
+            return nil
+        }
+
+        let root = SCNNode()
+        root.name = mesh["name"] as? String
+
+        for primitive in primitives {
+            guard let geometry = makeGeometry(primitive: primitive) else { continue }
+            root.addChildNode(SCNNode(geometry: geometry))
+        }
+
+        return root.childNodes.isEmpty ? nil : root
+    }
+
+    private func makeGeometry(primitive: [String: Any]) -> SCNGeometry? {
+        guard let attributes = primitive["attributes"] as? [String: Int],
+              let positionAccessor = attributes["POSITION"],
+              let vertices = vectors(accessorIndex: positionAccessor, dimensions: 3) else {
+            return nil
+        }
+
+        var sources = [SCNGeometrySource(vertices: vertices)]
+        if let normalAccessor = attributes["NORMAL"],
+           let normals = vectors(accessorIndex: normalAccessor, dimensions: 3),
+           normals.count == vertices.count {
+            sources.append(SCNGeometrySource(normals: normals))
+        }
+
+        let element: SCNGeometryElement
+        if let indicesAccessor = primitive["indices"] as? Int,
+           let indices = indices(accessorIndex: indicesAccessor) {
+            element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        } else {
+            let indices = vertices.indices.map(Int32.init)
+            element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        }
+
+        let geometry = SCNGeometry(sources: sources, elements: [element])
+        geometry.firstMaterial = material(index: primitive["material"] as? Int)
+        return geometry
+    }
+
+    private func vectors(accessorIndex: Int, dimensions: Int) -> [SCNVector3]? {
+        guard let accessor = accessors[safe: accessorIndex],
+              accessor["componentType"] as? Int == 5126,
+              let count = accessor["count"] as? Int,
+              let bufferViewIndex = accessor["bufferView"] as? Int,
+              let bufferView = bufferViews[safe: bufferViewIndex] else {
+            return nil
+        }
+
+        let accessorOffset = accessor["byteOffset"] as? Int ?? 0
+        let viewOffset = bufferView["byteOffset"] as? Int ?? 0
+        let stride = bufferView["byteStride"] as? Int ?? dimensions * 4
+        let start = viewOffset + accessorOffset
+
+        var result: [SCNVector3] = []
+        result.reserveCapacity(count)
+
+        for index in 0..<count {
+            let offset = start + index * stride
+            guard offset + dimensions * 4 <= binaryData.count else { return nil }
+
+            let x = binaryData.float32(at: offset)
+            let y = dimensions > 1 ? binaryData.float32(at: offset + 4) : 0
+            let z = dimensions > 2 ? binaryData.float32(at: offset + 8) : 0
+            result.append(SCNVector3(x, y, z))
+        }
+
+        return result
+    }
+
+    private func indices(accessorIndex: Int) -> [Int32]? {
+        guard let accessor = accessors[safe: accessorIndex],
+              let count = accessor["count"] as? Int,
+              let componentType = accessor["componentType"] as? Int,
+              let bufferViewIndex = accessor["bufferView"] as? Int,
+              let bufferView = bufferViews[safe: bufferViewIndex] else {
+            return nil
+        }
+
+        let componentSize: Int
+        switch componentType {
+        case 5121:
+            componentSize = 1
+        case 5123:
+            componentSize = 2
+        case 5125:
+            componentSize = 4
+        default:
+            return nil
+        }
+
+        let accessorOffset = accessor["byteOffset"] as? Int ?? 0
+        let viewOffset = bufferView["byteOffset"] as? Int ?? 0
+        let stride = bufferView["byteStride"] as? Int ?? componentSize
+        let start = viewOffset + accessorOffset
+
+        var result: [Int32] = []
+        result.reserveCapacity(count)
+
+        for index in 0..<count {
+            let offset = start + index * stride
+            guard offset + componentSize <= binaryData.count else { return nil }
+
+            switch componentType {
+            case 5121:
+                result.append(Int32(binaryData[offset]))
+            case 5123:
+                result.append(Int32(binaryData.uint16(at: offset)))
+            case 5125:
+                result.append(Int32(bitPattern: binaryData.uint32(at: offset)))
+            default:
+                return nil
+            }
+        }
+
+        return result
+    }
+
+    private func material(index: Int?) -> SCNMaterial {
+        let material = SCNMaterial()
+        material.diffuse.contents = loaderColor(red: 0.82, green: 0.84, blue: 0.88, alpha: 1)
+        material.roughness.contents = 0.78
+
+        guard let index,
+              let materialJSON = materials[safe: index],
+              let pbr = materialJSON["pbrMetallicRoughness"] as? [String: Any],
+              let color = pbr["baseColorFactor"] as? [Double],
+              color.count >= 3 else {
+            return material
+        }
+
+        material.diffuse.contents = loaderColor(
+            red: CGFloat(color[0]),
+            green: CGFloat(color[1]),
+            blue: CGFloat(color[2]),
+            alpha: CGFloat(color[safe: 3] ?? 1)
+        )
+        return material
+    }
+
+    private func applyTransform(_ nodeJSON: [String: Any], to node: SCNNode) {
+        if let matrix = nodeJSON["matrix"] as? [Double], matrix.count == 16 {
+            node.transform = SCNMatrix4(
+                m11: Float(matrix[0]), m12: Float(matrix[1]), m13: Float(matrix[2]), m14: Float(matrix[3]),
+                m21: Float(matrix[4]), m22: Float(matrix[5]), m23: Float(matrix[6]), m24: Float(matrix[7]),
+                m31: Float(matrix[8]), m32: Float(matrix[9]), m33: Float(matrix[10]), m34: Float(matrix[11]),
+                m41: Float(matrix[12]), m42: Float(matrix[13]), m43: Float(matrix[14]), m44: Float(matrix[15])
+            )
+        }
+
+        if let translation = nodeJSON["translation"] as? [Double], translation.count >= 3 {
+            node.position = SCNVector3(translation[0], translation[1], translation[2])
+        }
+
+        if let scale = nodeJSON["scale"] as? [Double], scale.count >= 3 {
+            node.scale = SCNVector3(scale[0], scale[1], scale[2])
+        }
+
+        if let rotation = nodeJSON["rotation"] as? [Double], rotation.count >= 4 {
+            node.orientation = SCNQuaternion(rotation[0], rotation[1], rotation[2], rotation[3])
+        }
+    }
+}
+
+private func loaderColor(red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat) -> LoaderColor {
+#if os(iOS)
+    LoaderColor(red: red, green: green, blue: blue, alpha: alpha)
+#elseif os(macOS)
+    LoaderColor(calibratedRed: red, green: green, blue: blue, alpha: alpha)
+#endif
+}
+
+private extension Data {
+    func uint16(at offset: Int) -> UInt16 {
+        subdata(in: offset..<(offset + 2)).withUnsafeBytes {
+            UInt16(littleEndian: $0.load(as: UInt16.self))
+        }
+    }
+
+    func uint32(at offset: Int) -> UInt32 {
+        subdata(in: offset..<(offset + 4)).withUnsafeBytes {
+            UInt32(littleEndian: $0.load(as: UInt32.self))
+        }
+    }
+
+    func float32(at offset: Int) -> Float {
+        Float(bitPattern: uint32(at: offset))
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}

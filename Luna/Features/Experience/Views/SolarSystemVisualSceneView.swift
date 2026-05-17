@@ -163,7 +163,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
     func apply(snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings, showsLabels: Bool, focusedBodyID: String?, to view: SCNView) {
         let nextStructureKey = Self.structureKey(for: snapshot, settings: settings, showsLabels: showsLabels)
-        let nextCameraLimit = SceneCameraLimit(snapshot: snapshot)
+        let nextCameraLimit = SceneCameraLimit(snapshot: snapshot, settings: settings)
         bodyLookup = Dictionary(uniqueKeysWithValues: snapshot.bodies.map { ($0.id, $0.body) })
         self.snapshot = snapshot
 
@@ -461,7 +461,7 @@ private enum SolarSystemSceneFactory {
         scene.background.contents = SceneBackgroundTexture.image(for: settings.renderDetail.usesFullBackgroundTexture ? .full : .mini)
             ?? platformColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
 
-        scene.rootNode.addChildNode(cameraNode(for: snapshot))
+        scene.rootNode.addChildNode(cameraNode(for: snapshot, settings: settings))
         scene.rootNode.addChildNode(ambientLightNode())
         scene.rootNode.addChildNode(keyLightNode())
 
@@ -470,7 +470,7 @@ private enum SolarSystemSceneFactory {
         scene.rootNode.addChildNode(root)
 
         for orbitPath in snapshot.orbitPaths {
-            root.addChildNode(orbitNode(path: orbitPath, cameraScale: SolarSystemSceneCameraMetrics(snapshot: snapshot).orthographicScale))
+            root.addChildNode(orbitNode(path: orbitPath, cameraScale: SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: settings).orthographicScale))
         }
 
         for placement in snapshot.bodies {
@@ -500,7 +500,15 @@ private enum SolarSystemSceneFactory {
 
         let visualNode: SCNNode
 
-        if placement.body.type == .satellite {
+        if let modelNode = BundledSceneModelLoader.node(named: placement.body.modelName) {
+            visualNode = modelNode
+            let modelScale = max(0.20, placement.displayRadius * 3.8)
+            visualNode.scale = SCNVector3(
+                visualNode.scale.x * modelScale,
+                visualNode.scale.y * modelScale,
+                visualNode.scale.z * modelScale
+            )
+        } else if placement.body.type == .satellite {
             visualNode = satelliteNode()
             let satelliteScale = max(0.22, placement.displayRadius * 5.5)
             visualNode.scale = SCNVector3(
@@ -685,8 +693,8 @@ private enum SolarSystemSceneFactory {
         return sphere
     }
 
-    private static func cameraNode(for snapshot: ExperienceSceneSnapshot) -> SCNNode {
-        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot)
+    private static func cameraNode(for snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings) -> SCNNode {
+        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: settings)
         let camera = SCNCamera()
         camera.usesOrthographicProjection = true
         camera.orthographicScale = metrics.orthographicScale
@@ -826,15 +834,47 @@ struct SolarSystemSceneCameraMetrics {
     let zNear: Double
     let zFar: Double
     let cameraDistance: Double
+    let subjectCenter: SCNVector3
 
-    init(snapshot: ExperienceSceneSnapshot) {
-        let center = SCNVector3(snapshot.bounds.center.x, snapshot.bounds.center.y, snapshot.bounds.center.z)
+    init(snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings = .defaults) {
+        let center = Self.initialSubjectCenter(for: snapshot)
         let span = Double(max(snapshot.bounds.span, 1))
-        orthographicScale = max(7, span + 2.6)
+        subjectCenter = center
+        orthographicScale = Self.initialOrthographicScale(for: snapshot, settings: settings)
         cameraDistance = max(22, span * 1.8 + 28)
         zNear = 0.001
         zFar = max(250, cameraDistance + span * 4.0 + 120)
         position = center + SCNVector3(6, 9, Float(cameraDistance))
+    }
+
+    private static func initialSubjectCenter(for snapshot: ExperienceSceneSnapshot) -> SCNVector3 {
+        if let sun = snapshot.bodies.first(where: { $0.id == "sun" }) {
+            return SCNVector3(sun.position.x, sun.position.y, sun.position.z)
+        }
+
+        return SCNVector3(snapshot.bounds.center.x, snapshot.bounds.center.y, snapshot.bounds.center.z)
+    }
+
+    private static func initialOrthographicScale(for snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings) -> Double {
+        let span = Double(max(snapshot.bounds.span, 1))
+
+        switch settings.sceneScaleProfile {
+        case .scaledRecommended:
+            return max(7, min(16, span * 0.78 + 2.2))
+        case .uniform:
+            return max(7, min(18, span * 0.86 + 2.4))
+        case .trueSize:
+            return max(7, span + 2.6)
+        case .custom:
+            switch settings.distanceScaleMode {
+            case .trueScale:
+                return max(7, span + 2.6)
+            case .educational:
+                return max(7, min(18, span * 0.88 + 2.4))
+            case .compressed:
+                return max(7, min(22, span * 0.95 + 2.4))
+            }
+        }
     }
 }
 
@@ -852,20 +892,20 @@ struct SceneCameraLimit {
     let maximumOrthographicScale: Double
     let maximumCameraDistance: Float
 
-    init(snapshot: ExperienceSceneSnapshot) {
+    init(snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings = .defaults) {
         let placements = snapshot.bodies
         guard !placements.isEmpty else {
             self = .default
             return
         }
 
-        let center = SCNVector3(snapshot.bounds.center.x, snapshot.bounds.center.y, snapshot.bounds.center.z)
+        let cameraMetrics = SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: settings)
+        let center = cameraMetrics.subjectCenter
         let sceneSpan = snapshot.bounds.span
         let subjectRadius = max(4, sceneSpan / 2 + 2)
         let largestBodyRadius = placements.map(\.displayRadius).max() ?? 1
-        let cameraMetrics = SolarSystemSceneCameraMetrics(snapshot: snapshot)
         let initialCameraDistance = (cameraMetrics.position - center).length
-        let initialOrthographicScale = max(7, Double(snapshot.bounds.span + 2.6))
+        let initialOrthographicScale = cameraMetrics.orthographicScale
 
         self.init(
             subjectCenter: center,

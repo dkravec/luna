@@ -62,6 +62,10 @@ enum CelestialBodyType: String, Codable, CaseIterable, Identifiable {
     case planet
     case moon
     case satellite
+    case rocket
+    case spacecraft
+    case station
+    case astronaut
     case asteroid
     case dwarfPlanet
 
@@ -77,6 +81,14 @@ enum CelestialBodyType: String, Codable, CaseIterable, Identifiable {
             return "Moon"
         case .satellite:
             return "Satellite"
+        case .rocket:
+            return "Rocket"
+        case .spacecraft:
+            return "Spacecraft"
+        case .station:
+            return "Station"
+        case .astronaut:
+            return "Astronaut"
         case .asteroid:
             return "Asteroid"
         case .dwarfPlanet:

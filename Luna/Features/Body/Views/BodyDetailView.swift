@@ -454,6 +454,14 @@ private extension CelestialBodyType {
             return "moon"
         case .satellite:
             return "dot.radiowaves.left.and.right"
+        case .rocket:
+            return "airplane.departure"
+        case .spacecraft:
+            return "sparkles"
+        case .station:
+            return "rectangle.connected.to.line.below"
+        case .astronaut:
+            return "person"
         case .asteroid:
             return "seal"
         case .dwarfPlanet:

@@ -369,6 +369,11 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertEqual(Float(spin.y), earth.rotationAngleRadians, accuracy: 0.0001)
     }
 
+    func testBundledSceneModelLoaderLoadsNASAAssetAndFallsBackForMissingAsset() {
+        XCTAssertNotNil(BundledSceneModelLoader.node(named: "apollo_lunar_module.glb"))
+        XCTAssertNil(BundledSceneModelLoader.node(named: "missing-spacecraft.glb"))
+    }
+
     func testAROrbitBudgetCapsBalancedPathSamples() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,

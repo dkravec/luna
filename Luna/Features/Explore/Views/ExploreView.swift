@@ -14,7 +14,9 @@ struct ExploreView: View {
 
 //                regionSection
                 searchSection
-                filterSection
+                if viewModel.isSearching {
+                    filterSection
+                }
                 bodiesSection
             }
             .screenContentPadding()
@@ -82,7 +84,7 @@ struct ExploreView: View {
 
     private var filterSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Filter", subtitle: "\(viewModel.bodyCountText) bodies shown")
+            SectionHeader(title: "Filter", subtitle: "\(viewModel.bodyCountText) items shown")
 
             Card {
                 Picker("Body Type", selection: $viewModel.selectedFilter) {
@@ -97,47 +99,77 @@ struct ExploreView: View {
 
     @ViewBuilder
     private var bodiesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Bodies")
+        switch viewModel.loadState {
+        case .idle:
+            EmptyStateView(
+                title: "Loading Explore",
+                systemImage: "circle.grid.cross",
+                message: "Luna is reading the local space library."
+            )
+        case .failed(let message):
+            EmptyStateView(
+                title: "Unable To Load",
+                systemImage: "exclamationmark.triangle",
+                message: message
+            )
+        case .loaded:
+            if viewModel.isSearching {
+                searchResultsSection
+            } else {
+                collectionSections
+            }
+        }
+    }
 
-            switch viewModel.loadState {
-            case .idle:
-                EmptyStateView(
-                    title: "Loading Bodies",
-                    systemImage: "circle.grid.cross",
-                    message: "Luna is reading the local solar system library."
-                )
-            case .failed(let message):
-                EmptyStateView(
-                    title: "Unable To Load",
-                    systemImage: "exclamationmark.triangle",
-                    message: message
-                )
-            case .loaded:
-                if viewModel.filteredBodies.isEmpty {
-                    EmptyStateView(
-                        title: viewModel.isSearching ? "No Results" : "No Bodies",
-                        systemImage: "line.3.horizontal.decrease",
-                        message: viewModel.isSearching ? "Try another search." : "Try a different filter."
-                    )
-                } else {
-                    LazyVStack(spacing: 10) {
-                        ForEach(viewModel.filteredBodies) { body in
-                            NavigationLink {
-                                BodyDetailView(
-                                    celestialBody: body,
-                                    childBodies: viewModel.children(of: body)
-                                )
-                            } label: {
-                                BodyCard(celestialBody: body)
-                            }
-                            .buttonStyle(.plain)
-                            .hapticTap()
-                        }
+    @ViewBuilder
+    private var collectionSections: some View {
+        ForEach(viewModel.exploreCollections) { collection in
+            let bodies = viewModel.bodies(in: collection)
+
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: collection.title, subtitle: collection.subtitle)
+
+                LazyVStack(spacing: 10) {
+                    ForEach(bodies) { body in
+                        bodyLink(for: body)
                     }
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var searchResultsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Results")
+
+            if viewModel.filteredBodies.isEmpty {
+                EmptyStateView(
+                    title: "No Results",
+                    systemImage: "line.3.horizontal.decrease",
+                    message: "Try another search or filter."
+                )
+            } else {
+                LazyVStack(spacing: 10) {
+                    ForEach(viewModel.filteredBodies) { body in
+                        bodyLink(for: body)
+                    }
+                }
+            }
+        }
+    }
+
+    private func bodyLink(for body: CelestialBody) -> some View {
+        NavigationLink {
+            BodyDetailView(
+                celestialBody: body,
+                childBodies: viewModel.children(of: body)
+            )
+        } label: {
+            BodyCard(celestialBody: body)
+        }
+        .buttonStyle(.plain)
+        .hapticTap()
     }
 
 }

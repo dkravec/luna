@@ -18,12 +18,14 @@ final class ExploreViewModel: ObservableObject {
         let filteredByType = switch selectedFilter {
         case .all:
             bodies
-        case .stars:
-            bodies.filter { $0.type == .star }
         case .planets:
             bodies.filter { $0.type == .planet }
         case .moons:
-            bodies.filter { $0.type == .moon || $0.type == .satellite }
+            bodies.filter { $0.type == .moon }
+        case .satellites:
+            bodies.filter { $0.type == .satellite }
+        case .nasa:
+            bodies.filter { $0.exploreCollection == .iconicNASA }
         }
 
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -42,6 +44,12 @@ final class ExploreViewModel: ObservableObject {
 
     var isSearching: Bool {
         !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var exploreCollections: [ExploreCollection] {
+        ExploreCollection.allCases.filter { collection in
+            !bodies(in: collection).isEmpty
+        }
     }
 
     func configure(repository: CelestialBodyRepository) {
@@ -67,13 +75,18 @@ final class ExploreViewModel: ObservableObject {
     func children(of body: CelestialBody) -> [CelestialBody] {
         bodies.filter { $0.parentBodyId == body.id }
     }
+
+    func bodies(in collection: ExploreCollection) -> [CelestialBody] {
+        bodies.filter { $0.exploreCollection == collection }
+    }
 }
 
 enum BodyFilter: String, CaseIterable, Identifiable {
     case all
-    case stars
     case planets
     case moons
+    case satellites
+    case nasa
 
     var id: String { rawValue }
 
@@ -81,12 +94,57 @@ enum BodyFilter: String, CaseIterable, Identifiable {
         switch self {
         case .all:
             return "All"
-        case .stars:
-            return "Stars"
         case .planets:
             return "Planets"
         case .moons:
             return "Moons"
+        case .satellites:
+            return "Satellites"
+        case .nasa:
+            return "NASA"
+        }
+    }
+}
+
+enum ExploreCollection: String, CaseIterable, Identifiable {
+    case solarSystem
+    case earthOrbit
+    case iconicNASA
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .solarSystem:
+            return "Solar System"
+        case .earthOrbit:
+            return "Earth Orbit"
+        case .iconicNASA:
+            return "Iconic NASA"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .solarSystem:
+            return "Planets, moons, and nearby worlds"
+        case .earthOrbit:
+            return "NASA satellites around Earth"
+        case .iconicNASA:
+            return "Rockets, spacecraft, stations, and astronauts"
+        }
+    }
+}
+
+extension CelestialBody {
+    var exploreCollection: ExploreCollection {
+        switch type {
+        case .star, .planet, .moon, .asteroid, .dwarfPlanet:
+            return .solarSystem
+        case .satellite:
+            return .earthOrbit
+        case .rocket, .spacecraft, .station, .astronaut:
+            return .iconicNASA
         }
     }
 }
