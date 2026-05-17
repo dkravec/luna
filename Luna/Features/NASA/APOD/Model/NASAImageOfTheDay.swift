@@ -10,12 +10,12 @@ struct NASAImageOfTheDay: Decodable, Hashable, Identifiable {
     let hdurl: URL?
     let copyright: String?
 
-    var displayURL: URL? {
-        hdurl ?? url
+    var previewURL: URL? {
+        url ?? hdurl
     }
 
     var sourceURL: URL? {
-        displayURL ?? url
+        hdurl ?? url
     }
 
     var isImage: Bool {

@@ -17,7 +17,9 @@ struct NASAImageOfTheDayView: View {
             case .loading:
                 NASAImageOfTheDayLoadingCard()
             case .loaded(let item):
-                NavigationLink(value: item) {
+                NavigationLink {
+                    NASAImageOfTheDayDetailView(item: item)
+                } label: {
                     NASAImageOfTheDayCard(item: item)
                 }
                 .buttonStyle(.plain)
@@ -32,9 +34,6 @@ struct NASAImageOfTheDayView: View {
         }
         .task {
             await loadImageOfTheDay()
-        }
-        .navigationDestination(for: NASAImageOfTheDay.self) { item in
-            NASAImageOfTheDayDetailView(item: item)
         }
     }
 
@@ -102,7 +101,7 @@ private struct NASAImageOfTheDayCard: View {
 
     @ViewBuilder
     private var image: some View {
-        if item.isImage, let url = item.displayURL {
+        if item.isImage, let url = item.previewURL {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .empty:
@@ -199,7 +198,7 @@ private struct NASAImageOfTheDayDetailView: View {
 
     @ViewBuilder
     private var heroImage: some View {
-        if item.isImage, let url = item.displayURL {
+        if item.isImage, let url = item.previewURL {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .empty:
