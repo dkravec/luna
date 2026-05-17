@@ -62,6 +62,7 @@ struct ObjectExperienceView: View {
             settings: settings,
             content: .object(celestialBody.id),
             simulationTimeDays: 0,
+            focusedBodyID: selectedQuickDetailsBody?.id,
             onSelectBody: showQuickDetails(for:)
         )
         .ignoresSafeArea(edges: .bottom)

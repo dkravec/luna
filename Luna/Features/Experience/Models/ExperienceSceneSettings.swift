@@ -1,6 +1,9 @@
 import Foundation
 
 struct ExperienceSceneSettings: Equatable {
+    static let minimumDistanceCompression: Double = 2
+    static let maximumDistanceCompression: Double = 50
+
     var isAREnabled: Bool
     var distanceScaleMode: DistanceScaleMode
     var objectScaleMode: ObjectScaleMode
@@ -20,6 +23,10 @@ struct ExperienceSceneSettings: Equatable {
         showLabels: true,
         showOrbits: true
     )
+
+    static func clampedDistanceCompression(_ value: Double) -> Double {
+        min(max(value, minimumDistanceCompression), maximumDistanceCompression)
+    }
 
     init(isAREnabled: Bool, preferences: ExperiencePreferences) {
         self.init(
@@ -47,7 +54,7 @@ struct ExperienceSceneSettings: Equatable {
         self.isAREnabled = isAREnabled
         self.distanceScaleMode = distanceScaleMode
         self.objectScaleMode = objectScaleMode
-        self.distanceCompression = distanceCompression
+        self.distanceCompression = Self.clampedDistanceCompression(distanceCompression)
         self.orbitPlaybackSpeed = orbitPlaybackSpeed
         self.objectRotationSpeed = objectRotationSpeed
         self.showLabels = showLabels

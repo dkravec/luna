@@ -568,10 +568,8 @@ enum ExperienceSceneEngine {
         case .educational:
             return Float((index ?? max(body.displayOrder - 1, 0)) + 1) * 1.18
         case .compressed:
-            let normalized = Float(normalizedSunDistance(for: body, maxSunDistance: maxSunDistance))
-            let compression = Float(max(settings.distanceCompression, 5))
-            let range = max(4.2, 10.4 - compression * 0.045)
-            return 0.9 + pow(normalized, 0.44) * range
+            let compression = Float(ExperienceSceneSettings.clampedDistanceCompression(settings.distanceCompression))
+            return trueDistance(for: body, fallbackDistance: body.averageDistanceFromSunKm) / compression
         case .trueScale:
             return trueDistance(for: body, fallbackDistance: body.averageDistanceFromSunKm)
         }
@@ -583,7 +581,8 @@ enum ExperienceSceneEngine {
             case .educational:
                 return 0.44
             case .compressed:
-                return 0.54
+                let compression = Float(ExperienceSceneSettings.clampedDistanceCompression(settings.distanceCompression))
+                return trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm) / compression
             case .trueScale:
                 return trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm)
             }
@@ -592,6 +591,9 @@ enum ExperienceSceneEngine {
         switch settings.distanceScaleMode {
         case .trueScale:
             return trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm)
+        case .compressed:
+            let compression = Float(ExperienceSceneSettings.clampedDistanceCompression(settings.distanceCompression))
+            return trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm) / compression
         default:
             return 0.42
         }
@@ -671,14 +673,6 @@ enum ExperienceSceneEngine {
     private static func trueDistance(for body: CelestialBody, fallbackDistance: Double?) -> Float {
         let distance = body.orbit?.semiMajorAxisKm ?? fallbackDistance ?? 0
         return Float(max(distance, 0) / trueDistanceKilometersPerSceneUnit)
-    }
-
-    private static func normalizedSunDistance(for body: CelestialBody, maxSunDistance: Double) -> Double {
-        guard let distance = body.averageDistanceFromSunKm, distance > 0 else {
-            return 0
-        }
-
-        return min(max(distance / maxSunDistance, 0), 1)
     }
 
     private static func defaultAxialTiltDegrees(for body: CelestialBody) -> Double {

@@ -328,6 +328,9 @@ struct LunaARSceneView: UIViewRepresentable {
                 if entity.name.hasPrefix("body:") {
                     return bodyLookup[String(entity.name.dropFirst(5))]
                 }
+                if entity.name.hasPrefix("orbit:") {
+                    return bodyLookup[String(entity.name.dropFirst(6))]
+                }
                 currentEntity = entity.parent
             }
             return nil
@@ -371,6 +374,7 @@ struct LunaARSceneView: UIViewRepresentable {
 
         private static func orbitDots(for path: ExperienceOrbitPath, scale: Float, center: SIMD3<Float>) -> AROrbitTree {
             let root = Entity()
+            root.name = "orbit:\(path.bodyId)"
             let material = SimpleMaterial(
                 color: UIColor.white.withAlphaComponent(path.bodyId == "moon" ? 0.36 : 0.20),
                 roughness: 0.6,
@@ -381,7 +385,9 @@ struct LunaARSceneView: UIViewRepresentable {
 
             for position in positions {
                 let dot = ModelEntity(mesh: .generateSphere(radius: path.bodyId == "moon" ? 0.0028 : 0.0021), materials: [material])
+                dot.name = "orbit:\(path.bodyId)"
                 dot.position = position - center
+                dot.generateCollisionShapes(recursive: false)
                 root.addChild(dot)
                 dots.append(dot)
             }

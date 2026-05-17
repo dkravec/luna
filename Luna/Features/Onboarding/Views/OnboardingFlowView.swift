@@ -280,28 +280,37 @@ struct DistanceScaleOptionsView: View {
     }
 
     private func compressionSection(_ distanceCompression: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let clampedCompression = Binding<Double>(
+            get: {
+                ExperienceSceneSettings.clampedDistanceCompression(distanceCompression.wrappedValue)
+            },
+            set: {
+                distanceCompression.wrappedValue = ExperienceSceneSettings.clampedDistanceCompression($0)
+            }
+        )
+
+        return VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Compression")
 
             Card {
                 VStack(alignment: .leading, spacing: 12) {
                     RowLabel(
                         title: "Distance Compression",
-                        subtitle: "Brings faraway bodies closer for viewing. This is a viewing aid, not accurate distance.",
+                        subtitle: "Shows real orbital distances divided by this value, with visual clearance where needed.",
                         systemImage: "arrow.left.and.right",
-                        value: "\(Int(distanceCompression.wrappedValue.rounded()))x"
+                        value: "\(Int(clampedCompression.wrappedValue.rounded()))x"
                     )
 
                     Slider(
-                        value: distanceCompression,
-                        in: 5...100,
-                        step: 5
+                        value: clampedCompression,
+                        in: ExperienceSceneSettings.minimumDistanceCompression...ExperienceSceneSettings.maximumDistanceCompression,
+                        step: 1
                     ) {
                         Text("Distance Compression")
                     } minimumValueLabel: {
-                        Text("5x")
+                        Text("\(Int(ExperienceSceneSettings.minimumDistanceCompression))x")
                     } maximumValueLabel: {
-                        Text("100x")
+                        Text("\(Int(ExperienceSceneSettings.maximumDistanceCompression))x")
                     }
                 }
             }
@@ -318,7 +327,7 @@ struct DistanceScaleOptionsView: View {
             ),
             ScaleOption(
                 mode: .compressed,
-                subtitle: "Preserves distance order while pulling worlds closer.",
+                subtitle: "Uses real distances divided by a selected compression value.",
                 systemImage: "arrow.left.and.right",
                 value: "Compressed"
             ),

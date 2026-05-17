@@ -76,7 +76,7 @@ final class LunaAppState: ObservableObject {
     }
 
     func setDistanceCompression(_ distanceCompression: Double) {
-        experiencePreferences.distanceCompression = distanceCompression
+        experiencePreferences.distanceCompression = ExperienceSceneSettings.clampedDistanceCompression(distanceCompression)
         saveExperiencePreferences()
     }
 
@@ -129,7 +129,7 @@ final class LunaAppState: ObservableObject {
         experiencePreferences.prefersARMode = prefersARMode
         experiencePreferences.distanceScaleMode = distanceScaleMode
         experiencePreferences.objectScaleMode = objectScaleMode
-        experiencePreferences.distanceCompression = distanceCompression
+        experiencePreferences.distanceCompression = ExperienceSceneSettings.clampedDistanceCompression(distanceCompression)
 
         saveUserProfile()
         saveExperiencePreferences()

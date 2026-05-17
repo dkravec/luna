@@ -48,6 +48,49 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         )
     }
 
+    func testCompressedDistanceUsesLiteralTrueDistanceDivisorForOuterOrbits() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .uniform, distanceCompression: 2)
+        )
+
+        XCTAssertEqual(
+            try orbitRadius("neptune", in: snapshot),
+            Float(sourceDistance("neptune") / Self.trueDistanceKilometersPerSceneUnit / 2),
+            accuracy: 0.01
+        )
+    }
+
+    func testCompressedDistanceClampsDivisorRange() throws {
+        let belowMinimum = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .uniform, distanceCompression: 1)
+        )
+        let atMinimum = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .uniform, distanceCompression: 2)
+        )
+        let aboveMaximum = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .uniform, distanceCompression: 100)
+        )
+        let atMaximum = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .uniform, distanceCompression: 50)
+        )
+
+        XCTAssertEqual(
+            try orbitRadius("neptune", in: belowMinimum),
+            try orbitRadius("neptune", in: atMinimum),
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            try orbitRadius("neptune", in: aboveMaximum),
+            try orbitRadius("neptune", in: atMaximum),
+            accuracy: 0.001
+        )
+    }
+
     func testTrueDistanceMercuryClearsSunForEveryObjectScale() throws {
         for objectMode in ObjectScaleMode.allCases {
             let snapshot = ExperienceSceneEngine.snapshot(
@@ -185,6 +228,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         makeBody(id: "jupiter", name: "Jupiter", radiusKm: 69_911, averageDistanceFromSunKm: 778_500_000, orbit: orbit(778_570_000, eccentricity: 0.0489, inclination: 1.304, meanAnomaly: 20.020), displayOrder: 5),
         makeBody(id: "neptune", name: "Neptune", radiusKm: 24_622, averageDistanceFromSunKm: 4_495_100_000, orbit: orbit(4_495_060_000, eccentricity: 0.0113, inclination: 1.770, meanAnomaly: 256.228), displayOrder: 6)
     ]
+    private static let trueDistanceKilometersPerSceneUnit: Double = 316_553_521
 
     private static func makeBody(
         id: String,
@@ -252,12 +296,16 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         return length(target.position - sun.position) - sun.displayRadius - target.displayRadius
     }
 
-    private func settings(distance: DistanceScaleMode, object: ObjectScaleMode) -> ExperienceSceneSettings {
+    private func settings(
+        distance: DistanceScaleMode,
+        object: ObjectScaleMode,
+        distanceCompression: Double = 30
+    ) -> ExperienceSceneSettings {
         ExperienceSceneSettings(
             isAREnabled: false,
             distanceScaleMode: distance,
             objectScaleMode: object,
-            distanceCompression: 30,
+            distanceCompression: distanceCompression,
             orbitPlaybackSpeed: .standard,
             objectRotationSpeed: .slow,
             showLabels: true,

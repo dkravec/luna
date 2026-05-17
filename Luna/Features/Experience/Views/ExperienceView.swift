@@ -110,6 +110,7 @@ struct ExperienceView: View {
                 settings: settings,
                 content: .solarSystem,
                 simulationTimeDays: simulationTimeDays,
+                focusedBodyID: selectedQuickDetailsBody?.id,
                 onSelectBody: showQuickDetails(for:)
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -120,6 +121,7 @@ struct ExperienceView: View {
             settings: settings,
             content: .solarSystem,
             simulationTimeDays: simulationTimeDays,
+            focusedBodyID: selectedQuickDetailsBody?.id,
             onSelectBody: showQuickDetails(for:)
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
