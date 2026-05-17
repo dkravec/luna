@@ -7,6 +7,7 @@ protocol NASAImageOfTheDayRepositoryProviding {
     func refreshLatest() async throws -> NASAImageOfTheDay
     func savedHistory(limit: Int) throws -> [NASAImageOfTheDay]
     func imageFileURL(for date: Date) -> URL
+    func clearCache() throws
 }
 
 final class NASAImageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding {
@@ -56,6 +57,16 @@ final class NASAImageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding {
 
     func imageFileURL(for date: Date) -> URL {
         sharedCache.imageFileURL(for: date)
+    }
+
+    func clearCache() throws {
+        let request = NASAImageOfTheDayRecord.fetchRequest()
+        let records = try context.fetch(request)
+
+        records.forEach(context.delete)
+        try saveContextIfNeeded()
+        try sharedCache.clear()
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     private func save(_ item: NASAImageOfTheDay) throws {

@@ -16,6 +16,7 @@ struct LunaImageOfTheDayWidget: Widget {
         .configurationDisplayName("NASA Image")
         .description("See NASA's astronomy image of the day from Luna.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .contentMarginsDisabled()
     }
 }
 
@@ -108,38 +109,99 @@ struct NASAImageTimelineProvider: TimelineProvider {
 }
 
 struct NASAImageWidgetView: View {
+    @Environment(\.widgetFamily) private var family
+
     let entry: NASAImageEntry
 
     var body: some View {
         widgetContent
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipShape(ContainerRelativeShape())
+            .clipped()
             .lunaWidgetBackground()
     }
 
     private var widgetContent: some View {
-        ZStack(alignment: .bottomLeading) {
-            image
+        GeometryReader { proxy in
+            ZStack(alignment: .bottomLeading) {
+                image
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
 
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.82)],
-                startPoint: .center,
-                endPoint: .bottom
-            )
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.2), .black.opacity(0.86)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(entry.subtitle)
-                    .font(.caption2.weight(.semibold))
-                    .textCase(.uppercase)
-                    .foregroundStyle(.white.opacity(0.78))
-                    .lineLimit(1)
-
-                Text(entry.title)
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
-                    .lineLimit(4)
-                    .minimumScaleFactor(0.72)
+                textBlock
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.bottom, bottomPadding)
+                    .frame(width: proxy.size.width, alignment: .leading)
             }
-            .padding(12)
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
+    }
+
+    private var textBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(entry.subtitle)
+                .font(subtitleFont)
+                .textCase(.uppercase)
+                .foregroundStyle(.white.opacity(0.78))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+
+            Text(entry.title)
+                .font(titleFont)
+                .foregroundStyle(.white)
+                .lineLimit(titleLineLimit)
+                .minimumScaleFactor(0.72)
+                .allowsTightening(true)
+        }
+        .shadow(color: .black.opacity(0.45), radius: 4, x: 0, y: 1)
+        .dynamicTypeSize(...DynamicTypeSize.large)
+    }
+
+    private var subtitleFont: Font {
+        switch family {
+        case .systemLarge:
+            return .system(size: 11, weight: .semibold)
+        default:
+            return .system(size: 10, weight: .semibold)
+        }
+    }
+
+    private var titleFont: Font {
+        switch family {
+        case .systemSmall:
+            return .system(size: 15, weight: .bold)
+        case .systemMedium:
+            return .system(size: 17, weight: .bold)
+        case .systemLarge:
+            return .system(size: 22, weight: .bold)
+        default:
+            return .headline.weight(.bold)
+        }
+    }
+
+    private var titleLineLimit: Int {
+        switch family {
+        case .systemSmall, .systemMedium:
+            return 2
+        case .systemLarge:
+            return 3
+        default:
+            return 2
+        }
+    }
+
+    private var horizontalPadding: CGFloat {
+        family == .systemSmall ? 12 : 16
+    }
+
+    private var bottomPadding: CGFloat {
+        family == .systemSmall ? 12 : 16
     }
 
     @ViewBuilder

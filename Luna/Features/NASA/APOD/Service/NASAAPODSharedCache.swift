@@ -52,6 +52,11 @@ struct NASAAPODSharedCache {
         try fileManager.createDirectory(at: imagesDirectoryURL, withIntermediateDirectories: true)
     }
 
+    func clear() throws {
+        guard fileManager.fileExists(atPath: cacheDirectoryURL.path) else { return }
+        try fileManager.removeItem(at: cacheDirectoryURL)
+    }
+
     private func readRecords(from url: URL) -> [NASAAPODSharedRecord] {
         guard let data = try? Data(contentsOf: url) else { return [] }
         return (try? decoder.decode([NASAAPODSharedRecord].self, from: data)) ?? []
