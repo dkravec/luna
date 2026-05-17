@@ -180,7 +180,12 @@ enum ExperienceSceneEngine {
         switch content {
         case .solarSystem:
             return bodies.filter { body in
-                body.type != .satellite
+                switch body.type {
+                case .star, .planet, .moon, .asteroid, .dwarfPlanet:
+                    return true
+                case .satellite, .rocket, .spacecraft, .station, .astronaut:
+                    return false
+                }
             }
         case .object(let bodyId):
             return bodies.filter { $0.id == bodyId }
@@ -265,6 +270,8 @@ enum ExperienceSceneEngine {
                 return 0.18
             case .satellite:
                 return 0.09
+            case .rocket, .spacecraft, .station, .astronaut:
+                return 0.16
             case .planet:
                 return 0.20
             }
@@ -272,7 +279,7 @@ enum ExperienceSceneEngine {
             switch body.type {
             case .star:
                 return 0.46
-            case .satellite:
+            case .satellite, .rocket, .spacecraft, .station, .astronaut:
                 return 0.08
             case .moon:
                 let normalized = Float(max(body.radiusKm, 1) / 69_911)
@@ -307,6 +314,8 @@ enum ExperienceSceneEngine {
             return max(displayRadius, 0.026)
         case .satellite:
             return max(displayRadius, 0.02)
+        case .rocket, .spacecraft, .station, .astronaut:
+            return max(displayRadius, 0.035)
         }
     }
 

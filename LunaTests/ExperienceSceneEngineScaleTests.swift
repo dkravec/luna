@@ -205,6 +205,35 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertGreaterThan(metrics.zFar, metrics.cameraDistance + Double(snapshot.bounds.span) * 2)
     }
 
+    func testInitialSceneCameraCentersOnSunWhenAvailable() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative)
+        )
+        let sun = try body("sun", in: snapshot)
+        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: settings(distance: .compressed, object: .relative))
+        let limit = SceneCameraLimit(snapshot: snapshot, settings: settings(distance: .compressed, object: .relative))
+
+        XCTAssertEqual(Float(metrics.subjectCenter.x), sun.position.x, accuracy: 0.0001)
+        XCTAssertEqual(Float(metrics.subjectCenter.y), sun.position.y, accuracy: 0.0001)
+        XCTAssertEqual(Float(metrics.subjectCenter.z), sun.position.z, accuracy: 0.0001)
+        XCTAssertEqual(Float(limit.subjectCenter.x), sun.position.x, accuracy: 0.0001)
+    }
+
+    func testInitialSceneZoomUsesProfileSettings() {
+        let recommendedSettings = settings(distance: .compressed, object: .relative, sceneScaleProfile: .scaledRecommended)
+        let trueScaleSettings = settings(distance: .trueScale, object: .trueScale, sceneScaleProfile: .trueSize)
+        let recommended = ExperienceSceneEngine.snapshot(for: Self.bodies, settings: recommendedSettings)
+        let trueScale = ExperienceSceneEngine.snapshot(for: Self.bodies, settings: trueScaleSettings)
+
+        let recommendedMetrics = SolarSystemSceneCameraMetrics(snapshot: recommended, settings: recommendedSettings)
+        let trueScaleMetrics = SolarSystemSceneCameraMetrics(snapshot: trueScale, settings: trueScaleSettings)
+
+        XCTAssertLessThanOrEqual(recommendedMetrics.orthographicScale, 16)
+        XCTAssertGreaterThan(trueScaleMetrics.orthographicScale, recommendedMetrics.orthographicScale)
+        XCTAssertEqual(trueScaleMetrics.orthographicScale, Double(trueScale.bounds.span + 2.6), accuracy: 0.001)
+    }
+
     func testRecommendedMercuryPerihelionClearsSun() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,
@@ -519,10 +548,12 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         distance: DistanceScaleMode,
         object: ObjectScaleMode,
         distanceCompression: Double = 30,
-        renderDetail: SceneRenderDetail = .balanced
+        renderDetail: SceneRenderDetail = .balanced,
+        sceneScaleProfile: SceneScaleProfile = .custom
     ) -> ExperienceSceneSettings {
         ExperienceSceneSettings(
             isAREnabled: false,
+            sceneScaleProfile: sceneScaleProfile,
             distanceScaleMode: distance,
             objectScaleMode: object,
             distanceCompression: distanceCompression,
