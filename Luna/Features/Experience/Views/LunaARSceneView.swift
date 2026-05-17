@@ -63,7 +63,7 @@ struct LunaARSceneView: UIViewRepresentable {
         private var rootCenter: SIMD3<Float> = .zero
         private var structureKey: String?
         private var bodyEntities: [String: Entity] = [:]
-        private var orbitDotEntities: [String: [Entity]] = [:]
+        private var orbitSegmentEntities: [String: [Entity]] = [:]
         private var installedGestures: [UIGestureRecognizer] = []
         private var lastRecenterTrigger: Int?
         private var placementUpdateSubscription: Cancellable?
@@ -149,7 +149,7 @@ struct LunaARSceneView: UIViewRepresentable {
                 root = nil
                 structureKey = nil
                 bodyEntities.removeAll()
-                orbitDotEntities.removeAll()
+                orbitSegmentEntities.removeAll()
                 lastRecenterTrigger = recenterTrigger
                 return
             }
@@ -184,7 +184,7 @@ struct LunaARSceneView: UIViewRepresentable {
                 root = renderTree.root
                 rootCenter = renderTree.center
                 bodyEntities = renderTree.bodyEntities
-                orbitDotEntities = renderTree.orbitDotEntities
+                orbitSegmentEntities = renderTree.orbitSegmentEntities
                 structureKey = nextStructureKey
 
                 anchor.addChild(renderTree.root)
@@ -242,11 +242,12 @@ struct LunaARSceneView: UIViewRepresentable {
             }
 
             for orbitPath in snapshot.orbitPaths {
-                guard let dots = orbitDotEntities[orbitPath.id] else { continue }
+                guard let segments = orbitSegmentEntities[orbitPath.id] else { continue }
 
-                let positions = Self.orbitDotPositions(for: orbitPath, scale: 0.095, stride: 6)
-                for index in 0..<min(dots.count, positions.count) {
-                    dots[index].position = positions[index] - rootCenter
+                let segmentPlacements = Self.orbitSegmentPlacements(for: orbitPath, scale: 0.095, center: rootCenter)
+                for index in 0..<min(segments.count, segmentPlacements.count) {
+                    segments[index].position = segmentPlacements[index].position
+                    segments[index].orientation = segmentPlacements[index].orientation
                 }
             }
         }
@@ -274,7 +275,7 @@ struct LunaARSceneView: UIViewRepresentable {
             root.position = bounds.center
             root.collision = CollisionComponent(shapes: [.generateBox(size: bounds.size)])
             var bodyEntities: [String: Entity] = [:]
-            var orbitDotEntities: [String: [Entity]] = [:]
+            var orbitSegmentEntities: [String: [Entity]] = [:]
 
             for placement in arPlacements {
                 let entity = entity(for: placement)
@@ -288,9 +289,9 @@ struct LunaARSceneView: UIViewRepresentable {
 
             if settings.showOrbits {
                 for orbitPath in snapshot.orbitPaths {
-                    let orbitTree = orbitDots(for: orbitPath, scale: 0.095, center: bounds.center, stride: settings.renderDetail.arOrbitStride)
+                    let orbitTree = orbitSegments(for: orbitPath, scale: 0.095, center: bounds.center)
                     root.addChild(orbitTree.root)
-                    orbitDotEntities[orbitPath.id] = orbitTree.dots
+                    orbitSegmentEntities[orbitPath.id] = orbitTree.segments
                 }
             }
 
@@ -298,7 +299,7 @@ struct LunaARSceneView: UIViewRepresentable {
                 root: root,
                 center: bounds.center,
                 bodyEntities: bodyEntities,
-                orbitDotEntities: orbitDotEntities
+                orbitSegmentEntities: orbitSegmentEntities
             )
         }
 
@@ -377,32 +378,52 @@ struct LunaARSceneView: UIViewRepresentable {
             return tilt * spin
         }
 
-        private static func orbitDots(for path: ExperienceOrbitPath, scale: Float, center: SIMD3<Float>, stride: Int) -> AROrbitTree {
+        private static func orbitSegments(for path: ExperienceOrbitPath, scale: Float, center: SIMD3<Float>) -> AROrbitTree {
             let root = Entity()
             root.name = "orbit:\(path.bodyId)"
             let material = SimpleMaterial(
-                color: UIColor.white.withAlphaComponent(path.bodyId == "moon" ? 0.36 : 0.20),
+                color: UIColor.white.withAlphaComponent(path.bodyId == "moon" ? 0.34 : 0.18),
                 roughness: 0.6,
                 isMetallic: false
             )
-            let positions = orbitDotPositions(for: path, scale: scale, stride: stride)
-            var dots: [Entity] = []
+            let segmentPlacements = orbitSegmentPlacements(for: path, scale: scale, center: center)
+            var segments: [Entity] = []
+            let thickness: Float = path.bodyId == "moon" ? 0.0018 : 0.0012
 
-            for position in positions {
-                let dot = ModelEntity(mesh: .generateSphere(radius: path.bodyId == "moon" ? 0.0028 : 0.0021), materials: [material])
-                dot.name = "orbit:\(path.bodyId)"
-                dot.position = position - center
-                dot.generateCollisionShapes(recursive: false)
-                root.addChild(dot)
-                dots.append(dot)
+            for placement in segmentPlacements {
+                let segment = ModelEntity(
+                    mesh: .generateBox(size: SIMD3<Float>(placement.length, thickness, thickness)),
+                    materials: [material]
+                )
+                segment.name = "orbit:\(path.bodyId)"
+                segment.position = placement.position
+                segment.orientation = placement.orientation
+                root.addChild(segment)
+                segments.append(segment)
             }
 
-            return AROrbitTree(root: root, dots: dots)
+            return AROrbitTree(root: root, segments: segments)
         }
 
-        private static func orbitDotPositions(for path: ExperienceOrbitPath, scale: Float, stride: Int) -> [SIMD3<Float>] {
-            path.points.enumerated().compactMap { point in
-                point.offset.isMultiple(of: max(stride, 1)) ? point.element * scale : nil
+        private static func orbitSegmentPlacements(
+            for path: ExperienceOrbitPath,
+            scale: Float,
+            center: SIMD3<Float>
+        ) -> [AROrbitSegmentPlacement] {
+            guard path.points.count > 2 else { return [] }
+
+            return path.points.indices.compactMap { index in
+                let start = path.points[index] * scale
+                let end = path.points[(index + 1) % path.points.count] * scale
+                let delta = end - start
+                let length = simd_length(delta)
+                guard length > 0.0001 else { return nil }
+
+                return AROrbitSegmentPlacement(
+                    position: ((start + end) / 2) - center,
+                    length: length,
+                    orientation: simd_quatf(from: SIMD3<Float>(1, 0, 0), to: simd_normalize(delta))
+                )
             }
         }
 
@@ -502,12 +523,18 @@ private struct ARRenderTree {
     let root: ModelEntity
     let center: SIMD3<Float>
     let bodyEntities: [String: Entity]
-    let orbitDotEntities: [String: [Entity]]
+    let orbitSegmentEntities: [String: [Entity]]
 }
 
 private struct AROrbitTree {
     let root: Entity
-    let dots: [Entity]
+    let segments: [Entity]
+}
+
+private struct AROrbitSegmentPlacement {
+    let position: SIMD3<Float>
+    let length: Float
+    let orientation: simd_quatf
 }
 
 private struct ARPlacementBounds {

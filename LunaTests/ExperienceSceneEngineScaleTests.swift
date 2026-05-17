@@ -173,6 +173,12 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
     func testScaleProfileDefaultsToCompressedRelative() {
         XCTAssertEqual(SceneScaleProfile.scaledRecommended.defaultDistanceScaleMode, .compressed)
         XCTAssertEqual(SceneScaleProfile.scaledRecommended.defaultObjectScaleMode, .relative)
+        XCTAssertEqual(SceneScaleProfile.uniform.defaultDistanceScaleMode, .compressed)
+        XCTAssertEqual(SceneScaleProfile.uniform.defaultObjectScaleMode, .uniform)
+        XCTAssertEqual(SceneScaleProfile.trueSize.defaultDistanceScaleMode, .trueScale)
+        XCTAssertEqual(SceneScaleProfile.trueSize.defaultObjectScaleMode, .trueScale)
+        XCTAssertEqual(SceneScaleProfile.custom.defaultDistanceScaleMode, .compressed)
+        XCTAssertEqual(SceneScaleProfile.custom.defaultObjectScaleMode, .relative)
     }
 
     func testOrbitPathStoresOrientationAngles() throws {
@@ -196,6 +202,74 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
 
         XCTAssertGreaterThan(metrics.cameraDistance, Double(snapshot.bounds.span))
         XCTAssertGreaterThan(metrics.zFar, metrics.cameraDistance + Double(snapshot.bounds.span) * 2)
+    }
+
+    func testRecommendedMercuryPerihelionClearsSun() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative)
+        )
+        let sun = try body("sun", in: snapshot)
+        let mercury = try body("mercury", in: snapshot)
+        let mercuryOrbit = try XCTUnwrap(snapshot.orbitPaths.first { $0.bodyId == "mercury" })
+        let minimumOrbitDistance = mercuryOrbit.points.map { length($0) }.min() ?? 0
+
+        XCTAssertGreaterThanOrEqual(
+            minimumOrbitDistance,
+            sun.displayRadius + mercury.displayRadius + 0.12 - 0.002
+        )
+    }
+
+    func testTrueScaleUsesSamePhysicalUnitForRadiiAndDistances() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .trueScale, object: .trueScale)
+        )
+        let sun = try body("sun", in: snapshot)
+        let earth = try body("earth", in: snapshot)
+
+        XCTAssertEqual(Double(sun.displayRadius), sourceRadius("sun") / Self.physicalKilometersPerSceneUnit, accuracy: 0.000001)
+        XCTAssertEqual(Double(earth.displayRadius), sourceRadius("earth") / Self.physicalKilometersPerSceneUnit, accuracy: 0.000001)
+        XCTAssertEqual(Double(length(earth.position)), expectedSceneDistance("earth", distance: .trueScale), accuracy: 0.001)
+    }
+
+    func testTrueScalePlanetsOrbitOutsideTrueScaleSun() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .trueScale, object: .trueScale)
+        )
+        let sun = try body("sun", in: snapshot)
+
+        for planet in snapshot.bodies where planet.body.parentBodyId == "sun" {
+            XCTAssertGreaterThan(
+                length(planet.position),
+                sun.displayRadius + planet.displayRadius,
+                "\(planet.body.name) should orbit outside the true-scale Sun"
+            )
+        }
+    }
+
+    func testDateBasedOrbitAdvancesAndReturnsAfterPeriod() throws {
+        let start = Date(timeIntervalSince1970: (CelestialOrbit.j2000JulianDay - 2_440_587.5) * 86_400)
+        let settings = settings(distance: .trueScale, object: .trueScale)
+        let initial = ExperienceSceneEngine.snapshot(for: Self.bodies, settings: settings, simulationDate: start)
+        let advanced = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings,
+            simulationDate: start.addingTimeInterval(91.3125 * 86_400)
+        )
+        let returned = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings,
+            simulationDate: start.addingTimeInterval(365.25 * 86_400)
+        )
+
+        let initialEarth = try body("earth", in: initial)
+        let advancedEarth = try body("earth", in: advanced)
+        let returnedEarth = try body("earth", in: returned)
+
+        XCTAssertGreaterThan(length(advancedEarth.position - initialEarth.position), 0.25)
+        XCTAssertLessThan(length(returnedEarth.position - initialEarth.position), 0.01)
     }
 
     func testTrueSizePreservesRadiusRatios() throws {
@@ -254,7 +328,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         makeBody(id: "jupiter", name: "Jupiter", radiusKm: 69_911, averageDistanceFromSunKm: 778_500_000, orbit: orbit(778_570_000, eccentricity: 0.0489, inclination: 1.304, longitude: 100.464, periapsis: 273.867, meanAnomaly: 20.020), displayOrder: 5),
         makeBody(id: "neptune", name: "Neptune", radiusKm: 24_622, averageDistanceFromSunKm: 4_495_100_000, orbit: orbit(4_495_060_000, eccentricity: 0.0113, inclination: 1.770, longitude: 131.784, periapsis: 273.187, meanAnomaly: 256.228), displayOrder: 6)
     ]
-    private static let trueDistanceKilometersPerSceneUnit: Double = 316_553_521
+    private static let physicalKilometersPerSceneUnit: Double = 316_553_521
     private static let compressedDistanceKilometersPerSceneUnit: Double = 74_900_000
 
     private static func makeBody(
@@ -385,7 +459,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         case .compressed:
             return sourceDistance(body.id) / Self.compressedDistanceKilometersPerSceneUnit / distanceCompression
         case .trueScale:
-            return sourceDistance(body.id) / Self.trueDistanceKilometersPerSceneUnit
+            return sourceDistance(body.id) / Self.physicalKilometersPerSceneUnit
         }
     }
 
@@ -407,6 +481,11 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
     private func sourceDistance(_ id: String) -> Double {
         let body = Self.bodies.first { $0.id == id }!
         return body.orbit?.semiMajorAxisKm ?? body.averageDistanceFromSunKm ?? body.averageDistanceFromEarthKm!
+    }
+
+    private func sourceRadius(_ id: String) -> Double {
+        let body = Self.bodies.first { $0.id == id }!
+        return body.radiusKm
     }
 
     private func radiusRatio(_ lhs: ExperienceSceneBody, _ rhs: ExperienceSceneBody) -> Double {

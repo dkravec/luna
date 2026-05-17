@@ -137,6 +137,7 @@ final class LunaAppState: ObservableObject {
     func completeOnboarding(
         displayName: String?,
         prefersARMode: Bool,
+        sceneScaleProfile: SceneScaleProfile,
         distanceScaleMode: DistanceScaleMode,
         objectScaleMode: ObjectScaleMode,
         distanceCompression: Double
@@ -144,11 +145,13 @@ final class LunaAppState: ObservableObject {
         userProfile.displayName = displayName
         userProfile.hasCompletedOnboarding = true
         experiencePreferences.prefersARMode = prefersARMode
-        experiencePreferences.sceneScaleProfile = distanceScaleMode == .compressed && objectScaleMode == .relative
-            ? .scaledRecommended
-            : .custom
-        experiencePreferences.distanceScaleMode = distanceScaleMode
-        experiencePreferences.objectScaleMode = objectScaleMode
+        experiencePreferences.sceneScaleProfile = sceneScaleProfile
+        experiencePreferences.distanceScaleMode = sceneScaleProfile == .custom
+            ? distanceScaleMode
+            : sceneScaleProfile.defaultDistanceScaleMode
+        experiencePreferences.objectScaleMode = sceneScaleProfile == .custom
+            ? objectScaleMode
+            : sceneScaleProfile.defaultObjectScaleMode
         experiencePreferences.distanceCompression = ExperienceSceneSettings.clampedDistanceCompression(distanceCompression)
 
         saveUserProfile()

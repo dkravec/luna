@@ -285,11 +285,13 @@ struct ExperienceView: View {
                 LazyVStack(alignment: .leading, spacing: Spacing.section) {
                     viewModeSection
                     SceneScaleProfileOptionsView(sceneScaleProfile: sceneScaleProfileBinding)
-                    DistanceScaleOptionsView(
-                        distanceScaleMode: distanceScaleModeBinding,
-                        distanceCompression: distanceCompressionBinding
-                    )
-                    ObjectScaleOptionsView(objectScaleMode: objectScaleModeBinding)
+                    if appState.experiencePreferences.sceneScaleProfile == .custom {
+                        DistanceScaleOptionsView(
+                            distanceScaleMode: distanceScaleModeBinding,
+                            distanceCompression: distanceCompressionBinding
+                        )
+                        ObjectScaleOptionsView(objectScaleMode: objectScaleModeBinding)
+                    }
                     simulationDateSection
                     orbitPlaybackSection
                     objectRotationSection

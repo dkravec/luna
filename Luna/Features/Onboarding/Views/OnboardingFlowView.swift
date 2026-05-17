@@ -50,6 +50,7 @@ struct OnboardingFlowView: View {
             ViewingModeStepView(prefersARMode: $viewModel.prefersARMode)
         case .scaleMode:
             ScaleModeStepView(
+                sceneScaleProfile: profileBinding,
                 distanceScaleMode: $viewModel.distanceScaleMode,
                 objectScaleMode: $viewModel.objectScaleMode,
                 distanceCompression: $viewModel.distanceCompression
@@ -83,6 +84,7 @@ struct OnboardingFlowView: View {
             appState.completeOnboarding(
                 displayName: viewModel.trimmedDisplayName,
                 prefersARMode: viewModel.prefersARMode,
+                sceneScaleProfile: viewModel.sceneScaleProfile,
                 distanceScaleMode: viewModel.distanceScaleMode,
                 objectScaleMode: viewModel.objectScaleMode,
                 distanceCompression: viewModel.distanceCompression
@@ -90,6 +92,19 @@ struct OnboardingFlowView: View {
         } else {
             viewModel.advance()
         }
+    }
+
+    private var profileBinding: Binding<SceneScaleProfile> {
+        Binding(
+            get: { viewModel.sceneScaleProfile },
+            set: { profile in
+                viewModel.sceneScaleProfile = profile
+                if profile != .custom {
+                    viewModel.distanceScaleMode = profile.defaultDistanceScaleMode
+                    viewModel.objectScaleMode = profile.defaultObjectScaleMode
+                }
+            }
+        )
     }
 }
 
@@ -192,6 +207,7 @@ private struct ProfileStepView: View {
 }
 
 private struct ScaleModeStepView: View {
+    @Binding var sceneScaleProfile: SceneScaleProfile
     @Binding var distanceScaleMode: DistanceScaleMode
     @Binding var objectScaleMode: ObjectScaleMode
     @Binding var distanceCompression: Double
@@ -199,16 +215,20 @@ private struct ScaleModeStepView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.section) {
             PageHeader(
-                title: "Choose Scaling",
-                subtitle: "Pick how Luna should balance accurate scale with readable space views."
+                title: "Choose Scale Profile",
+                subtitle: "Pick a profile now. You can open custom controls later if you want fine tuning."
             )
 
-            DistanceScaleOptionsView(
-                distanceScaleMode: $distanceScaleMode,
-                distanceCompression: $distanceCompression
-            )
+            SceneScaleProfileOptionsView(sceneScaleProfile: $sceneScaleProfile)
 
-            ObjectScaleOptionsView(objectScaleMode: $objectScaleMode)
+            if sceneScaleProfile == .custom {
+                DistanceScaleOptionsView(
+                    distanceScaleMode: $distanceScaleMode,
+                    distanceCompression: $distanceCompression
+                )
+
+                ObjectScaleOptionsView(objectScaleMode: $objectScaleMode)
+            }
         }
     }
 }

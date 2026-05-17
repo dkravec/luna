@@ -97,9 +97,8 @@ protocol ExperienceSceneRenderer {
 }
 
 enum ExperienceSceneEngine {
-    private static let trueDistanceKilometersPerSceneUnit: Double = 316_553_521
+    private static let physicalKilometersPerSceneUnit: Double = 316_553_521
     private static let compressedDistanceKilometersPerSceneUnit: Double = 74_900_000
-    private static let trueRadiusKilometersPerSceneUnit: Double = 129_465
     private static let minimumInteractionRadius: Float = 0.035
 
     static func snapshot(
@@ -285,7 +284,7 @@ enum ExperienceSceneEngine {
         case .trueScale:
             switch body.type {
             default:
-                return Float(body.radiusKm / trueRadiusKilometersPerSceneUnit)
+                return Float(body.radiusKm / physicalKilometersPerSceneUnit)
             }
         }
     }
@@ -451,7 +450,7 @@ enum ExperienceSceneEngine {
                 let parentRadius = displayRadii[parentId] ?? 0
                 let bodyRadius = displayRadii[body.id] ?? 0
                 let minimumRadius = parentRadius + bodyRadius + childOrbitClearanceMargin(for: settings)
-                return (body.id, max(baseRadius, minimumRadius))
+                return (body.id, max(baseRadius, perihelionSafeSemiMajorAxis(for: body, minimumDistance: minimumRadius)))
             }
         )
     }
@@ -491,7 +490,7 @@ enum ExperienceSceneEngine {
             let minimumFromSun = sunRadius + envelope + sunOrbitClearanceMargin(for: settings)
 
             if settings.distanceScaleMode != .trueScale {
-                radius = max(radius, minimumFromSun)
+                radius = max(radius, perihelionSafeSemiMajorAxis(for: body, minimumDistance: minimumFromSun))
 
                 if let previousRadius {
                     radius = max(radius, previousRadius + previousEnvelope + envelope + interOrbitClearanceMargin(for: settings))
@@ -506,55 +505,9 @@ enum ExperienceSceneEngine {
         return result
     }
 
-    private static func trueDistancePlanetMultiplier(
-        for sunChildren: [CelestialBody],
-        bodies: [CelestialBody],
-        displayRadii: [String: Float],
-        childOrbitRadii: [String: Float],
-        maxSunDistance: Double,
-        settings: ExperienceSceneSettings
-    ) -> Float {
-        let sunRadius = displayRadii["sun"] ?? 0
-        var multiplier = Float(1)
-
-        for body in sunChildren {
-            let baseRadius = baseSunDistance(for: body, maxSunDistance: maxSunDistance, settings: settings)
-            guard baseRadius > 0 else { continue }
-
-            let envelope = systemEnvelopeRadius(
-                for: body,
-                bodies: bodies,
-                displayRadii: displayRadii,
-                childOrbitRadii: childOrbitRadii
-            )
-            let requiredRadius = sunRadius + envelope + sunOrbitClearanceMargin(for: settings)
-            multiplier = max(multiplier, requiredRadius / baseRadius)
-        }
-
-        for pair in zip(sunChildren, sunChildren.dropFirst()) {
-            let inner = pair.0
-            let outer = pair.1
-            let innerRadius = baseSunDistance(for: inner, maxSunDistance: maxSunDistance, settings: settings)
-            let outerRadius = baseSunDistance(for: outer, maxSunDistance: maxSunDistance, settings: settings)
-            let baseGap = outerRadius - innerRadius
-            guard baseGap > 0 else { continue }
-
-            let requiredGap = systemEnvelopeRadius(
-                for: inner,
-                bodies: bodies,
-                displayRadii: displayRadii,
-                childOrbitRadii: childOrbitRadii
-            ) + systemEnvelopeRadius(
-                for: outer,
-                bodies: bodies,
-                displayRadii: displayRadii,
-                childOrbitRadii: childOrbitRadii
-            ) + interOrbitClearanceMargin(for: settings)
-
-            multiplier = max(multiplier, requiredGap / baseGap)
-        }
-
-        return multiplier
+    private static func perihelionSafeSemiMajorAxis(for body: CelestialBody, minimumDistance: Float) -> Float {
+        let eccentricity = Float(min(max(body.orbit?.eccentricity ?? 0, 0), 0.95))
+        return minimumDistance / max(1 - eccentricity, 0.05)
     }
 
     private static func systemEnvelopeRadius(
@@ -743,7 +696,7 @@ enum ExperienceSceneEngine {
 
     private static func trueDistance(for body: CelestialBody, fallbackDistance: Double?) -> Float {
         let distance = body.orbit?.semiMajorAxisKm ?? fallbackDistance ?? 0
-        return Float(max(distance, 0) / trueDistanceKilometersPerSceneUnit)
+        return Float(max(distance, 0) / physicalKilometersPerSceneUnit)
     }
 
     private static func compressedDistance(for body: CelestialBody, fallbackDistance: Double?) -> Float {
