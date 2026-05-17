@@ -5,9 +5,11 @@ struct ExperienceSceneSettings: Equatable {
     static let maximumDistanceCompression: Double = 50
 
     var isAREnabled: Bool
+    var sceneScaleProfile: SceneScaleProfile
     var distanceScaleMode: DistanceScaleMode
     var objectScaleMode: ObjectScaleMode
     var distanceCompression: Double
+    var renderDetail: SceneRenderDetail
     var orbitPlaybackSpeed: OrbitPlaybackSpeed
     var objectRotationSpeed: ObjectRotationSpeed
     var showLabels: Bool
@@ -15,9 +17,11 @@ struct ExperienceSceneSettings: Equatable {
 
     static let defaults = ExperienceSceneSettings(
         isAREnabled: false,
-        distanceScaleMode: .educational,
+        sceneScaleProfile: .scaledRecommended,
+        distanceScaleMode: .compressed,
         objectScaleMode: .relative,
         distanceCompression: 30,
+        renderDetail: .balanced,
         orbitPlaybackSpeed: .standard,
         objectRotationSpeed: .slow,
         showLabels: true,
@@ -31,9 +35,11 @@ struct ExperienceSceneSettings: Equatable {
     init(isAREnabled: Bool, preferences: ExperiencePreferences) {
         self.init(
             isAREnabled: isAREnabled,
+            sceneScaleProfile: preferences.sceneScaleProfile,
             distanceScaleMode: preferences.distanceScaleMode,
             objectScaleMode: preferences.objectScaleMode,
             distanceCompression: preferences.distanceCompression,
+            renderDetail: preferences.renderDetail,
             orbitPlaybackSpeed: preferences.orbitPlaybackSpeed,
             objectRotationSpeed: preferences.objectRotationSpeed,
             showLabels: preferences.showLabels,
@@ -43,18 +49,22 @@ struct ExperienceSceneSettings: Equatable {
 
     init(
         isAREnabled: Bool,
+        sceneScaleProfile: SceneScaleProfile = .custom,
         distanceScaleMode: DistanceScaleMode,
         objectScaleMode: ObjectScaleMode,
         distanceCompression: Double,
+        renderDetail: SceneRenderDetail = .balanced,
         orbitPlaybackSpeed: OrbitPlaybackSpeed,
         objectRotationSpeed: ObjectRotationSpeed,
         showLabels: Bool,
         showOrbits: Bool
     ) {
         self.isAREnabled = isAREnabled
+        self.sceneScaleProfile = sceneScaleProfile
         self.distanceScaleMode = distanceScaleMode
         self.objectScaleMode = objectScaleMode
         self.distanceCompression = Self.clampedDistanceCompression(distanceCompression)
+        self.renderDetail = renderDetail
         self.orbitPlaybackSpeed = orbitPlaybackSpeed
         self.objectRotationSpeed = objectRotationSpeed
         self.showLabels = showLabels

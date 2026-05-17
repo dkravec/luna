@@ -323,13 +323,13 @@ struct DistanceScaleOptionsView: View {
                 mode: .educational,
                 subtitle: "Keeps distances equally spaced and readable.",
                 systemImage: "graduationcap",
-                value: "Recommended"
+                value: "Custom"
             ),
             ScaleOption(
                 mode: .compressed,
                 subtitle: "Uses real distances divided by a selected compression value.",
                 systemImage: "arrow.left.and.right",
-                value: "Compressed"
+                value: "Recommended"
             ),
             ScaleOption(
                 mode: .trueScale,
@@ -338,6 +338,47 @@ struct DistanceScaleOptionsView: View {
                 value: "Huge"
             )
         ]
+    }
+}
+
+struct SceneScaleProfileOptionsView: View {
+    @Binding var sceneScaleProfile: SceneScaleProfile
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Scale Profile")
+
+            CardSection {
+                ForEach(Array(SceneScaleProfile.allCases.enumerated()), id: \.element.id) { index, profile in
+                    SelectionRow(
+                        title: profile.title,
+                        subtitle: profile.subtitle,
+                        systemImage: systemImage(for: profile),
+                        value: profile == .scaledRecommended ? "Default" : nil,
+                        isSelected: sceneScaleProfile == profile
+                    ) {
+                        sceneScaleProfile = profile
+                    }
+
+                    if index < SceneScaleProfile.allCases.count - 1 {
+                        CardDivider(leadingInset: 56)
+                    }
+                }
+            }
+        }
+    }
+
+    private func systemImage(for profile: SceneScaleProfile) -> String {
+        switch profile {
+        case .scaledRecommended:
+            return "sparkles"
+        case .uniform:
+            return "circle.grid.2x2"
+        case .trueSize:
+            return "ruler"
+        case .custom:
+            return "slider.horizontal.3"
+        }
     }
 }
 

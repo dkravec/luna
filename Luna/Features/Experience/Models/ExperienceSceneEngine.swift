@@ -18,6 +18,7 @@ struct ExperienceSceneBody: Identifiable, Equatable {
     let body: CelestialBody
     let position: SIMD3<Float>
     let displayRadius: Float
+    let interactionRadius: Float
     let labelPosition: SIMD3<Float>
     let rotationAngleRadians: Float
     let axialTiltRadians: Float
@@ -28,6 +29,9 @@ struct ExperienceOrbitPath: Identifiable, Equatable {
     let bodyId: String
     let parentBodyId: String
     let points: [SIMD3<Float>]
+    let yawRadians: Float
+    let pitchRadians: Float
+    let rollRadians: Float
 }
 
 struct ExperienceSceneBounds: Equatable {
@@ -37,18 +41,27 @@ struct ExperienceSceneBounds: Equatable {
     let size: SIMD3<Float>
     let span: Float
 
-    init(bodies: [ExperienceSceneBody]) {
-        guard !bodies.isEmpty else {
+    init(bodies: [ExperienceSceneBody], orbitPaths: [ExperienceOrbitPath] = []) {
+        let bodyExtents = bodies.flatMap { body in
+            [
+                body.position - SIMD3<Float>(repeating: body.displayRadius),
+                body.position + SIMD3<Float>(repeating: body.displayRadius)
+            ]
+        }
+        let orbitPoints = orbitPaths.flatMap(\.points)
+        let points = bodyExtents + orbitPoints
+
+        guard !points.isEmpty else {
             self = .empty
             return
         }
 
-        let minX = bodies.map { $0.position.x - $0.displayRadius }.min() ?? -0.5
-        let maxX = bodies.map { $0.position.x + $0.displayRadius }.max() ?? 0.5
-        let minY = bodies.map { $0.position.y - $0.displayRadius }.min() ?? -0.5
-        let maxY = bodies.map { $0.position.y + $0.displayRadius }.max() ?? 0.5
-        let minZ = bodies.map { $0.position.z - $0.displayRadius }.min() ?? -0.5
-        let maxZ = bodies.map { $0.position.z + $0.displayRadius }.max() ?? 0.5
+        let minX = points.map(\.x).min() ?? -0.5
+        let maxX = points.map(\.x).max() ?? 0.5
+        let minY = points.map(\.y).min() ?? -0.5
+        let maxY = points.map(\.y).max() ?? 0.5
+        let minZ = points.map(\.z).min() ?? -0.5
+        let maxZ = points.map(\.z).max() ?? 0.5
 
         center = SIMD3<Float>(
             (minX + maxX) / 2,
@@ -87,14 +100,16 @@ enum ExperienceSceneEngine {
     private static let trueDistanceKilometersPerSceneUnit: Double = 316_553_521
     private static let compressedDistanceKilometersPerSceneUnit: Double = 74_900_000
     private static let trueRadiusKilometersPerSceneUnit: Double = 129_465
-    private static let trueRadiusVisualFloor: Float = 0.004
+    private static let minimumInteractionRadius: Float = 0.035
 
     static func snapshot(
         for bodies: [CelestialBody],
         settings: ExperienceSceneSettings,
         content: ExperienceSceneContent = .solarSystem,
-        simulationTimeDays: Double = 0
+        simulationTimeDays: Double = 0,
+        simulationDate: Date? = nil
     ) -> ExperienceSceneSnapshot {
+        let absoluteSimulationDays = simulationDate.map(Self.daysSinceJ2000) ?? simulationTimeDays
         let filteredBodies = bodiesForContent(bodies, content: content)
         let sortedBodies = filteredBodies.sorted { $0.displayOrder < $1.displayOrder }
         let maxSunDistance = max(
@@ -124,17 +139,18 @@ enum ExperienceSceneEngine {
                 settings: settings,
                 content: content,
                 scaleContext: scaleContext,
-                simulationTimeDays: simulationTimeDays
+                simulationTimeDays: absoluteSimulationDays
             )
             let radius = displayRadii[body.id] ?? displayRadius(for: body, settings: settings, content: content)
             let sceneBody = ExperienceSceneBody(
                 body: body,
                 position: position,
                 displayRadius: radius,
+                interactionRadius: interactionRadius(for: body, displayRadius: radius, settings: settings),
                 labelPosition: position + SIMD3<Float>(0, radius + max(0.28, radius * 0.58), 0),
                 rotationAngleRadians: rotationAngleRadians(
                     for: body,
-                    simulationTimeDays: simulationTimeDays,
+                    simulationTimeDays: absoluteSimulationDays,
                     speed: settings.objectRotationSpeed
                 ),
                 axialTiltRadians: axialTiltRadians(for: body)
@@ -157,7 +173,7 @@ enum ExperienceSceneEngine {
         return ExperienceSceneSnapshot(
             bodies: sceneBodies,
             orbitPaths: orbitPaths,
-            bounds: ExperienceSceneBounds(bodies: sceneBodies)
+            bounds: ExperienceSceneBounds(bodies: sceneBodies, orbitPaths: orbitPaths)
         )
     }
 
@@ -202,21 +218,11 @@ enum ExperienceSceneEngine {
 
         let distance = scaleContext.sunOrbitRadii[body.id]
             ?? baseSunDistance(for: body, maxSunDistance: scaleContext.maxSunDistance, settings: settings)
-        let angle = orbitalAngle(for: body, simulationTimeDays: simulationTimeDays)
-
-        if settings.distanceScaleMode == .trueScale {
-            return orbitOffset(
-                for: body,
-                radius: distance,
-                angle: angle,
-                isTrueScale: true
-            )
-        }
-
-        return SIMD3<Float>(
-            cos(angle) * distance,
-            orbitYOffset(for: body),
-            sin(angle) * distance
+        return orbitOffset(
+            for: body,
+            semiMajorAxis: distance,
+            simulationTimeDays: simulationTimeDays,
+            settings: settings
         )
     }
 
@@ -226,14 +232,13 @@ enum ExperienceSceneEngine {
         scaleContext: ExperienceSceneScaleContext,
         simulationTimeDays: Double
     ) -> SIMD3<Float> {
-        let angle = orbitalAngle(for: body, simulationTimeDays: simulationTimeDays)
         let radius = scaleContext.childOrbitRadii[body.id] ?? baseChildOrbitRadius(for: body, settings: settings)
 
         return orbitOffset(
             for: body,
-            radius: radius,
-            angle: angle,
-            isTrueScale: settings.distanceScaleMode == .trueScale
+            semiMajorAxis: radius,
+            simulationTimeDays: simulationTimeDays,
+            settings: settings
         )
     }
 
@@ -280,10 +285,29 @@ enum ExperienceSceneEngine {
         case .trueScale:
             switch body.type {
             default:
-                // Interaction still needs a tiny renderable target, but true-size ratios are
-                // otherwise a single fixed kilometer-to-scene-unit conversion.
-                return max(trueRadiusVisualFloor, Float(body.radiusKm / trueRadiusKilometersPerSceneUnit))
+                return Float(body.radiusKm / trueRadiusKilometersPerSceneUnit)
             }
+        }
+    }
+
+    private static func interactionRadius(
+        for body: CelestialBody,
+        displayRadius: Float,
+        settings: ExperienceSceneSettings
+    ) -> Float {
+        guard settings.objectScaleMode == .trueScale else {
+            return max(displayRadius, minimumInteractionRadius)
+        }
+
+        switch body.type {
+        case .star:
+            return max(displayRadius, 0.10)
+        case .planet:
+            return max(displayRadius, minimumInteractionRadius)
+        case .moon, .dwarfPlanet, .asteroid:
+            return max(displayRadius, 0.026)
+        case .satellite:
+            return max(displayRadius, 0.02)
         }
     }
 
@@ -317,7 +341,10 @@ enum ExperienceSceneEngine {
                 id: "\(body.id)-orbit",
                 bodyId: body.id,
                 parentBodyId: parentId,
-                points: points
+                points: points,
+                yawRadians: Float((body.orbit?.longitudeOfAscendingNodeDegrees ?? 0) * .pi / 180),
+                pitchRadians: Float((body.orbit?.inclinationDegrees ?? 0) * .pi / 180),
+                rollRadians: Float((body.orbit?.argumentOfPeriapsisDegrees ?? 0) * .pi / 180)
             )
         }
     }
@@ -338,24 +365,21 @@ enum ExperienceSceneEngine {
             radius = scaleContext.childOrbitRadii[body.id] ?? baseChildOrbitRadius(for: body, settings: settings)
         }
 
-        let eccentricity = Float(body.orbit?.eccentricity ?? 0)
-        let inclination = Float((body.orbit?.inclinationDegrees ?? 0) * .pi / 180)
-        let isTrueScale = settings.distanceScaleMode == .trueScale
+        let sampleCount = max(settings.renderDetail.orbitSampleCount, 24)
 
-        return (0..<128).map { index in
-            let angle = Float(index) / 128 * Float.pi * 2
-            let semiMinor = radius * sqrt(max(0.1, 1 - eccentricity * eccentricity))
-            let x = cos(angle) * radius
-            let z = sin(angle) * semiMinor
-            let y = z * sin(inclination) * (isTrueScale ? 1 : 0.18)
-            return parentPosition + SIMD3<Float>(x, y, z * cos(inclination))
+        return (0..<sampleCount).map { index in
+            let meanAnomaly = Double(index) / Double(sampleCount) * 360
+            return parentPosition + orbitOffset(
+                for: body,
+                semiMajorAxis: radius,
+                meanAnomalyDegrees: meanAnomaly,
+                settings: settings
+            )
         }
     }
 
     private static func orbitalAngle(for body: CelestialBody, simulationTimeDays: Double) -> Float {
-        let baseDegrees = body.orbit?.meanAnomalyAtEpochDegrees ?? Double(body.displayOrder * 28)
-        let period = max(body.orbitalPeriodDays ?? 365, 0.1)
-        let degrees = baseDegrees + simulationTimeDays / period * 360
+        let degrees = meanAnomalyDegrees(for: body, simulationTimeDays: simulationTimeDays)
         return Float(degrees.truncatingRemainder(dividingBy: 360) * .pi / 180)
     }
 
@@ -444,16 +468,7 @@ enum ExperienceSceneEngine {
             .sorted { $0.displayOrder < $1.displayOrder }
         guard !sunChildren.isEmpty else { return [:] }
 
-        let multiplier = settings.distanceScaleMode == .trueScale
-            ? trueDistancePlanetMultiplier(
-                for: sunChildren,
-                bodies: bodies,
-                displayRadii: displayRadii,
-                childOrbitRadii: childOrbitRadii,
-                maxSunDistance: maxSunDistance,
-                settings: settings
-            )
-            : 1
+        let multiplier = Float(1)
 
         var result: [String: Float] = [:]
         var previousRadius: Float?
@@ -658,17 +673,72 @@ enum ExperienceSceneEngine {
 
     private static func orbitOffset(
         for body: CelestialBody,
-        radius: Float,
-        angle: Float,
-        isTrueScale: Bool
+        semiMajorAxis: Float,
+        simulationTimeDays: Double,
+        settings: ExperienceSceneSettings
     ) -> SIMD3<Float> {
-        let eccentricity = Float(body.orbit?.eccentricity ?? 0)
-        let inclination = Float((body.orbit?.inclinationDegrees ?? 0) * .pi / 180)
-        let semiMinor = radius * sqrt(max(0.1, 1 - eccentricity * eccentricity))
-        let x = cos(angle) * radius
-        let z = sin(angle) * semiMinor
-        let y = z * sin(inclination) * (isTrueScale ? 1 : 0.18)
-        return SIMD3<Float>(x, y, z * cos(inclination))
+        orbitOffset(
+            for: body,
+            semiMajorAxis: semiMajorAxis,
+            meanAnomalyDegrees: meanAnomalyDegrees(for: body, simulationTimeDays: simulationTimeDays),
+            settings: settings
+        )
+    }
+
+    private static func orbitOffset(
+        for body: CelestialBody,
+        semiMajorAxis: Float,
+        meanAnomalyDegrees: Double,
+        settings: ExperienceSceneSettings
+    ) -> SIMD3<Float> {
+        guard let orbit = body.orbit else {
+            let angle = Float(meanAnomalyDegrees * .pi / 180)
+            return SIMD3<Float>(cos(angle) * semiMajorAxis, 0, sin(angle) * semiMajorAxis)
+        }
+
+        let eccentricity = min(max(orbit.eccentricity, 0), 0.98)
+        let eccentricAnomaly = solveEccentricAnomaly(
+            meanAnomalyRadians: meanAnomalyDegrees.normalizedDegrees * .pi / 180,
+            eccentricity: eccentricity
+        )
+        let trueAnomaly = 2 * atan2(
+            sqrt(1 + eccentricity) * sin(eccentricAnomaly / 2),
+            sqrt(1 - eccentricity) * cos(eccentricAnomaly / 2)
+        )
+        let radius = Double(semiMajorAxis) * (1 - eccentricity * cos(eccentricAnomaly))
+        let argument = trueAnomaly + orbit.argumentOfPeriapsisDegrees * .pi / 180
+        let longitude = orbit.longitudeOfAscendingNodeDegrees * .pi / 180
+        let inclination = orbit.inclinationDegrees * .pi / 180
+        let inclinationScale = settings.distanceScaleMode == .trueScale ? 1.0 : 0.28
+
+        let x = radius * (cos(longitude) * cos(argument) - sin(longitude) * sin(argument) * cos(inclination))
+        let y = radius * (sin(argument) * sin(inclination)) * inclinationScale
+        let z = radius * (sin(longitude) * cos(argument) + cos(longitude) * sin(argument) * cos(inclination))
+
+        return SIMD3<Float>(Float(x), Float(y), Float(z))
+    }
+
+    private static func meanAnomalyDegrees(for body: CelestialBody, simulationTimeDays: Double) -> Double {
+        let baseDegrees = body.orbit?.meanAnomalyAtEpochDegrees ?? Double(body.displayOrder * 28)
+        let epochOffset = body.orbit.map { CelestialOrbit.j2000JulianDay - $0.effectiveEpochJulianDay } ?? 0
+        let period = max(body.orbitalPeriodDays ?? 365, 0.1)
+        return baseDegrees + (simulationTimeDays + epochOffset) / period * 360
+    }
+
+    private static func solveEccentricAnomaly(meanAnomalyRadians: Double, eccentricity: Double) -> Double {
+        var anomaly = meanAnomalyRadians
+        for _ in 0..<8 {
+            let delta = (anomaly - eccentricity * sin(anomaly) - meanAnomalyRadians) / (1 - eccentricity * cos(anomaly))
+            anomaly -= delta
+            if abs(delta) < 0.000_000_1 {
+                break
+            }
+        }
+        return anomaly
+    }
+
+    private static func daysSinceJ2000(for date: Date) -> Double {
+        date.julianDay - CelestialOrbit.j2000JulianDay
     }
 
     private static func trueDistance(for body: CelestialBody, fallbackDistance: Double?) -> Float {
@@ -712,5 +782,18 @@ enum ExperienceSceneEngine {
 private extension SIMD3<Float> {
     var xzLength: Float {
         sqrt(x * x + z * z)
+    }
+}
+
+private extension Date {
+    var julianDay: Double {
+        timeIntervalSince1970 / 86_400 + 2_440_587.5
+    }
+}
+
+private extension Double {
+    var normalizedDegrees: Double {
+        let value = truncatingRemainder(dividingBy: 360)
+        return value < 0 ? value + 360 : value
     }
 }

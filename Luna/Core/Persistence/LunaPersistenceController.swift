@@ -56,9 +56,11 @@ final class LunaPersistenceController {
         experienceEntity.properties = [
             attribute("id", type: .UUIDAttributeType, optional: false),
             attribute("prefersARMode", type: .booleanAttributeType, optional: false, defaultValue: true),
-            attribute("distanceScaleModeRaw", type: .stringAttributeType, optional: false, defaultValue: DistanceScaleMode.educational.rawValue),
+            attribute("sceneScaleProfileRaw", type: .stringAttributeType, optional: false, defaultValue: SceneScaleProfile.scaledRecommended.rawValue),
+            attribute("distanceScaleModeRaw", type: .stringAttributeType, optional: false, defaultValue: DistanceScaleMode.compressed.rawValue),
             attribute("objectScaleModeRaw", type: .stringAttributeType, optional: false, defaultValue: ObjectScaleMode.relative.rawValue),
             attribute("distanceCompression", type: .doubleAttributeType, optional: false, defaultValue: 30),
+            attribute("renderDetailRaw", type: .stringAttributeType, optional: false, defaultValue: SceneRenderDetail.balanced.rawValue),
             attribute("orbitPlaybackSpeedRaw", type: .stringAttributeType, optional: false, defaultValue: OrbitPlaybackSpeed.standard.rawValue),
             attribute("objectRotationSpeedRaw", type: .stringAttributeType, optional: false, defaultValue: ObjectRotationSpeed.slow.rawValue),
             attribute("showLabels", type: .booleanAttributeType, optional: false, defaultValue: true),

@@ -10,6 +10,7 @@ struct LunaARSceneView: UIViewRepresentable {
     let settings: ExperienceSceneSettings
     var content: ExperienceSceneContent = .solarSystem
     var simulationTimeDays: Double = 0
+    var simulationDate: Date = Date()
     let recenterTrigger: Int
     var showsDebugSurfaces = false
     var onPlacementStateChange: (ARPlacementState) -> Void = { _ in }
@@ -32,6 +33,7 @@ struct LunaARSceneView: UIViewRepresentable {
             settings: settings,
             content: content,
             simulationTimeDays: simulationTimeDays,
+            simulationDate: simulationDate,
             recenterTrigger: recenterTrigger,
             showsDebugSurfaces: showsDebugSurfaces,
             onPlacementStateChange: onPlacementStateChange,
@@ -47,6 +49,7 @@ struct LunaARSceneView: UIViewRepresentable {
             settings: settings,
             content: content,
             simulationTimeDays: simulationTimeDays,
+            simulationDate: simulationDate,
             recenterTrigger: recenterTrigger,
             showsDebugSurfaces: showsDebugSurfaces,
             onPlacementStateChange: onPlacementStateChange,
@@ -125,6 +128,7 @@ struct LunaARSceneView: UIViewRepresentable {
             settings: ExperienceSceneSettings,
             content: ExperienceSceneContent,
             simulationTimeDays: Double,
+            simulationDate: Date,
             recenterTrigger: Int,
             showsDebugSurfaces: Bool,
             onPlacementStateChange: @escaping (ARPlacementState) -> Void,
@@ -154,7 +158,8 @@ struct LunaARSceneView: UIViewRepresentable {
                 for: bodies,
                 settings: settings,
                 content: content,
-                simulationTimeDays: simulationTimeDays
+                simulationTimeDays: simulationTimeDays,
+                simulationDate: simulationDate
             )
             bodyLookup = Dictionary(uniqueKeysWithValues: snapshot.bodies.map { ($0.id, $0.body) })
             let shouldRecenter = anchor == nil || lastRecenterTrigger != recenterTrigger
@@ -219,7 +224,7 @@ struct LunaARSceneView: UIViewRepresentable {
             let arPlacements = snapshot.bodies.map { placement -> ARBodyPlacement in
                 ARBodyPlacement(
                     body: placement.body,
-                    displayRadius: max(0.002, placement.displayRadius * 0.095),
+                    displayRadius: max(0.0001, placement.displayRadius * 0.095),
                     position: SIMD3<Float>(
                         placement.position.x * 0.095,
                         placement.position.y * 0.095,
@@ -239,7 +244,7 @@ struct LunaARSceneView: UIViewRepresentable {
             for orbitPath in snapshot.orbitPaths {
                 guard let dots = orbitDotEntities[orbitPath.id] else { continue }
 
-                let positions = Self.orbitDotPositions(for: orbitPath, scale: 0.095)
+                let positions = Self.orbitDotPositions(for: orbitPath, scale: 0.095, stride: 6)
                 for index in 0..<min(dots.count, positions.count) {
                     dots[index].position = positions[index] - rootCenter
                 }
@@ -253,7 +258,7 @@ struct LunaARSceneView: UIViewRepresentable {
             let arPlacements = snapshot.bodies.map { placement -> ARBodyPlacement in
                 ARBodyPlacement(
                     body: placement.body,
-                    displayRadius: max(0.002, placement.displayRadius * 0.095),
+                    displayRadius: max(0.0001, placement.displayRadius * 0.095),
                     position: SIMD3<Float>(
                         placement.position.x * 0.095,
                         placement.position.y * 0.095,
@@ -283,7 +288,7 @@ struct LunaARSceneView: UIViewRepresentable {
 
             if settings.showOrbits {
                 for orbitPath in snapshot.orbitPaths {
-                    let orbitTree = orbitDots(for: orbitPath, scale: 0.095, center: bounds.center)
+                    let orbitTree = orbitDots(for: orbitPath, scale: 0.095, center: bounds.center, stride: settings.renderDetail.arOrbitStride)
                     root.addChild(orbitTree.root)
                     orbitDotEntities[orbitPath.id] = orbitTree.dots
                 }
@@ -372,7 +377,7 @@ struct LunaARSceneView: UIViewRepresentable {
             return tilt * spin
         }
 
-        private static func orbitDots(for path: ExperienceOrbitPath, scale: Float, center: SIMD3<Float>) -> AROrbitTree {
+        private static func orbitDots(for path: ExperienceOrbitPath, scale: Float, center: SIMD3<Float>, stride: Int) -> AROrbitTree {
             let root = Entity()
             root.name = "orbit:\(path.bodyId)"
             let material = SimpleMaterial(
@@ -380,7 +385,7 @@ struct LunaARSceneView: UIViewRepresentable {
                 roughness: 0.6,
                 isMetallic: false
             )
-            let positions = orbitDotPositions(for: path, scale: scale)
+            let positions = orbitDotPositions(for: path, scale: scale, stride: stride)
             var dots: [Entity] = []
 
             for position in positions {
@@ -395,9 +400,9 @@ struct LunaARSceneView: UIViewRepresentable {
             return AROrbitTree(root: root, dots: dots)
         }
 
-        private static func orbitDotPositions(for path: ExperienceOrbitPath, scale: Float) -> [SIMD3<Float>] {
+        private static func orbitDotPositions(for path: ExperienceOrbitPath, scale: Float, stride: Int) -> [SIMD3<Float>] {
             path.points.enumerated().compactMap { point in
-                point.offset.isMultiple(of: 6) ? point.element * scale : nil
+                point.offset.isMultiple(of: max(stride, 1)) ? point.element * scale : nil
             }
         }
 
@@ -415,7 +420,7 @@ struct LunaARSceneView: UIViewRepresentable {
                 ? snapshot.orbitPaths.map { "\($0.id):\($0.points.count)" }.joined(separator: "|")
                 : "no-orbits"
 
-            return "\(settings.distanceScaleMode.rawValue):\(Int(settings.distanceCompression.rounded())):\(settings.showOrbits)-\(bodyKey)-\(orbitKey)"
+            return "\(settings.distanceScaleMode.rawValue):\(settings.renderDetail.rawValue):\(Int(settings.distanceCompression.rounded())):\(settings.showOrbits)-\(bodyKey)-\(orbitKey)"
         }
 
         private static func material(for body: CelestialBody) -> UnlitMaterial {

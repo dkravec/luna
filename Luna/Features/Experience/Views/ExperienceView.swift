@@ -18,8 +18,8 @@ struct ExperienceView: View {
     @State private var recenterTrigger = 0
     @State private var isOrbitPlaybackEnabled = false
     @State private var playbackStartDate = Date()
-    @State private var pausedSimulationDays: Double = 0
-    @State private var currentSimulationDays: Double = 0
+    @State private var playbackStartSimulationDate = Date()
+    @State private var currentSimulationDate = Date()
     @State private var arPlacementState: ARPlacementState = .initializing
     @State private var showsARDebugSurfaces = false
     @State private var selectedQuickDetailsBody: CelestialBody?
@@ -85,19 +85,19 @@ struct ExperienceView: View {
             )
             .padding()
         } else {
-            sceneContent(simulationTimeDays: currentSimulationDays)
+            sceneContent(simulationDate: currentSimulationDate)
         }
     }
 
     @ViewBuilder
-    private func sceneContent(simulationTimeDays: Double) -> some View {
+    private func sceneContent(simulationDate: Date) -> some View {
 #if os(iOS)
         if isAREnabled, canUseAR {
             LunaARSceneView(
                 bodies: appState.celestialBodies,
                 settings: settings,
                 content: .solarSystem,
-                simulationTimeDays: simulationTimeDays,
+                simulationDate: simulationDate,
                 recenterTrigger: recenterTrigger,
                 showsDebugSurfaces: showsARDebugSurfaces,
                 onPlacementStateChange: { arPlacementState = $0 },
@@ -109,7 +109,7 @@ struct ExperienceView: View {
                 bodies: appState.celestialBodies,
                 settings: settings,
                 content: .solarSystem,
-                simulationTimeDays: simulationTimeDays,
+                simulationDate: simulationDate,
                 focusedBodyID: selectedQuickDetailsBody?.id,
                 onSelectBody: showQuickDetails(for:)
             )
@@ -120,7 +120,7 @@ struct ExperienceView: View {
             bodies: appState.celestialBodies,
             settings: settings,
             content: .solarSystem,
-            simulationTimeDays: simulationTimeDays,
+            simulationDate: simulationDate,
             focusedBodyID: selectedQuickDetailsBody?.id,
             onSelectBody: showQuickDetails(for:)
         )
@@ -284,11 +284,13 @@ struct ExperienceView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Spacing.section) {
                     viewModeSection
+                    SceneScaleProfileOptionsView(sceneScaleProfile: sceneScaleProfileBinding)
                     DistanceScaleOptionsView(
                         distanceScaleMode: distanceScaleModeBinding,
                         distanceCompression: distanceCompressionBinding
                     )
                     ObjectScaleOptionsView(objectScaleMode: objectScaleModeBinding)
+                    simulationDateSection
                     orbitPlaybackSection
                     objectRotationSection
                     sceneOptionsSection
@@ -379,6 +381,17 @@ struct ExperienceView: View {
                     }
                 }
 
+                CardDivider(leadingInset: 56)
+
+                CardRow {
+                    Picker("Render Detail", selection: renderDetailBinding) {
+                        ForEach(SceneRenderDetail.allCases) { detail in
+                            Text(detail.title).tag(detail)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
 #if os(iOS)
                 if isAREnabled, canUseAR {
                     CardDivider(leadingInset: 56)
@@ -417,6 +430,49 @@ struct ExperienceView: View {
                     if index < OrbitPlaybackSpeed.allCases.count - 1 {
                         CardDivider(leadingInset: 56)
                     }
+                }
+            }
+        }
+    }
+
+    private var simulationDateSection: some View {
+        let dayOffset = Binding<Double>(
+            get: { currentSimulationDate.timeIntervalSince(Date()) / 86_400 },
+            set: { setSimulationDate(Date().addingTimeInterval($0 * 86_400)) }
+        )
+
+        return VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Date")
+
+            Card {
+                VStack(alignment: .leading, spacing: 12) {
+                    RowLabel(
+                        title: "Simulation Date",
+                        subtitle: "Planet positions are calculated from bundled orbital elements.",
+                        systemImage: "calendar",
+                        value: currentSimulationDate.formatted(.dateTime.year().month(.abbreviated).day())
+                    )
+
+                    Slider(
+                        value: dayOffset,
+                        in: -365...365,
+                        step: 1
+                    ) {
+                        Text("Simulation date")
+                    } minimumValueLabel: {
+                        Text("-1y")
+                    } maximumValueLabel: {
+                        Text("+1y")
+                    }
+
+                    Button {
+                        Haptics.selection()
+                        setSimulationDate(Date())
+                    } label: {
+                        Label("Reset to Today", systemImage: "arrow.counterclockwise")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered)
                 }
             }
         }
@@ -537,8 +593,8 @@ struct ExperienceView: View {
         if isOrbitPlaybackEnabled {
             pauseOrbitPlaybackIfNeeded()
         } else {
-            pausedSimulationDays = currentSimulationDays
             playbackStartDate = Date()
+            playbackStartSimulationDate = currentSimulationDate
             isOrbitPlaybackEnabled = true
         }
     }
@@ -546,20 +602,27 @@ struct ExperienceView: View {
     private func pauseOrbitPlaybackIfNeeded() {
         guard isOrbitPlaybackEnabled else { return }
 
-        currentSimulationDays = simulationTimeDays(at: Date())
-        pausedSimulationDays = currentSimulationDays
+        currentSimulationDate = simulationDate(at: Date())
+        playbackStartSimulationDate = currentSimulationDate
         isOrbitPlaybackEnabled = false
     }
 
     private func advanceOrbitPlaybackIfNeeded(at date: Date) {
         guard isOrbitPlaybackEnabled else { return }
 
-        currentSimulationDays = simulationTimeDays(at: date)
+        currentSimulationDate = simulationDate(at: date)
     }
 
-    private func simulationTimeDays(at date: Date) -> Double {
-        guard isOrbitPlaybackEnabled else { return pausedSimulationDays }
-        return pausedSimulationDays + date.timeIntervalSince(playbackStartDate) * appState.experiencePreferences.orbitPlaybackSpeed.daysPerSecond
+    private func simulationDate(at date: Date) -> Date {
+        guard isOrbitPlaybackEnabled else { return currentSimulationDate }
+        let simulatedDays = date.timeIntervalSince(playbackStartDate) * appState.experiencePreferences.orbitPlaybackSpeed.daysPerSecond
+        return playbackStartSimulationDate.addingTimeInterval(simulatedDays * 86_400)
+    }
+
+    private func setSimulationDate(_ date: Date) {
+        currentSimulationDate = date
+        playbackStartSimulationDate = date
+        playbackStartDate = Date()
     }
 
     private func placeARScene() {
@@ -597,6 +660,13 @@ struct ExperienceView: View {
         )
     }
 
+    private var sceneScaleProfileBinding: Binding<SceneScaleProfile> {
+        Binding(
+            get: { appState.experiencePreferences.sceneScaleProfile },
+            set: { appState.setSceneScaleProfile($0) }
+        )
+    }
+
     private var distanceCompressionBinding: Binding<Double> {
         Binding(
             get: { appState.experiencePreferences.distanceCompression },
@@ -608,6 +678,13 @@ struct ExperienceView: View {
         Binding(
             get: { appState.experiencePreferences.objectScaleMode },
             set: { appState.setObjectScaleMode($0) }
+        )
+    }
+
+    private var renderDetailBinding: Binding<SceneRenderDetail> {
+        Binding(
+            get: { appState.experiencePreferences.renderDetail },
+            set: { appState.setRenderDetail($0) }
         )
     }
 }

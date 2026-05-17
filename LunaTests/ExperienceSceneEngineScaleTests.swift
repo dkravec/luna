@@ -14,36 +14,25 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
             let earth = try body("earth", in: snapshot)
             let neptune = try body("neptune", in: snapshot)
 
-            XCTAssertEqual(
-                distanceRatio(earth.position, mercury.position),
-                sourceDistanceRatio("earth", "mercury"),
-                accuracy: 0.06,
-                "Earth/Mercury ratio should hold in \(objectMode.rawValue)"
-            )
-            XCTAssertEqual(
-                distanceRatio(neptune.position, earth.position),
-                sourceDistanceRatio("neptune", "earth"),
-                accuracy: 0.06,
-                "Neptune/Earth ratio should hold in \(objectMode.rawValue)"
-            )
+            XCTAssertEqual(distanceRatio(earth.position, mercury.position), expectedSceneDistanceRatio("earth", "mercury", distance: .trueScale), accuracy: 0.02)
+            XCTAssertEqual(distanceRatio(neptune.position, earth.position), expectedSceneDistanceRatio("neptune", "earth", distance: .trueScale), accuracy: 0.02)
         }
     }
 
-    func testTrueDistanceOrbitPathMatchesPlacementScale() throws {
+    func testTrueDistanceOrbitPathUsesAphelionScale() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,
             settings: settings(distance: .trueScale, object: .relative)
         )
 
-        let earth = try body("earth", in: snapshot)
         let earthOrbit = try XCTUnwrap(snapshot.orbitPaths.first { $0.bodyId == "earth" })
         let orbitRadius = earthOrbit.points
             .map { length($0) }
             .max() ?? 0
 
         XCTAssertEqual(
-            Double(orbitRadius) / Double(length(earth.position)),
-            1,
+            Double(orbitRadius),
+            aphelionDistance("earth", distance: .trueScale),
             accuracy: 0.01
         )
     }
@@ -56,7 +45,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
 
         XCTAssertEqual(
             try orbitRadius("neptune", in: snapshot),
-            Float(sourceDistance("neptune") / Self.compressedDistanceKilometersPerSceneUnit / 5),
+            Float(aphelionDistance("neptune", distance: .compressed, distanceCompression: 5)),
             accuracy: 0.01
         )
     }
@@ -85,7 +74,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
             settings: settings(distance: .compressed, object: .uniform, distanceCompression: 5)
         )
         let neptuneRadius = try orbitRadius("neptune", in: snapshot)
-        let expectedNeptuneRadius = Float(sourceDistance("neptune") / Self.compressedDistanceKilometersPerSceneUnit / 5)
+        let expectedNeptuneRadius = Float(aphelionDistance("neptune", distance: .compressed, distanceCompression: 5))
 
         XCTAssertEqual(
             neptuneRadius / expectedNeptuneRadius,
@@ -124,20 +113,15 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         )
     }
 
-    func testTrueDistanceMercuryClearsSunForEveryObjectScale() throws {
+    func testTrueDistanceDoesNotInflateOrbitsForVisualClearance() throws {
         for objectMode in ObjectScaleMode.allCases {
             let snapshot = ExperienceSceneEngine.snapshot(
                 for: Self.bodies,
                 settings: settings(distance: .trueScale, object: objectMode)
             )
 
-            let sun = try body("sun", in: snapshot)
             let mercury = try body("mercury", in: snapshot)
-            XCTAssertGreaterThan(
-                length(mercury.position),
-                sun.displayRadius + mercury.displayRadius + 0.01,
-                "Mercury should clear the Sun in \(objectMode.rawValue)"
-            )
+            XCTAssertEqual(Double(length(mercury.position)), expectedSceneDistance("mercury", distance: .trueScale), accuracy: 0.01)
         }
     }
 
@@ -172,26 +156,35 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertGreaterThan(try sunClearance(for: "mercury", in: compressed), 0.3)
     }
 
-    func testTrueDistanceMoonEnvelopeClearsNeighboringOrbits() throws {
-        for objectMode in [ObjectScaleMode.uniform, .relative] {
-            let snapshot = ExperienceSceneEngine.snapshot(
-                for: Self.bodies,
-                settings: settings(distance: .trueScale, object: objectMode)
-            )
+    func testBoundsIncludeOrbitPaths() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .trueScale, object: .relative)
+        )
 
-            let venus = try body("venus", in: snapshot)
-            let earth = try body("earth", in: snapshot)
-            let moon = try body("moon", in: snapshot)
-            let venusOrbitRadius = try orbitRadius("venus", in: snapshot)
-            let earthOrbitRadius = try orbitRadius("earth", in: snapshot)
-            let moonEnvelope = length(moon.position - earth.position) + moon.displayRadius
+        let farthestOrbitPoint = snapshot.orbitPaths
+            .flatMap(\.points)
+            .map { length($0 - snapshot.bounds.center) }
+            .max() ?? 0
 
-            XCTAssertGreaterThan(
-                earthOrbitRadius - venusOrbitRadius,
-                venus.displayRadius + moonEnvelope + 0.02,
-                "Earth's moon envelope should clear Venus in \(objectMode.rawValue)"
-            )
-        }
+        XCTAssertGreaterThanOrEqual(snapshot.bounds.span / 2, farthestOrbitPoint - 0.02)
+    }
+
+    func testScaleProfileDefaultsToCompressedRelative() {
+        XCTAssertEqual(SceneScaleProfile.scaledRecommended.defaultDistanceScaleMode, .compressed)
+        XCTAssertEqual(SceneScaleProfile.scaledRecommended.defaultObjectScaleMode, .relative)
+    }
+
+    func testOrbitPathStoresOrientationAngles() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative)
+        )
+        let mercuryOrbit = try XCTUnwrap(snapshot.orbitPaths.first { $0.bodyId == "mercury" })
+
+        XCTAssertEqual(Double(mercuryOrbit.yawRadians), 48.331 * .pi / 180, accuracy: 0.0001)
+        XCTAssertEqual(Double(mercuryOrbit.pitchRadians), 7.005 * .pi / 180, accuracy: 0.0001)
+        XCTAssertEqual(Double(mercuryOrbit.rollRadians), 29.124 * .pi / 180, accuracy: 0.0001)
     }
 
     func testTrueDistanceTrueSizeCameraFramingSupportsLargeSpan() {
@@ -247,19 +240,19 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let venus = try body("venus", in: snapshot)
         let earth = try body("earth", in: snapshot)
 
-        XCTAssertEqual(length(mercury.position), 1.18, accuracy: 0.02)
-        XCTAssertEqual(length(venus.position), 2.36, accuracy: 0.02)
-        XCTAssertEqual(length(earth.position), 3.54, accuracy: 0.02)
+        XCTAssertEqual(Double(length(mercury.position)), expectedSceneDistance("mercury", distance: .educational), accuracy: 0.02)
+        XCTAssertEqual(Double(length(venus.position)), expectedSceneDistance("venus", distance: .educational), accuracy: 0.02)
+        XCTAssertEqual(Double(length(earth.position)), expectedSceneDistance("earth", distance: .educational), accuracy: 0.02)
     }
 
     private static let bodies: [CelestialBody] = [
         makeBody(id: "sun", name: "Sun", type: .star, radiusKm: 696_340, parentBodyId: nil, displayOrder: 0),
-        makeBody(id: "mercury", name: "Mercury", radiusKm: 2_439.7, averageDistanceFromSunKm: 57_900_000, orbit: orbit(57_909_050, eccentricity: 0.2056, inclination: 7.005, meanAnomaly: 174.796), displayOrder: 1),
-        makeBody(id: "venus", name: "Venus", radiusKm: 6_051.8, averageDistanceFromSunKm: 108_200_000, orbit: orbit(108_208_000, eccentricity: 0.0068, inclination: 3.394, meanAnomaly: 50.115), displayOrder: 2),
-        makeBody(id: "earth", name: "Earth", radiusKm: 6_371, averageDistanceFromSunKm: 149_600_000, orbit: orbit(149_598_023, eccentricity: 0.0167, inclination: 0, meanAnomaly: 358.617), displayOrder: 3),
-        makeBody(id: "moon", name: "Moon", type: .moon, radiusKm: 1_737.4, averageDistanceFromSunKm: 149_600_000, averageDistanceFromEarthKm: 384_400, orbit: orbit(384_400, eccentricity: 0.0549, inclination: 5.145, meanAnomaly: 135.27), parentBodyId: "earth", displayOrder: 4),
-        makeBody(id: "jupiter", name: "Jupiter", radiusKm: 69_911, averageDistanceFromSunKm: 778_500_000, orbit: orbit(778_570_000, eccentricity: 0.0489, inclination: 1.304, meanAnomaly: 20.020), displayOrder: 5),
-        makeBody(id: "neptune", name: "Neptune", radiusKm: 24_622, averageDistanceFromSunKm: 4_495_100_000, orbit: orbit(4_495_060_000, eccentricity: 0.0113, inclination: 1.770, meanAnomaly: 256.228), displayOrder: 6)
+        makeBody(id: "mercury", name: "Mercury", radiusKm: 2_439.7, averageDistanceFromSunKm: 57_900_000, orbit: orbit(57_909_050, eccentricity: 0.2056, inclination: 7.005, longitude: 48.331, periapsis: 29.124, meanAnomaly: 174.796), displayOrder: 1),
+        makeBody(id: "venus", name: "Venus", radiusKm: 6_051.8, averageDistanceFromSunKm: 108_200_000, orbit: orbit(108_208_000, eccentricity: 0.0068, inclination: 3.394, longitude: 76.680, periapsis: 54.884, meanAnomaly: 50.115), displayOrder: 2),
+        makeBody(id: "earth", name: "Earth", radiusKm: 6_371, averageDistanceFromSunKm: 149_600_000, orbit: orbit(149_598_023, eccentricity: 0.0167, inclination: 0, longitude: 0, periapsis: 114.208, meanAnomaly: 358.617), displayOrder: 3),
+        makeBody(id: "moon", name: "Moon", type: .moon, radiusKm: 1_737.4, averageDistanceFromSunKm: 149_600_000, averageDistanceFromEarthKm: 384_400, orbit: orbit(384_400, eccentricity: 0.0549, inclination: 5.145, longitude: 125.08, periapsis: 318.15, meanAnomaly: 135.27), parentBodyId: "earth", displayOrder: 4),
+        makeBody(id: "jupiter", name: "Jupiter", radiusKm: 69_911, averageDistanceFromSunKm: 778_500_000, orbit: orbit(778_570_000, eccentricity: 0.0489, inclination: 1.304, longitude: 100.464, periapsis: 273.867, meanAnomaly: 20.020), displayOrder: 5),
+        makeBody(id: "neptune", name: "Neptune", radiusKm: 24_622, averageDistanceFromSunKm: 4_495_100_000, orbit: orbit(4_495_060_000, eccentricity: 0.0113, inclination: 1.770, longitude: 131.784, periapsis: 273.187, meanAnomaly: 256.228), displayOrder: 6)
     ]
     private static let trueDistanceKilometersPerSceneUnit: Double = 316_553_521
     private static let compressedDistanceKilometersPerSceneUnit: Double = 74_900_000
@@ -303,14 +296,16 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         _ semiMajorAxisKm: Double,
         eccentricity: Double,
         inclination: Double,
+        longitude: Double,
+        periapsis: Double,
         meanAnomaly: Double
     ) -> CelestialOrbit {
         CelestialOrbit(
             semiMajorAxisKm: semiMajorAxisKm,
             eccentricity: eccentricity,
             inclinationDegrees: inclination,
-            longitudeOfAscendingNodeDegrees: 0,
-            argumentOfPeriapsisDegrees: 0,
+            longitudeOfAscendingNodeDegrees: longitude,
+            argumentOfPeriapsisDegrees: periapsis,
             meanAnomalyAtEpochDegrees: meanAnomaly
         )
     }
@@ -353,6 +348,60 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
 
     private func sourceDistanceRatio(_ lhs: String, _ rhs: String) -> Double {
         sourceDistance(lhs) / sourceDistance(rhs)
+    }
+
+    private func expectedSceneDistanceRatio(_ lhs: String, _ rhs: String, distance: DistanceScaleMode) -> Double {
+        expectedSceneDistance(lhs, distance: distance) / expectedSceneDistance(rhs, distance: distance)
+    }
+
+    private func expectedSceneDistance(
+        _ id: String,
+        distance: DistanceScaleMode,
+        distanceCompression: Double = 30
+    ) -> Double {
+        let body = Self.bodies.first { $0.id == id }!
+        let semiMajorAxis = baseSceneSemiMajorAxis(for: body, distance: distance, distanceCompression: distanceCompression)
+        return semiMajorAxis * eccentricRadiusScale(for: body)
+    }
+
+    private func aphelionDistance(
+        _ id: String,
+        distance: DistanceScaleMode,
+        distanceCompression: Double = 30
+    ) -> Double {
+        let body = Self.bodies.first { $0.id == id }!
+        let eccentricity = body.orbit?.eccentricity ?? 0
+        return baseSceneSemiMajorAxis(for: body, distance: distance, distanceCompression: distanceCompression) * (1 + eccentricity)
+    }
+
+    private func baseSceneSemiMajorAxis(
+        for body: CelestialBody,
+        distance: DistanceScaleMode,
+        distanceCompression: Double
+    ) -> Double {
+        switch distance {
+        case .educational:
+            return Double(max(body.displayOrder, 1)) * 1.18
+        case .compressed:
+            return sourceDistance(body.id) / Self.compressedDistanceKilometersPerSceneUnit / distanceCompression
+        case .trueScale:
+            return sourceDistance(body.id) / Self.trueDistanceKilometersPerSceneUnit
+        }
+    }
+
+    private func eccentricRadiusScale(for body: CelestialBody) -> Double {
+        guard let orbit = body.orbit else { return 1 }
+        let meanAnomaly = orbit.meanAnomalyAtEpochDegrees * .pi / 180
+        let eccentricity = orbit.eccentricity
+        var eccentricAnomaly = meanAnomaly
+
+        for _ in 0..<8 {
+            let delta = (eccentricAnomaly - eccentricity * sin(eccentricAnomaly) - meanAnomaly) / (1 - eccentricity * cos(eccentricAnomaly))
+            eccentricAnomaly -= delta
+            if abs(delta) < 0.000_000_1 { break }
+        }
+
+        return 1 - eccentricity * cos(eccentricAnomaly)
     }
 
     private func sourceDistance(_ id: String) -> Double {

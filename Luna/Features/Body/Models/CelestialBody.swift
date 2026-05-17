@@ -24,12 +24,37 @@ struct CelestialBody: Codable, Identifiable, Equatable {
 }
 
 struct CelestialOrbit: Codable, Equatable {
+    static let j2000JulianDay = 2_451_545.0
+
     let semiMajorAxisKm: Double
     let eccentricity: Double
     let inclinationDegrees: Double
     let longitudeOfAscendingNodeDegrees: Double
     let argumentOfPeriapsisDegrees: Double
     let meanAnomalyAtEpochDegrees: Double
+    let epochJulianDay: Double?
+
+    var effectiveEpochJulianDay: Double {
+        epochJulianDay ?? Self.j2000JulianDay
+    }
+
+    init(
+        semiMajorAxisKm: Double,
+        eccentricity: Double,
+        inclinationDegrees: Double,
+        longitudeOfAscendingNodeDegrees: Double,
+        argumentOfPeriapsisDegrees: Double,
+        meanAnomalyAtEpochDegrees: Double,
+        epochJulianDay: Double? = nil
+    ) {
+        self.semiMajorAxisKm = semiMajorAxisKm
+        self.eccentricity = eccentricity
+        self.inclinationDegrees = inclinationDegrees
+        self.longitudeOfAscendingNodeDegrees = longitudeOfAscendingNodeDegrees
+        self.argumentOfPeriapsisDegrees = argumentOfPeriapsisDegrees
+        self.meanAnomalyAtEpochDegrees = meanAnomalyAtEpochDegrees
+        self.epochJulianDay = epochJulianDay
+    }
 }
 
 enum CelestialBodyType: String, Codable, CaseIterable, Identifiable {

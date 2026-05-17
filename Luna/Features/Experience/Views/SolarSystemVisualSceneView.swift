@@ -17,6 +17,7 @@ struct SolarSystemVisualSceneView: View {
     let settings: ExperienceSceneSettings
     var content: ExperienceSceneContent = .solarSystem
     var simulationTimeDays: Double = 0
+    var simulationDate: Date = Date()
     var focusedBodyID: String?
     var onSelectBody: (CelestialBody) -> Void = { _ in }
 
@@ -26,8 +27,10 @@ struct SolarSystemVisualSceneView: View {
                 for: bodies,
                 settings: settings,
                 content: content,
-                simulationTimeDays: simulationTimeDays
+                simulationTimeDays: simulationTimeDays,
+                simulationDate: simulationDate
             ),
+            settings: settings,
             showsLabels: settings.showLabels,
             focusedBodyID: focusedBodyID,
             onSelectBody: onSelectBody
@@ -40,7 +43,7 @@ struct SolarSystemVisualSceneView: View {
     }
 
     private var sceneCaption: some View {
-        Text(settings.distanceScaleMode == .compressed ? "Compressed distance view" : settings.distanceScaleMode.title)
+        Text("\(settings.sceneScaleProfile.title) · \(simulationDate.formatted(.dateTime.year().month(.abbreviated).day()))")
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.white.opacity(0.90))
             .padding(.horizontal, 12)
@@ -53,6 +56,7 @@ struct SolarSystemVisualSceneView: View {
 #if os(iOS)
 private struct VisualSceneContainer: UIViewRepresentable {
     let snapshot: ExperienceSceneSnapshot
+    let settings: ExperienceSceneSettings
     let showsLabels: Bool
     let focusedBodyID: String?
     let onSelectBody: (CelestialBody) -> Void
@@ -72,6 +76,7 @@ private struct VisualSceneContainer: UIViewRepresentable {
 #elseif os(macOS)
 private struct VisualSceneContainer: NSViewRepresentable {
     let snapshot: ExperienceSceneSnapshot
+    let settings: ExperienceSceneSettings
     let showsLabels: Bool
     let focusedBodyID: String?
     let onSelectBody: (CelestialBody) -> Void
@@ -112,7 +117,7 @@ private extension VisualSceneContainer {
     func configure(_ view: SCNView) {
         if let coordinator = view.delegate as? VisualSceneCameraCoordinator {
             coordinator.onSelectBody = onSelectBody
-            coordinator.apply(snapshot: snapshot, showsLabels: showsLabels, focusedBodyID: focusedBodyID, to: view)
+            coordinator.apply(snapshot: snapshot, settings: settings, showsLabels: showsLabels, focusedBodyID: focusedBodyID, to: view)
         }
     }
 }
@@ -150,8 +155,8 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         self.cameraLimit = cameraLimit
     }
 
-    func apply(snapshot: ExperienceSceneSnapshot, showsLabels: Bool, focusedBodyID: String?, to view: SCNView) {
-        let nextStructureKey = Self.structureKey(for: snapshot, showsLabels: showsLabels)
+    func apply(snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings, showsLabels: Bool, focusedBodyID: String?, to view: SCNView) {
+        let nextStructureKey = Self.structureKey(for: snapshot, settings: settings, showsLabels: showsLabels)
         let nextCameraLimit = SceneCameraLimit(snapshot: snapshot)
         bodyLookup = Dictionary(uniqueKeysWithValues: snapshot.bodies.map { ($0.id, $0.body) })
         self.snapshot = snapshot
@@ -159,6 +164,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         if view.scene == nil || structureKey != nextStructureKey {
             let scene = SolarSystemSceneFactory.scene(
                 for: snapshot,
+                settings: settings,
                 showsLabels: showsLabels
             )
             view.scene = scene
@@ -225,7 +231,8 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
     private func selectBody(at point: CGPoint, in view: SCNView) {
         let hits = view.hitTest(point, options: [.boundingBoxOnly: false])
-        let selectedBodyID = hits.compactMap { bodyID(from: $0.node) }.first
+        let selectedBodyID = nearestBodyID(to: point, in: view)
+            ?? hits.compactMap { bodyID(from: $0.node) }.first
             ?? nearestOrbitBodyID(to: point, in: view)
 
         guard let selectedBodyID,
@@ -246,6 +253,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
                 if name.hasPrefix("bodyVisual:") {
                     return String(name.dropFirst(11))
                 }
+                if name.hasPrefix("bodyHit:") {
+                    return String(name.dropFirst(8))
+                }
                 if name.hasPrefix("orbit:") {
                     return orbitBodyID(from: String(name.dropFirst(6)))
                 }
@@ -258,8 +268,30 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         return nil
     }
 
+    private func nearestBodyID(to point: CGPoint, in view: SCNView) -> String? {
+        snapshot.bodies
+            .compactMap { placement -> (bodyID: String, distance: CGFloat)? in
+                guard let node = bodyNodes[placement.id]?.presentation else { return nil }
+
+                let worldPoint = node.convertPosition(SCNVector3Zero, to: nil)
+                let projected = view.projectPoint(worldPoint)
+                guard projected.z >= 0, projected.z <= 1 else { return nil }
+
+                let center = CGPoint(x: CGFloat(projected.x), y: CGFloat(projected.y))
+                let edgeWorld = node.convertPosition(SCNVector3(placement.interactionRadius, 0, 0), to: nil)
+                let edgeProjected = view.projectPoint(edgeWorld)
+                let projectedRadius = hypot(CGFloat(edgeProjected.x) - center.x, CGFloat(edgeProjected.y) - center.y)
+                let threshold = max(CGFloat(14), min(CGFloat(54), projectedRadius + 8))
+                let distance = hypot(center.x - point.x, center.y - point.y)
+
+                return distance <= threshold ? (placement.id, distance) : nil
+            }
+            .min { $0.distance < $1.distance }?
+            .bodyID
+    }
+
     private func nearestOrbitBodyID(to point: CGPoint, in view: SCNView) -> String? {
-        let threshold: CGFloat = 10
+        let threshold: CGFloat = 12
 
         return snapshot.orbitPaths
             .compactMap { path -> (bodyID: String, distance: CGFloat)? in
@@ -355,7 +387,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         return max(1.15, Double(subjectRadius * 4.2))
     }
 
-    private static func structureKey(for snapshot: ExperienceSceneSnapshot, showsLabels: Bool) -> String {
+    private static func structureKey(for snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings, showsLabels: Bool) -> String {
         let bodyKey = snapshot.bodies
             .map { body in
                 let radius = Int((body.displayRadius * 1_000).rounded())
@@ -366,7 +398,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             .map { "\($0.id):\($0.points.count)" }
             .joined(separator: "|")
 
-        return "\(showsLabels)-\(bodyKey)-\(orbitKey)"
+        return "\(showsLabels)-\(settings.renderDetail.rawValue)-\(bodyKey)-\(orbitKey)"
     }
 }
 
@@ -378,9 +410,9 @@ private struct CameraFocusState {
 }
 
 private enum SolarSystemSceneFactory {
-    static func scene(for snapshot: ExperienceSceneSnapshot, showsLabels: Bool) -> SCNScene {
+    static func scene(for snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings, showsLabels: Bool) -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = SceneBackgroundTexture.image(for: .full)
+        scene.background.contents = SceneBackgroundTexture.image(for: settings.renderDetail.usesFullBackgroundTexture ? .full : .mini)
             ?? platformColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
 
         scene.rootNode.addChildNode(cameraNode(for: snapshot))
@@ -396,7 +428,7 @@ private enum SolarSystemSceneFactory {
         }
 
         for placement in snapshot.bodies {
-            let bodyNode = node(for: placement)
+            let bodyNode = node(for: placement, renderDetail: settings.renderDetail)
             root.addChildNode(bodyNode)
 
             if showsLabels {
@@ -407,7 +439,7 @@ private enum SolarSystemSceneFactory {
         return scene
     }
 
-    private static func node(for placement: ExperienceSceneBody) -> SCNNode {
+    private static func node(for placement: ExperienceSceneBody, renderDetail: SceneRenderDetail) -> SCNNode {
         let root = SCNNode()
         root.name = "body:\(placement.id)"
         root.position = SCNVector3(placement.position.x, placement.position.y, placement.position.z)
@@ -423,8 +455,8 @@ private enum SolarSystemSceneFactory {
                 satelliteScale
             )
         } else {
-            let sphere = SCNSphere(radius: CGFloat(placement.displayRadius))
-            sphere.segmentCount = placement.body.type == .star ? 64 : 48
+            let sphere = SCNSphere(radius: CGFloat(max(placement.displayRadius, 0.0001)))
+            sphere.segmentCount = placement.body.type == .star ? renderDetail.starSegmentCount : renderDetail.planetSegmentCount
             sphere.firstMaterial = material(for: placement.body)
             visualNode = SCNNode(geometry: sphere)
         }
@@ -432,7 +464,24 @@ private enum SolarSystemSceneFactory {
         visualNode.name = "bodyVisual:\(placement.id)"
         visualNode.eulerAngles = rotationEuler(for: placement)
         root.addChildNode(visualNode)
+
+        if placement.interactionRadius > placement.displayRadius {
+            root.addChildNode(interactionNode(for: placement))
+        }
         return root
+    }
+
+    private static func interactionNode(for placement: ExperienceSceneBody) -> SCNNode {
+        let sphere = SCNSphere(radius: CGFloat(placement.interactionRadius))
+        sphere.segmentCount = 12
+        let material = SCNMaterial()
+        material.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.01)
+        material.transparency = 0.01
+        material.lightingModel = .constant
+        sphere.firstMaterial = material
+        let node = SCNNode(geometry: sphere)
+        node.name = "bodyHit:\(placement.id)"
+        return node
     }
 
     static func rotationEuler(for placement: ExperienceSceneBody) -> SCNVector3 {
@@ -660,19 +709,8 @@ private struct SceneCameraLimit {
             return
         }
 
-        let minX = placements.map { $0.position.x - $0.displayRadius }.min() ?? -5
-        let maxX = placements.map { $0.position.x + $0.displayRadius }.max() ?? 5
-        let minY = placements.map { $0.position.y - $0.displayRadius }.min() ?? -2
-        let maxY = placements.map { $0.position.y + $0.displayRadius }.max() ?? 2
-        let minZ = placements.map { $0.position.z - $0.displayRadius }.min() ?? -2
-        let maxZ = placements.map { $0.position.z + $0.displayRadius }.max() ?? 2
-
-        let center = SCNVector3(
-            (minX + maxX) / 2,
-            (minY + maxY) / 2,
-            (minZ + maxZ) / 2
-        )
-        let sceneSpan = max(maxX - minX, max(maxY - minY, maxZ - minZ))
+        let center = SCNVector3(snapshot.bounds.center.x, snapshot.bounds.center.y, snapshot.bounds.center.z)
+        let sceneSpan = snapshot.bounds.span
         let subjectRadius = max(4, sceneSpan / 2 + 2)
         let largestBodyRadius = placements.map(\.displayRadius).max() ?? 1
         let cameraMetrics = SolarSystemSceneCameraMetrics(snapshot: snapshot)

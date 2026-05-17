@@ -70,18 +70,35 @@ final class LunaAppState: ObservableObject {
         saveExperiencePreferences()
     }
 
+    func setSceneScaleProfile(_ profile: SceneScaleProfile) {
+        experiencePreferences.sceneScaleProfile = profile
+        if profile != .custom {
+            experiencePreferences.distanceScaleMode = profile.defaultDistanceScaleMode
+            experiencePreferences.objectScaleMode = profile.defaultObjectScaleMode
+        }
+        saveExperiencePreferences()
+    }
+
     func setDistanceScaleMode(_ scaleMode: DistanceScaleMode) {
+        experiencePreferences.sceneScaleProfile = .custom
         experiencePreferences.distanceScaleMode = scaleMode
         saveExperiencePreferences()
     }
 
     func setDistanceCompression(_ distanceCompression: Double) {
+        experiencePreferences.sceneScaleProfile = .custom
         experiencePreferences.distanceCompression = ExperienceSceneSettings.clampedDistanceCompression(distanceCompression)
         saveExperiencePreferences()
     }
 
     func setObjectScaleMode(_ objectScaleMode: ObjectScaleMode) {
+        experiencePreferences.sceneScaleProfile = .custom
         experiencePreferences.objectScaleMode = objectScaleMode
+        saveExperiencePreferences()
+    }
+
+    func setRenderDetail(_ renderDetail: SceneRenderDetail) {
+        experiencePreferences.renderDetail = renderDetail
         saveExperiencePreferences()
     }
 
@@ -127,6 +144,9 @@ final class LunaAppState: ObservableObject {
         userProfile.displayName = displayName
         userProfile.hasCompletedOnboarding = true
         experiencePreferences.prefersARMode = prefersARMode
+        experiencePreferences.sceneScaleProfile = distanceScaleMode == .compressed && objectScaleMode == .relative
+            ? .scaledRecommended
+            : .custom
         experiencePreferences.distanceScaleMode = distanceScaleMode
         experiencePreferences.objectScaleMode = objectScaleMode
         experiencePreferences.distanceCompression = ExperienceSceneSettings.clampedDistanceCompression(distanceCompression)
