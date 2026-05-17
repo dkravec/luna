@@ -12,7 +12,8 @@ struct ExploreView: View {
                     subtitle: "Browse worlds, compare facts, and open details from Luna's space library."
                 )
 
-                regionSection
+//                regionSection
+                searchSection
                 filterSection
                 bodiesSection
             }
@@ -37,6 +38,44 @@ struct ExploreView: View {
                         value: "Active"
                     )
                 }
+            }
+        }
+    }
+
+    private var searchSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Search")
+
+            Card {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 24)
+
+                    TextField("Search bodies", text: $viewModel.searchText)
+                        .textFieldStyle(.plain)
+                        .autocorrectionDisabled()
+#if os(iOS)
+                        .textInputAutocapitalization(.never)
+#endif
+                        .submitLabel(.search)
+
+                    if !viewModel.searchText.isEmpty {
+                        Button {
+                            viewModel.searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28, height: 28)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Clear search")
+                        .hapticTap()
+                    }
+                }
+                .accessibilityElement(children: .contain)
             }
         }
     }
@@ -77,9 +116,9 @@ struct ExploreView: View {
             case .loaded:
                 if viewModel.filteredBodies.isEmpty {
                     EmptyStateView(
-                        title: "No Bodies",
+                        title: viewModel.isSearching ? "No Results" : "No Bodies",
                         systemImage: "line.3.horizontal.decrease",
-                        message: "Try a different filter."
+                        message: viewModel.isSearching ? "Try another search." : "Try a different filter."
                     )
                 } else {
                     LazyVStack(spacing: 10) {

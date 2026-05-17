@@ -10,24 +10,38 @@ final class ExploreViewModel: ObservableObject {
     @Published private(set) var bodies: [CelestialBody] = []
     @Published private(set) var loadState: LoadState = .idle
     @Published var selectedFilter: BodyFilter = .all
+    @Published var searchText: String = ""
 
     private var repository: CelestialBodyRepository?
 
     var filteredBodies: [CelestialBody] {
-        switch selectedFilter {
+        let filteredByType = switch selectedFilter {
         case .all:
-            return bodies
+            bodies
         case .stars:
-            return bodies.filter { $0.type == .star }
+            bodies.filter { $0.type == .star }
         case .planets:
-            return bodies.filter { $0.type == .planet }
+            bodies.filter { $0.type == .planet }
         case .moons:
-            return bodies.filter { $0.type == .moon || $0.type == .satellite }
+            bodies.filter { $0.type == .moon || $0.type == .satellite }
+        }
+
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return filteredByType }
+
+        return filteredByType.filter { body in
+            body.name.localizedCaseInsensitiveContains(query)
+                || body.type.title.localizedCaseInsensitiveContains(query)
+                || body.summary.localizedCaseInsensitiveContains(query)
         }
     }
 
     var bodyCountText: String {
         "\(filteredBodies.count)"
+    }
+
+    var isSearching: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     func configure(repository: CelestialBodyRepository) {
