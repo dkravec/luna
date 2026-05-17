@@ -272,6 +272,54 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertLessThan(length(returnedEarth.position - initialEarth.position), 0.01)
     }
 
+    func testAROrbitBudgetCapsBalancedPathSamples() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative, renderDetail: .balanced)
+        )
+        let earthOrbit = try XCTUnwrap(snapshot.orbitPaths.first { $0.bodyId == "earth" })
+        let budget = ARSceneOrbitRenderBudget(path: earthOrbit, detail: .balanced, scale: 0.095, center: .zero)
+
+        XCTAssertEqual(earthOrbit.points.count, 144)
+        XCTAssertLessThanOrEqual(budget.meshPoints.count, 72)
+    }
+
+    func testAROrbitBudgetCapsHighPathSamples() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative, renderDetail: .high)
+        )
+        let earthOrbit = try XCTUnwrap(snapshot.orbitPaths.first { $0.bodyId == "earth" })
+        let budget = ARSceneOrbitRenderBudget(path: earthOrbit, detail: .high, scale: 0.095, center: .zero)
+
+        XCTAssertEqual(earthOrbit.points.count, 288)
+        XCTAssertLessThanOrEqual(budget.meshPoints.count, 96)
+    }
+
+    func testAROrbitBudgetUsesOneRenderItemPerCompleteOrbit() {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative, renderDetail: .high)
+        )
+
+        for orbitPath in snapshot.orbitPaths {
+            let budget = ARSceneOrbitRenderBudget(path: orbitPath, detail: .high, scale: 0.095, center: .zero)
+            XCTAssertEqual(budget.renderItemCount, 1, "\(orbitPath.id) should render as one AR mesh item")
+        }
+    }
+
+    func testAROrbitFallbackDotsAreBoundedByStride() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative, renderDetail: .high)
+        )
+        let earthOrbit = try XCTUnwrap(snapshot.orbitPaths.first { $0.bodyId == "earth" })
+        let budget = ARSceneOrbitRenderBudget(path: earthOrbit, detail: .high, scale: 0.095, center: .zero)
+        let expectedMaximumDotCount = Int(ceil(Double(earthOrbit.points.count) / Double(SceneRenderDetail.high.arOrbitStride)))
+
+        XCTAssertLessThanOrEqual(budget.fallbackDotPoints.count, expectedMaximumDotCount)
+    }
+
     func testTrueSizePreservesRadiusRatios() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,
@@ -402,13 +450,15 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
     private func settings(
         distance: DistanceScaleMode,
         object: ObjectScaleMode,
-        distanceCompression: Double = 30
+        distanceCompression: Double = 30,
+        renderDetail: SceneRenderDetail = .balanced
     ) -> ExperienceSceneSettings {
         ExperienceSceneSettings(
             isAREnabled: false,
             distanceScaleMode: distance,
             objectScaleMode: object,
             distanceCompression: distanceCompression,
+            renderDetail: renderDetail,
             orbitPlaybackSpeed: .standard,
             objectRotationSpeed: .slow,
             showLabels: true,
