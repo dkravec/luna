@@ -14,7 +14,7 @@
     "axialTiltDegrees": 7.25,
     "gravity": 274,
     "imageName": "sun",
-    "textureName": "sun_texture",
+    "textureName": null,
     "modelName": null,
     "parentBodyId": null,
     "displayOrder": 0,

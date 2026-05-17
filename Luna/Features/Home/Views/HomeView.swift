@@ -13,6 +13,8 @@ struct HomeView: View {
 
                 primaryActions
 
+                NASAImageOfTheDayView()
+
                 overviewSection
             }
             .screenContentPadding()
