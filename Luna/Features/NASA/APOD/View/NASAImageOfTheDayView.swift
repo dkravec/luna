@@ -1,12 +1,17 @@
 import SwiftUI
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 struct NASAImageOfTheDayView: View {
     @State private var imageOfTheDayState: NASAImageOfTheDayState = .loading
 
-    private let imageOfTheDayService: NASAImageOfTheDayProviding
+    private let imageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding
 
-    init(imageOfTheDayService: NASAImageOfTheDayProviding = NASAImageOfTheDayService()) {
-        self.imageOfTheDayService = imageOfTheDayService
+    init(imageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding = NASAImageOfTheDayRepository()) {
+        self.imageOfTheDayRepository = imageOfTheDayRepository
     }
 
     var body: some View {
@@ -39,12 +44,24 @@ struct NASAImageOfTheDayView: View {
 
     @MainActor
     private func loadImageOfTheDay() async {
-        imageOfTheDayState = .loading
+        do {
+            if let cachedItem = try imageOfTheDayRepository.cachedLatest() {
+                imageOfTheDayState = .loaded(cachedItem)
+            } else {
+                imageOfTheDayState = .loading
+            }
+        } catch {
+            imageOfTheDayState = .loading
+        }
 
         do {
-            let item = try await imageOfTheDayService.fetchImageOfTheDay()
+            let item = try await imageOfTheDayRepository.refreshLatest()
             imageOfTheDayState = .loaded(item)
         } catch {
+            if case .loaded = imageOfTheDayState {
+                return
+            }
+
             imageOfTheDayState = .failed
         }
     }
@@ -101,7 +118,10 @@ private struct NASAImageOfTheDayCard: View {
 
     @ViewBuilder
     private var image: some View {
-        if item.isImage, let url = item.previewURL {
+        if let cachedImageURL = item.cachedImageURL {
+            LocalNASAImage(url: cachedImageURL)
+                .scaledToFill()
+        } else if item.isImage, let url = item.previewURL {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .empty:
@@ -147,35 +167,47 @@ private struct NASAImageOfTheDayDetailView: View {
     @Environment(\.openURL) private var openURL
 
     let item: NASAImageOfTheDay
+    private let imageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding
+
+    init(
+        item: NASAImageOfTheDay,
+        imageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding = NASAImageOfTheDayRepository()
+    ) {
+        self.item = item
+        self.imageOfTheDayRepository = imageOfTheDayRepository
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                heroImage
-                    .frame(height: 300)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
+                Card {
+                    VStack(alignment: .leading, spacing: 14) {
+                        heroImage
+                            .frame(maxHeight: 320)
+                            .frame(maxWidth: .infinity)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(item.date, format: .dateTime.month(.wide).day().year())
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(item.date, format: .dateTime.month(.wide).day().year())
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
 
-                    Text(item.title)
-                        .font(.largeTitle.weight(.bold))
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
+                            Text(item.title)
+                                .font(.title2.weight(.bold))
+                                .foregroundStyle(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
 
-                    if let copyright = item.copyright {
-                        Label(copyright, systemImage: "camera")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            if let copyright = item.copyright {
+                                Label(copyright, systemImage: "camera")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Text(item.explanation)
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
-
-                    Text(item.explanation)
-                        .font(.body)
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if let sourceURL = item.sourceURL {
@@ -186,6 +218,11 @@ private struct NASAImageOfTheDayDetailView: View {
                     }
                     .primaryActionButton()
                 }
+
+                NASAImageOfTheDayHistorySection(
+                    currentItem: item,
+                    imageOfTheDayRepository: imageOfTheDayRepository
+                )
             }
             .screenContentPadding()
         }
@@ -198,7 +235,11 @@ private struct NASAImageOfTheDayDetailView: View {
 
     @ViewBuilder
     private var heroImage: some View {
-        if item.isImage, let url = item.previewURL {
+        if let cachedImageURL = item.cachedImageURL {
+            LocalNASAImage(url: cachedImageURL)
+                .scaledToFit()
+                .clipShape(RoundedRectangle(cornerRadius: Radii.tile, style: .continuous))
+        } else if item.isImage, let url = item.previewURL {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .empty:
@@ -209,7 +250,7 @@ private struct NASAImageOfTheDayDetailView: View {
                 case .success(let image):
                     image
                         .resizable()
-                        .scaledToFill()
+                        .scaledToFit()
                 case .failure:
                     NASAImagePlaceholder(systemImage: "photo")
                 @unknown default:
@@ -218,6 +259,52 @@ private struct NASAImageOfTheDayDetailView: View {
             }
         } else {
             NASAImagePlaceholder(systemImage: "play.rectangle")
+        }
+    }
+}
+
+private struct NASAImageOfTheDayHistorySection: View {
+    let currentItem: NASAImageOfTheDay
+    let imageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding
+    @State private var history: [NASAImageOfTheDay] = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "History")
+
+            if history.isEmpty {
+                Card {
+                    Text("Saved APOD entries will appear here after Luna has cached more days.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                CardSection {
+                    ForEach(Array(history.enumerated()), id: \.element.id) { index, item in
+                        NavigationLink {
+                            NASAImageOfTheDayDetailView(item: item, imageOfTheDayRepository: imageOfTheDayRepository)
+                        } label: {
+                            CardRow {
+                                RowLabel(
+                                    title: item.title,
+                                    subtitle: item.date.formatted(date: .abbreviated, time: .omitted),
+                                    systemImage: item.isImage ? "photo" : "play.rectangle",
+                                    showsChevron: true
+                                )
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        if index < history.count - 1 {
+                            CardDivider(leadingInset: 56)
+                        }
+                    }
+                }
+            }
+        }
+        .task {
+            history = ((try? imageOfTheDayRepository.savedHistory(limit: 12)) ?? [])
+                .filter { $0.date != currentItem.date }
         }
     }
 }
@@ -279,5 +366,29 @@ private struct NASAImagePlaceholder: View {
                 .font(.largeTitle.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.78))
         }
+    }
+}
+
+private struct LocalNASAImage: View {
+    let url: URL
+
+    var body: some View {
+#if os(iOS)
+        if let image = UIImage(contentsOfFile: url.path) {
+            Image(uiImage: image)
+                .resizable()
+        } else {
+            NASAImagePlaceholder(systemImage: "photo")
+        }
+#elseif os(macOS)
+        if let image = NSImage(contentsOf: url) {
+            Image(nsImage: image)
+                .resizable()
+        } else {
+            NASAImagePlaceholder(systemImage: "photo")
+        }
+#else
+        NASAImagePlaceholder(systemImage: "photo")
+#endif
     }
 }

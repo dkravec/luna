@@ -51,8 +51,11 @@
 		7A6B090124B0000000000000 /* NASAImageOfTheDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B090024B0000000000000 /* NASAImageOfTheDay.swift */; };
 		7A6B090324B0000000000000 /* NASAImageOfTheDayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B090224B0000000000000 /* NASAImageOfTheDayService.swift */; };
 		7A6B090824B0000000000000 /* NASAImageOfTheDayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B090724B0000000000000 /* NASAImageOfTheDayView.swift */; };
+		7A6B092624B1000000000000 /* NASAAPODSharedCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B092524B1000000000000 /* NASAAPODSharedCache.swift */; };
+		7A6B092724B1000000000000 /* NASAAPODSharedCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B092524B1000000000000 /* NASAAPODSharedCache.swift */; };
+		7A6B092924B1000000000000 /* NASAImageOfTheDayRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B092824B1000000000000 /* NASAImageOfTheDayRepository.swift */; };
 		7A6B091124B0000000000000 /* LunaImageOfTheDayWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B091024B0000000000000 /* LunaImageOfTheDayWidget.swift */; };
-		7A6B091424B0000000000000 /* LunaWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 7A6B091324B0000000000000 /* LunaWidget.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7A6B091424B0000000000000 /* LunaWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 7A6B091324B0000000000000 /* LunaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -129,8 +132,11 @@
 		7A6B090024B0000000000000 /* NASAImageOfTheDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NASAImageOfTheDay.swift; sourceTree = "<group>"; };
 		7A6B090224B0000000000000 /* NASAImageOfTheDayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NASAImageOfTheDayService.swift; sourceTree = "<group>"; };
 		7A6B090724B0000000000000 /* NASAImageOfTheDayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NASAImageOfTheDayView.swift; sourceTree = "<group>"; };
+		7A6B092524B1000000000000 /* NASAAPODSharedCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NASAAPODSharedCache.swift; sourceTree = "<group>"; };
+		7A6B092824B1000000000000 /* NASAImageOfTheDayRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NASAImageOfTheDayRepository.swift; sourceTree = "<group>"; };
 		7A6B091024B0000000000000 /* LunaImageOfTheDayWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaImageOfTheDayWidget.swift; sourceTree = "<group>"; };
 		7A6B091224B0000000000000 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7A6B092A24B1000000000000 /* LunaWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LunaWidget.entitlements; sourceTree = "<group>"; };
 		7A6B091324B0000000000000 /* LunaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LunaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -588,6 +594,8 @@
 		7A6B090624B0000000000000 /* Service */ = {
 			isa = PBXGroup;
 			children = (
+				7A6B092524B1000000000000 /* NASAAPODSharedCache.swift */,
+				7A6B092824B1000000000000 /* NASAImageOfTheDayRepository.swift */,
 				7A6B090224B0000000000000 /* NASAImageOfTheDayService.swift */,
 			);
 			path = Service;
@@ -606,6 +614,7 @@
 			children = (
 				7A6B091024B0000000000000 /* LunaImageOfTheDayWidget.swift */,
 				7A6B091224B0000000000000 /* Info.plist */,
+				7A6B092A24B1000000000000 /* LunaWidget.entitlements */,
 			);
 			path = LunaWidget;
 			sourceTree = "<group>";
@@ -724,6 +733,8 @@
 				7A6B02B424A317B100535EA4 /* LunaPersistenceController.swift in Sources */,
 				7A6B080124AF000000000000 /* SceneBackgroundTexture.swift in Sources */,
 				7A6B090124B0000000000000 /* NASAImageOfTheDay.swift in Sources */,
+				7A6B092624B1000000000000 /* NASAAPODSharedCache.swift in Sources */,
+				7A6B092924B1000000000000 /* NASAImageOfTheDayRepository.swift in Sources */,
 				7A6B090324B0000000000000 /* NASAImageOfTheDayService.swift in Sources */,
 				7A6B090824B0000000000000 /* NASAImageOfTheDayView.swift in Sources */,
 				7A6B031024A5000000000000 /* AppAppearancePreference.swift in Sources */,
@@ -759,6 +770,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A6B092724B1000000000000 /* NASAAPODSharedCache.swift in Sources */,
 				7A6B091124B0000000000000 /* LunaImageOfTheDayWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -768,7 +780,6 @@
 /* Begin PBXTargetDependency section */
 		7A6B092424B0000000000000 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			platformFilter = ios;
 			target = 7A6B091A24B0000000000000 /* LunaWidget */;
 			targetProxy = 7A6B092324B0000000000000 /* PBXContainerItemProxy */;
 		};
@@ -918,6 +929,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
+				NASA_API_KEY = DEMO_KEY;
 				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.Luna;
 				PRODUCT_NAME = Luna;
 				REGISTER_APP_GROUPS = YES;
@@ -954,6 +966,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
+				NASA_API_KEY = DEMO_KEY;
 				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.Luna;
 				PRODUCT_NAME = Luna;
 				REGISTER_APP_GROUPS = YES;
@@ -971,6 +984,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = LunaWidget/LunaWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 16;
 				DEVELOPMENT_TEAM = VHCWBN8GY3;
@@ -983,12 +997,15 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
+				NASA_API_KEY = DEMO_KEY;
 				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.Luna.widget;
 				PRODUCT_NAME = LunaWidget;
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -998,6 +1015,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = LunaWidget/LunaWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 16;
 				DEVELOPMENT_TEAM = VHCWBN8GY3;
@@ -1009,12 +1027,15 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
+				NASA_API_KEY = DEMO_KEY;
 				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.Luna.widget;
 				PRODUCT_NAME = LunaWidget;
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
