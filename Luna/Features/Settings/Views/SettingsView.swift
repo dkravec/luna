@@ -3,6 +3,10 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var appState: LunaAppState
     @State private var isShowingResetConfirmation = false
+    @State private var isShowingAPODCacheClearConfirmation = false
+    @State private var apodCacheStatusMessage: String?
+
+    private let imageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding = NASAImageOfTheDayRepository()
 
     var body: some View {
         ScrollView {
@@ -15,6 +19,7 @@ struct SettingsView: View {
                 generalSection
                 experienceSection
                 profileSection
+                storageSection
             }
             .screenContentPadding()
         }
@@ -114,6 +119,45 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var storageSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Storage")
+
+            CardSection {
+                Button {
+                    Haptics.selection()
+                    isShowingAPODCacheClearConfirmation = true
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "Clear NASA Image Cache",
+                            subtitle: apodCacheStatusMessage ?? "Remove saved APOD metadata and image files",
+                            systemImage: "trash",
+                            showsChevron: true
+                        )
+                    }
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.red)
+            }
+        }
+        .confirmationDialog(
+            "Clear NASA image cache?",
+            isPresented: $isShowingAPODCacheClearConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clear Cache", role: .destructive) {
+                clearAPODCache()
+            }
+
+            Button("Cancel", role: .cancel) {
+                Haptics.selection()
+            }
+        } message: {
+            Text("This removes saved NASA image metadata and cached APOD image files. Luna will fetch the latest image again next time it loads.")
         }
     }
 
@@ -295,6 +339,17 @@ struct SettingsView: View {
     private func setHapticIntensity(_ intensity: HapticIntensity) {
         appState.setHapticIntensity(intensity)
         Haptics.selection()
+    }
+
+    private func clearAPODCache() {
+        do {
+            try imageOfTheDayRepository.clearCache()
+            apodCacheStatusMessage = "NASA image cache cleared"
+            Haptics.selection()
+        } catch {
+            apodCacheStatusMessage = "Could not clear NASA image cache"
+            Haptics.selection()
+        }
     }
 
     private var currentViewModeTitle: String {

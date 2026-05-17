@@ -19,11 +19,15 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>15</string>
+	<string>16</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Luna uses the camera to place and view planets in augmented reality.</string>
+	<key>NASA_API_KEY</key>
+	<string>$(NASA_API_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

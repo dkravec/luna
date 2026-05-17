@@ -65,7 +65,23 @@ final class LunaPersistenceController {
             attribute("showOrbits", type: .booleanAttributeType, optional: false, defaultValue: true)
         ]
 
-        model.entities = [profileEntity, experienceEntity]
+        let apodEntity = NSEntityDescription()
+        apodEntity.name = "NASAImageOfTheDayRecord"
+        apodEntity.managedObjectClassName = NSStringFromClass(NASAImageOfTheDayRecord.self)
+        apodEntity.properties = [
+            attribute("dateString", type: .stringAttributeType, optional: false),
+            attribute("date", type: .dateAttributeType, optional: false),
+            attribute("title", type: .stringAttributeType, optional: false),
+            attribute("explanationText", type: .stringAttributeType, optional: false),
+            attribute("mediaType", type: .stringAttributeType, optional: false, defaultValue: "image"),
+            attribute("urlString", type: .stringAttributeType, optional: true),
+            attribute("hdurlString", type: .stringAttributeType, optional: true),
+            attribute("thumbnailURLString", type: .stringAttributeType, optional: true),
+            attribute("copyright", type: .stringAttributeType, optional: true),
+            attribute("fetchedAt", type: .dateAttributeType, optional: false)
+        ]
+
+        model.entities = [profileEntity, experienceEntity, apodEntity]
         return model
     }
 

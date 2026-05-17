@@ -22,10 +22,31 @@ final class LocalCelestialBodyRepository: CelestialBodyRepository {
 
         let data = try Data(contentsOf: url)
         let bodies = try decoder.decode([CelestialBody].self, from: data)
+        validateTextureReferences(in: bodies)
         return bodies.sorted { $0.displayOrder < $1.displayOrder }
     }
 
     func body(id: String) throws -> CelestialBody? {
         try fetchBodies().first { $0.id == id }
+    }
+
+    private func validateTextureReferences(in bodies: [CelestialBody]) {
+#if DEBUG
+        let missingTextures = bodies.compactMap { body -> String? in
+            guard let textureName = body.textureName else { return nil }
+
+            let textureURL = bundle.url(
+                forResource: textureName,
+                withExtension: "jpg",
+                subdirectory: "Planets"
+            )
+
+            return textureURL == nil ? "\(body.id): \(textureName).jpg" : nil
+        }
+
+        if !missingTextures.isEmpty {
+            assertionFailure("Missing celestial body textures: \(missingTextures.joined(separator: ", "))")
+        }
+#endif
     }
 }
