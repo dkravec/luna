@@ -4,25 +4,29 @@ import simd
 
 final class ExperienceSceneEngineScaleTests: XCTestCase {
     func testTrueDistancePreservesPlanetDistanceRatios() throws {
-        let snapshot = ExperienceSceneEngine.snapshot(
-            for: Self.bodies,
-            settings: settings(distance: .trueScale, object: .relative)
-        )
+        for objectMode in [ObjectScaleMode.uniform, .relative, .trueScale] {
+            let snapshot = ExperienceSceneEngine.snapshot(
+                for: Self.bodies,
+                settings: settings(distance: .trueScale, object: objectMode)
+            )
 
-        let mercury = try body("mercury", in: snapshot)
-        let earth = try body("earth", in: snapshot)
-        let neptune = try body("neptune", in: snapshot)
+            let mercury = try body("mercury", in: snapshot)
+            let earth = try body("earth", in: snapshot)
+            let neptune = try body("neptune", in: snapshot)
 
-        XCTAssertEqual(
-            distanceRatio(earth.position, mercury.position),
-            sourceDistanceRatio("earth", "mercury"),
-            accuracy: 0.06
-        )
-        XCTAssertEqual(
-            distanceRatio(neptune.position, earth.position),
-            sourceDistanceRatio("neptune", "earth"),
-            accuracy: 0.06
-        )
+            XCTAssertEqual(
+                distanceRatio(earth.position, mercury.position),
+                sourceDistanceRatio("earth", "mercury"),
+                accuracy: 0.06,
+                "Earth/Mercury ratio should hold in \(objectMode.rawValue)"
+            )
+            XCTAssertEqual(
+                distanceRatio(neptune.position, earth.position),
+                sourceDistanceRatio("neptune", "earth"),
+                accuracy: 0.06,
+                "Neptune/Earth ratio should hold in \(objectMode.rawValue)"
+            )
+        }
     }
 
     func testTrueDistanceOrbitPathMatchesPlacementScale() throws {
@@ -76,6 +80,53 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
                 "Moon should clear Earth in \(distanceMode.rawValue)"
             )
         }
+    }
+
+    func testTrueSizeDistanceModesHaveVisibleSunClearance() throws {
+        let educational = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .educational, object: .trueScale)
+        )
+        let compressed = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .trueScale)
+        )
+
+        XCTAssertGreaterThan(try sunClearance(for: "mercury", in: educational), 0.5)
+        XCTAssertGreaterThan(try sunClearance(for: "mercury", in: compressed), 0.3)
+    }
+
+    func testTrueDistanceMoonEnvelopeClearsNeighboringOrbits() throws {
+        for objectMode in [ObjectScaleMode.uniform, .relative] {
+            let snapshot = ExperienceSceneEngine.snapshot(
+                for: Self.bodies,
+                settings: settings(distance: .trueScale, object: objectMode)
+            )
+
+            let venus = try body("venus", in: snapshot)
+            let earth = try body("earth", in: snapshot)
+            let moon = try body("moon", in: snapshot)
+            let venusOrbitRadius = try orbitRadius("venus", in: snapshot)
+            let earthOrbitRadius = try orbitRadius("earth", in: snapshot)
+            let moonEnvelope = length(moon.position - earth.position) + moon.displayRadius
+
+            XCTAssertGreaterThan(
+                earthOrbitRadius - venusOrbitRadius,
+                venus.displayRadius + moonEnvelope + 0.02,
+                "Earth's moon envelope should clear Venus in \(objectMode.rawValue)"
+            )
+        }
+    }
+
+    func testTrueDistanceTrueSizeCameraFramingSupportsLargeSpan() {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .trueScale, object: .trueScale)
+        )
+        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot)
+
+        XCTAssertGreaterThan(metrics.cameraDistance, Double(snapshot.bounds.span))
+        XCTAssertGreaterThan(metrics.zFar, metrics.cameraDistance + Double(snapshot.bounds.span) * 2)
     }
 
     func testTrueSizePreservesRadiusRatios() throws {
@@ -188,6 +239,17 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
 
     private func body(_ id: String, in snapshot: ExperienceSceneSnapshot) throws -> ExperienceSceneBody {
         try XCTUnwrap(snapshot.bodies.first { $0.id == id })
+    }
+
+    private func orbitRadius(_ id: String, in snapshot: ExperienceSceneSnapshot) throws -> Float {
+        let path = try XCTUnwrap(snapshot.orbitPaths.first { $0.bodyId == id })
+        return path.points.map { length($0) }.max() ?? 0
+    }
+
+    private func sunClearance(for id: String, in snapshot: ExperienceSceneSnapshot) throws -> Float {
+        let sun = try body("sun", in: snapshot)
+        let target = try body(id, in: snapshot)
+        return length(target.position - sun.position) - sun.displayRadius - target.displayRadius
     }
 
     private func settings(distance: DistanceScaleMode, object: ObjectScaleMode) -> ExperienceSceneSettings {

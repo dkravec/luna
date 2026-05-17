@@ -444,14 +444,16 @@ private enum SolarSystemSceneFactory {
     }
 
     private static func cameraNode(for snapshot: ExperienceSceneSnapshot) -> SCNNode {
+        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot)
         let camera = SCNCamera()
         camera.usesOrthographicProjection = true
-        camera.orthographicScale = max(7, Double(snapshot.bounds.span + 2.6))
-        camera.zFar = 100
+        camera.orthographicScale = metrics.orthographicScale
+        camera.zNear = 0.1
+        camera.zFar = metrics.zFar
 
         let node = SCNNode()
         node.camera = camera
-        node.position = SCNVector3(6, 9, 22)
+        node.position = metrics.position
         node.eulerAngles = SCNVector3(-0.42, 0.22, 0)
         return node
     }
@@ -476,6 +478,21 @@ private enum SolarSystemSceneFactory {
         node.light = light
         node.position = SCNVector3(-3, 6, 8)
         return node
+    }
+}
+
+struct SolarSystemSceneCameraMetrics {
+    let position: SCNVector3
+    let orthographicScale: Double
+    let zFar: Double
+    let cameraDistance: Double
+
+    init(snapshot: ExperienceSceneSnapshot) {
+        let span = Double(max(snapshot.bounds.span, 1))
+        orthographicScale = max(7, span + 2.6)
+        cameraDistance = max(22, span * 1.35 + 22)
+        zFar = max(100, cameraDistance + span * 2.5 + 50)
+        position = SCNVector3(6, 9, Float(cameraDistance))
     }
 }
 
@@ -513,13 +530,14 @@ private struct SceneCameraLimit {
         let sceneSpan = max(maxX - minX, max(maxY - minY, maxZ - minZ))
         let subjectRadius = max(4, sceneSpan / 2 + 2)
         let largestBodyRadius = placements.map(\.displayRadius).max() ?? 1
-        let initialCameraDistance = (SCNVector3(6, 9, 22) - center).length
+        let cameraMetrics = SolarSystemSceneCameraMetrics(snapshot: snapshot)
+        let initialCameraDistance = (cameraMetrics.position - center).length
         let initialOrthographicScale = max(7, Double(snapshot.bounds.span + 2.6))
 
         subjectCenter = center
         minimumOrthographicScale = max(0.65, Double(largestBodyRadius) * 2.25)
         maximumOrthographicScale = initialOrthographicScale * 1.35
-        maximumCameraDistance = max(initialCameraDistance * 1.35, subjectRadius * 2.4)
+        maximumCameraDistance = max(initialCameraDistance * 1.35, subjectRadius * 3.2)
     }
 
     private init(

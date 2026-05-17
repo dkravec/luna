@@ -241,11 +241,13 @@ enum ExperienceSceneEngine {
         settings: ExperienceSceneSettings,
         content: ExperienceSceneContent
     ) -> Float {
+        let radius = objectModeRadius(for: body, settings: settings)
+
         if case .object = content {
-            return objectModeRadius(for: body, settings: settings) * 1.45
+            return radius * 1.45
         }
 
-        return objectModeRadius(for: body, settings: settings)
+        return radius * trueDistanceVisualScale(for: body, settings: settings)
     }
 
     private static func objectModeRadius(for body: CelestialBody, settings: ExperienceSceneSettings) -> Float {
@@ -497,10 +499,11 @@ enum ExperienceSceneEngine {
         settings: ExperienceSceneSettings
     ) -> Float {
         let sunRadius = displayRadii["sun"] ?? 0
+        var multiplier = Float(1)
 
-        return sunChildren.reduce(Float(1)) { multiplier, body in
+        for body in sunChildren {
             let baseRadius = baseSunDistance(for: body, maxSunDistance: maxSunDistance, settings: settings)
-            guard baseRadius > 0 else { return multiplier }
+            guard baseRadius > 0 else { continue }
 
             let envelope = systemEnvelopeRadius(
                 for: body,
@@ -509,8 +512,33 @@ enum ExperienceSceneEngine {
                 childOrbitRadii: childOrbitRadii
             )
             let requiredRadius = sunRadius + envelope + sunOrbitClearanceMargin(for: settings)
-            return max(multiplier, requiredRadius / baseRadius)
+            multiplier = max(multiplier, requiredRadius / baseRadius)
         }
+
+        for pair in zip(sunChildren, sunChildren.dropFirst()) {
+            let inner = pair.0
+            let outer = pair.1
+            let innerRadius = baseSunDistance(for: inner, maxSunDistance: maxSunDistance, settings: settings)
+            let outerRadius = baseSunDistance(for: outer, maxSunDistance: maxSunDistance, settings: settings)
+            let baseGap = outerRadius - innerRadius
+            guard baseGap > 0 else { continue }
+
+            let requiredGap = systemEnvelopeRadius(
+                for: inner,
+                bodies: bodies,
+                displayRadii: displayRadii,
+                childOrbitRadii: childOrbitRadii
+            ) + systemEnvelopeRadius(
+                for: outer,
+                bodies: bodies,
+                displayRadii: displayRadii,
+                childOrbitRadii: childOrbitRadii
+            ) + interOrbitClearanceMargin(for: settings)
+
+            multiplier = max(multiplier, requiredGap / baseGap)
+        }
+
+        return multiplier
     }
 
     private static func systemEnvelopeRadius(
@@ -572,11 +600,11 @@ enum ExperienceSceneEngine {
     private static func sunOrbitClearanceMargin(for settings: ExperienceSceneSettings) -> Float {
         switch settings.distanceScaleMode {
         case .educational:
-            return 0.08
+            return settings.objectScaleMode == .trueScale ? 0.55 : 0.08
         case .compressed:
-            return 0.12
+            return settings.objectScaleMode == .trueScale ? 0.32 : 0.12
         case .trueScale:
-            return settings.objectScaleMode == .trueScale ? 0.22 : 0.16
+            return settings.objectScaleMode == .trueScale ? 0.42 : 0.16
         }
     }
 
@@ -593,6 +621,36 @@ enum ExperienceSceneEngine {
 
     private static func interOrbitClearanceMargin(for settings: ExperienceSceneSettings) -> Float {
         settings.distanceScaleMode == .compressed ? 0.12 : 0.08
+    }
+
+    private static func trueDistanceVisualScale(for body: CelestialBody, settings: ExperienceSceneSettings) -> Float {
+        guard settings.distanceScaleMode == .trueScale,
+              settings.objectScaleMode != .trueScale else {
+            return 1
+        }
+
+        switch settings.objectScaleMode {
+        case .uniform:
+            switch body.type {
+            case .star:
+                return 0.88
+            case .moon:
+                return 0.55
+            default:
+                return 0.74
+            }
+        case .relative:
+            switch body.type {
+            case .star:
+                return 0.92
+            case .moon:
+                return 0.68
+            default:
+                return 0.86
+            }
+        case .trueScale:
+            return 1
+        }
     }
 
     private static func orbitOffset(
