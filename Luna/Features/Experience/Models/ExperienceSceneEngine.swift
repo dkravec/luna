@@ -85,6 +85,7 @@ protocol ExperienceSceneRenderer {
 
 enum ExperienceSceneEngine {
     private static let trueDistanceKilometersPerSceneUnit: Double = 316_553_521
+    private static let compressedDistanceKilometersPerSceneUnit: Double = 74_900_000
     private static let trueRadiusKilometersPerSceneUnit: Double = 129_465
     private static let trueRadiusVisualFloor: Float = 0.004
 
@@ -569,7 +570,7 @@ enum ExperienceSceneEngine {
             return Float((index ?? max(body.displayOrder - 1, 0)) + 1) * 1.18
         case .compressed:
             let compression = Float(ExperienceSceneSettings.clampedDistanceCompression(settings.distanceCompression))
-            return trueDistance(for: body, fallbackDistance: body.averageDistanceFromSunKm) / compression
+            return compressedDistance(for: body, fallbackDistance: body.averageDistanceFromSunKm) / compression
         case .trueScale:
             return trueDistance(for: body, fallbackDistance: body.averageDistanceFromSunKm)
         }
@@ -582,7 +583,7 @@ enum ExperienceSceneEngine {
                 return 0.44
             case .compressed:
                 let compression = Float(ExperienceSceneSettings.clampedDistanceCompression(settings.distanceCompression))
-                return trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm) / compression
+                return compressedDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm) / compression
             case .trueScale:
                 return trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm)
             }
@@ -593,7 +594,7 @@ enum ExperienceSceneEngine {
             return trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm)
         case .compressed:
             let compression = Float(ExperienceSceneSettings.clampedDistanceCompression(settings.distanceCompression))
-            return trueDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm) / compression
+            return compressedDistance(for: body, fallbackDistance: body.averageDistanceFromEarthKm) / compression
         default:
             return 0.42
         }
@@ -673,6 +674,11 @@ enum ExperienceSceneEngine {
     private static func trueDistance(for body: CelestialBody, fallbackDistance: Double?) -> Float {
         let distance = body.orbit?.semiMajorAxisKm ?? fallbackDistance ?? 0
         return Float(max(distance, 0) / trueDistanceKilometersPerSceneUnit)
+    }
+
+    private static func compressedDistance(for body: CelestialBody, fallbackDistance: Double?) -> Float {
+        let distance = body.orbit?.semiMajorAxisKm ?? fallbackDistance ?? 0
+        return Float(max(distance, 0) / compressedDistanceKilometersPerSceneUnit)
     }
 
     private static func defaultAxialTiltDegrees(for body: CelestialBody) -> Double {

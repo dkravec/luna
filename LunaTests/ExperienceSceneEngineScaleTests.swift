@@ -48,15 +48,48 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         )
     }
 
-    func testCompressedDistanceUsesLiteralTrueDistanceDivisorForOuterOrbits() throws {
+    func testCompressedDistanceUsesReadableTrueDistanceDivisorForOuterOrbits() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,
-            settings: settings(distance: .compressed, object: .uniform, distanceCompression: 2)
+            settings: settings(distance: .compressed, object: .uniform, distanceCompression: 5)
         )
 
         XCTAssertEqual(
             try orbitRadius("neptune", in: snapshot),
-            Float(sourceDistance("neptune") / Self.trueDistanceKilometersPerSceneUnit / 2),
+            Float(sourceDistance("neptune") / Self.compressedDistanceKilometersPerSceneUnit / 5),
+            accuracy: 0.01
+        )
+    }
+
+    func testCompressedDistanceSliderProducesVisibleSpanChanges() {
+        let compressed2x = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative, distanceCompression: 2)
+        )
+        let compressed5x = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative, distanceCompression: 5)
+        )
+        let compressed50x = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative, distanceCompression: 50)
+        )
+
+        XCTAssertGreaterThan(compressed2x.bounds.span, compressed5x.bounds.span * 1.7)
+        XCTAssertGreaterThan(compressed5x.bounds.span, compressed50x.bounds.span * 1.7)
+    }
+
+    func testCompressedOuterOrbitUsesSourceRatioWhenClearanceDoesNotApply() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .uniform, distanceCompression: 5)
+        )
+        let neptuneRadius = try orbitRadius("neptune", in: snapshot)
+        let expectedNeptuneRadius = Float(sourceDistance("neptune") / Self.compressedDistanceKilometersPerSceneUnit / 5)
+
+        XCTAssertEqual(
+            neptuneRadius / expectedNeptuneRadius,
+            1,
             accuracy: 0.01
         )
     }
@@ -229,6 +262,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         makeBody(id: "neptune", name: "Neptune", radiusKm: 24_622, averageDistanceFromSunKm: 4_495_100_000, orbit: orbit(4_495_060_000, eccentricity: 0.0113, inclination: 1.770, meanAnomaly: 256.228), displayOrder: 6)
     ]
     private static let trueDistanceKilometersPerSceneUnit: Double = 316_553_521
+    private static let compressedDistanceKilometersPerSceneUnit: Double = 74_900_000
 
     private static func makeBody(
         id: String,

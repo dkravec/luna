@@ -296,7 +296,7 @@ struct DistanceScaleOptionsView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     RowLabel(
                         title: "Distance Compression",
-                        subtitle: "Shows real orbital distances divided by this value, with visual clearance where needed.",
+                        subtitle: "Uses real distance ratios divided by this value, scaled for readable viewing.",
                         systemImage: "arrow.left.and.right",
                         value: "\(Int(clampedCompression.wrappedValue.rounded()))x"
                     )

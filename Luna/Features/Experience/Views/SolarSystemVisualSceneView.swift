@@ -121,7 +121,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     private var cameraLimit = SceneCameraLimit.default
     private var structureKey: String?
     private var activeFocusID: String?
-    private var currentSubjectCenter = SCNVector3Zero
+    private var savedCameraFocusState: CameraFocusState?
     private var snapshot = ExperienceSceneSnapshot(bodies: [], orbitPaths: [], bounds: .empty)
     private var bodyNodes: [String: SCNNode] = [:]
     private var bodyVisualNodes: [String: SCNNode] = [:]
@@ -152,7 +152,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
     func apply(snapshot: ExperienceSceneSnapshot, showsLabels: Bool, focusedBodyID: String?, to view: SCNView) {
         let nextStructureKey = Self.structureKey(for: snapshot, showsLabels: showsLabels)
-        let nextCameraLimit = SceneCameraLimit(snapshot: snapshot, focusedBodyID: focusedBodyID)
+        let nextCameraLimit = SceneCameraLimit(snapshot: snapshot)
         bodyLookup = Dictionary(uniqueKeysWithValues: snapshot.bodies.map { ($0.id, $0.body) })
         self.snapshot = snapshot
 
@@ -164,7 +164,6 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             view.scene = scene
             view.pointOfView = scene.rootNode.childNode(withName: "sceneCamera", recursively: false)
             captureNodes(from: scene)
-            currentSubjectCenter = nextCameraLimit.subjectCenter
             structureKey = nextStructureKey
         } else {
             updateExistingNodes(with: snapshot)
@@ -250,6 +249,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
                 if name.hasPrefix("orbit:") {
                     return orbitBodyID(from: String(name.dropFirst(6)))
                 }
+                if name.hasPrefix("orbitHit:") {
+                    return String(name.dropFirst(9))
+                }
             }
             currentNode = node.parent
         }
@@ -257,7 +259,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     }
 
     private func nearestOrbitBodyID(to point: CGPoint, in view: SCNView) -> String? {
-        let threshold: CGFloat = 18
+        let threshold: CGFloat = 10
 
         return snapshot.orbitPaths
             .compactMap { path -> (bodyID: String, distance: CGFloat)? in
@@ -282,20 +284,75 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     }
 
     private func applyCameraFocus(_ focusedBodyID: String?, cameraLimit: SceneCameraLimit, to view: SCNView) {
-        let nextCenter = cameraLimit.subjectCenter
-        let focusChanged = activeFocusID != focusedBodyID
-        let delta = nextCenter - currentSubjectCenter
+        guard let pointOfView = view.pointOfView else { return }
 
-        if let pointOfView = view.pointOfView {
-            pointOfView.position = pointOfView.position + delta
-            if focusChanged {
-                pointOfView.camera?.orthographicScale = cameraLimit.preferredOrthographicScale
-            }
+        guard let focusedBodyID else {
+            restoreCameraFocusIfNeeded(to: view)
+            return
         }
 
-        view.defaultCameraController.target = nextCenter
-        currentSubjectCenter = nextCenter
+        if savedCameraFocusState == nil {
+            savedCameraFocusState = CameraFocusState(
+                cameraPosition: pointOfView.position,
+                cameraEulerAngles: pointOfView.eulerAngles,
+                orthographicScale: pointOfView.camera?.orthographicScale ?? cameraLimit.preferredOrthographicScale,
+                controllerTarget: view.defaultCameraController.target
+            )
+        }
+
+        guard let state = savedCameraFocusState,
+              let focusCenter = bodyNodes[focusedBodyID]?.presentation.convertPosition(SCNVector3Zero, to: nil) else {
+            return
+        }
+
+        let focusChanged = activeFocusID != focusedBodyID
+        let viewOffset = state.cameraPosition - state.controllerTarget
+        let desiredPosition = focusCenter + viewOffset
+        let desiredScale = focusedOrthographicScale(for: focusedBodyID)
+
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = focusChanged ? 0.26 : 0
+        pointOfView.position = desiredPosition
+        pointOfView.eulerAngles = state.cameraEulerAngles
+        pointOfView.camera?.orthographicScale = desiredScale
+        SCNTransaction.commit()
+
+        view.defaultCameraController.target = focusCenter
         activeFocusID = focusedBodyID
+    }
+
+    private func restoreCameraFocusIfNeeded(to view: SCNView) {
+        guard let state = savedCameraFocusState,
+              let pointOfView = view.pointOfView else {
+            activeFocusID = nil
+            return
+        }
+
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 0.22
+        pointOfView.position = state.cameraPosition
+        pointOfView.eulerAngles = state.cameraEulerAngles
+        pointOfView.camera?.orthographicScale = state.orthographicScale
+        SCNTransaction.commit()
+
+        view.defaultCameraController.target = state.controllerTarget
+        savedCameraFocusState = nil
+        activeFocusID = nil
+    }
+
+    private func focusedOrthographicScale(for bodyID: String) -> Double {
+        guard let placement = snapshot.bodies.first(where: { $0.id == bodyID }) else {
+            return 2.2
+        }
+
+        let childEnvelope = snapshot.bodies
+            .filter { $0.body.parentBodyId == bodyID }
+            .map { child in
+                length(child.position - placement.position) + child.displayRadius
+            }
+            .max() ?? 0
+        let subjectRadius = max(placement.displayRadius, childEnvelope, 0.32)
+        return max(1.15, Double(subjectRadius * 4.2))
     }
 
     private static func structureKey(for snapshot: ExperienceSceneSnapshot, showsLabels: Bool) -> String {
@@ -311,6 +368,13 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
         return "\(showsLabels)-\(bodyKey)-\(orbitKey)"
     }
+}
+
+private struct CameraFocusState {
+    let cameraPosition: SCNVector3
+    let cameraEulerAngles: SCNVector3
+    let orthographicScale: Double
+    let controllerTarget: SCNVector3
 }
 
 private enum SolarSystemSceneFactory {
@@ -481,6 +545,14 @@ private enum SolarSystemSceneFactory {
     private static func orbitNode(path: ExperienceOrbitPath) -> SCNNode {
         let node = SCNNode(geometry: orbitGeometry(path: path))
         node.name = "orbit:\(path.id)"
+
+        for point in path.points.enumerated() where point.offset.isMultiple(of: 8) {
+            let hitNode = SCNNode(geometry: orbitHitGeometry())
+            hitNode.name = "orbitHit:\(path.bodyId)"
+            hitNode.position = SCNVector3(point.element.x, point.element.y, point.element.z)
+            node.addChildNode(hitNode)
+        }
+
         return node
     }
 
@@ -500,6 +572,17 @@ private enum SolarSystemSceneFactory {
         geometry.firstMaterial?.emission.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.10)
         geometry.firstMaterial?.lightingModel = .constant
         return geometry
+    }
+
+    private static func orbitHitGeometry() -> SCNGeometry {
+        let sphere = SCNSphere(radius: 0.09)
+        sphere.segmentCount = 8
+        let material = SCNMaterial()
+        material.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.01)
+        material.transparency = 0.01
+        material.lightingModel = .constant
+        sphere.firstMaterial = material
+        return sphere
     }
 
     private static func cameraNode(for snapshot: ExperienceSceneSnapshot) -> SCNNode {
@@ -570,16 +653,10 @@ private struct SceneCameraLimit {
     let maximumOrthographicScale: Double
     let maximumCameraDistance: Float
 
-    init(snapshot: ExperienceSceneSnapshot, focusedBodyID: String? = nil) {
+    init(snapshot: ExperienceSceneSnapshot) {
         let placements = snapshot.bodies
         guard !placements.isEmpty else {
             self = .default
-            return
-        }
-
-        if let focusedBodyID,
-           let focusedPlacement = placements.first(where: { $0.id == focusedBodyID }) {
-            self.init(focusedPlacement: focusedPlacement, placements: placements)
             return
         }
 
@@ -609,27 +686,6 @@ private struct SceneCameraLimit {
             maximumOrthographicScale: initialOrthographicScale * 1.35,
             maximumCameraDistance: max(initialCameraDistance * 1.35, subjectRadius * 3.2)
         )
-    }
-
-    private init(focusedPlacement: ExperienceSceneBody, placements: [ExperienceSceneBody]) {
-        let childEnvelope = placements
-            .filter { $0.body.parentBodyId == focusedPlacement.id }
-            .map { child in
-                length(child.position - focusedPlacement.position) + child.displayRadius
-            }
-            .max() ?? 0
-        let subjectRadius = max(focusedPlacement.displayRadius, childEnvelope, 0.42)
-        let preferredScale = max(1.4, Double(subjectRadius * 3.2))
-
-        subjectCenter = SCNVector3(
-            focusedPlacement.position.x,
-            focusedPlacement.position.y,
-            focusedPlacement.position.z
-        )
-        minimumOrthographicScale = max(0.45, Double(focusedPlacement.displayRadius * 2.4))
-        preferredOrthographicScale = preferredScale
-        maximumOrthographicScale = max(preferredScale * 2.4, 4.2)
-        maximumCameraDistance = max(24, subjectRadius * 10)
     }
 
     private init(
