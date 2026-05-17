@@ -1,5 +1,6 @@
 import XCTest
 import simd
+import SceneKit
 @testable import Luna
 
 final class ExperienceSceneEngineScaleTests: XCTestCase {
@@ -270,6 +271,73 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
 
         XCTAssertGreaterThan(length(advancedEarth.position - initialEarth.position), 0.25)
         XCTAssertLessThan(length(returnedEarth.position - initialEarth.position), 0.01)
+    }
+
+    func testSelectedFocusScaleIncludesBodyAndChildEnvelope() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative)
+        )
+        let earth = try body("earth", in: snapshot)
+        let moon = try body("moon", in: snapshot)
+        let childEnvelope = length(moon.position - earth.position) + moon.displayRadius
+
+        let scale = SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: "earth", in: snapshot)
+
+        XCTAssertGreaterThanOrEqual(scale, Double(childEnvelope * 4.7))
+    }
+
+    func testTrueScaleCameraMetricsAndLimitsCoverFullBounds() {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .trueScale, object: .trueScale)
+        )
+        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot)
+        let limits = SceneCameraLimit(snapshot: snapshot)
+
+        XCTAssertLessThanOrEqual(metrics.zNear, 0.001)
+        XCTAssertGreaterThan(metrics.cameraDistance, Double(snapshot.bounds.span) * 1.5)
+        XCTAssertGreaterThan(metrics.zFar, metrics.cameraDistance + Double(snapshot.bounds.span) * 3)
+        XCTAssertGreaterThan(limits.maximumCameraDistance, snapshot.bounds.span * 2.5)
+    }
+
+    func testOrbitRibbonMeshAndThicknessAreBounded() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative, renderDetail: .balanced)
+        )
+        let earthOrbit = try XCTUnwrap(snapshot.orbitPaths.first { $0.bodyId == "earth" })
+        let thickness = SolarSystemSceneOrbitRibbon.thickness(cameraScale: 80, viewportHeight: 800)
+        let mesh = SolarSystemSceneOrbitRibbon.mesh(points: earthOrbit.points, thickness: thickness)
+
+        XCTAssertGreaterThan(thickness, 0)
+        XCTAssertLessThanOrEqual(thickness, 0.045)
+        XCTAssertEqual(mesh.vertices.count, earthOrbit.points.count * 2)
+        XCTAssertEqual(mesh.indices.count, earthOrbit.points.count * 6)
+    }
+
+    func testLabelScaleShrinksForLargeScenesWithinBounds() {
+        let compactScale = SolarSystemSceneLabelScale.scale(for: 8, sceneSpan: 8)
+        let largeSceneScale = SolarSystemSceneLabelScale.scale(for: 8, sceneSpan: 120)
+
+        XCTAssertGreaterThan(compactScale, largeSceneScale)
+        XCTAssertGreaterThanOrEqual(largeSceneScale, 0.16)
+        XCTAssertLessThanOrEqual(compactScale, 0.38)
+    }
+
+    func testRotationHelpersSeparateTiltAndSpin() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative)
+        )
+        let earth = try body("earth", in: snapshot)
+        let tilt = SolarSystemSceneRotation.tiltEuler(for: earth)
+        let spin = SolarSystemSceneRotation.spinEuler(for: earth)
+
+        XCTAssertEqual(Float(tilt.x), earth.axialTiltRadians, accuracy: 0.0001)
+        XCTAssertEqual(Float(tilt.y), 0, accuracy: 0.0001)
+        XCTAssertEqual(Float(spin.x), 0, accuracy: 0.0001)
+        XCTAssertEqual(Float(spin.y), earth.rotationAngleRadians, accuracy: 0.0001)
     }
 
     func testAROrbitBudgetCapsBalancedPathSamples() throws {

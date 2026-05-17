@@ -126,12 +126,15 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     private var cameraLimit = SceneCameraLimit.default
     private var structureKey: String?
     private var activeFocusID: String?
-    private var savedCameraFocusState: CameraFocusState?
     private var snapshot = ExperienceSceneSnapshot(bodies: [], orbitPaths: [], bounds: .empty)
     private var bodyNodes: [String: SCNNode] = [:]
-    private var bodyVisualNodes: [String: SCNNode] = [:]
+    private var bodyTiltNodes: [String: SCNNode] = [:]
+    private var bodySpinNodes: [String: SCNNode] = [:]
     private var orbitNodes: [String: SCNNode] = [:]
+    private var labelNodes: [String: SCNNode] = [:]
     private var bodyLookup: [String: CelestialBody] = [:]
+    private var focusState: CameraFocusState?
+    private var lastOrbitThicknessKey: String?
     var onSelectBody: (CelestialBody) -> Void = { _ in }
 
     func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
@@ -144,11 +147,14 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         camera.orthographicScale = max(camera.orthographicScale, cameraLimit.minimumOrthographicScale)
         camera.orthographicScale = min(camera.orthographicScale, cameraLimit.maximumOrthographicScale)
 
-        let offset = pointOfView.position - cameraLimit.subjectCenter
+        let target = activeFocusID.flatMap { bodyNodes[$0]?.presentation.convertPosition(SCNVector3Zero, to: nil) } ?? cameraLimit.subjectCenter
+        let offset = pointOfView.position - target
         let distance = offset.length
         if distance > cameraLimit.maximumCameraDistance, distance > 0 {
-            pointOfView.position = cameraLimit.subjectCenter + offset.normalized * cameraLimit.maximumCameraDistance
+            pointOfView.position = target + offset.normalized * cameraLimit.maximumCameraDistance
         }
+
+        updateOrbitAndLabelScale(for: renderer)
     }
 
     func update(_ cameraLimit: SceneCameraLimit) {
@@ -169,17 +175,19 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             )
             view.scene = scene
             view.pointOfView = scene.rootNode.childNode(withName: "sceneCamera", recursively: false)
+            view.defaultCameraController.target = nextCameraLimit.subjectCenter
             captureNodes(from: scene)
             structureKey = nextStructureKey
+            lastOrbitThicknessKey = nil
         } else {
-            updateExistingNodes(with: snapshot)
+            updateExistingNodes(with: snapshot, cameraScale: view.pointOfView?.camera?.orthographicScale ?? nextCameraLimit.preferredOrthographicScale)
         }
 
         update(nextCameraLimit)
         applyCameraFocus(focusedBodyID, cameraLimit: nextCameraLimit, to: view)
     }
 
-    private func updateExistingNodes(with snapshot: ExperienceSceneSnapshot) {
+    private func updateExistingNodes(with snapshot: ExperienceSceneSnapshot, cameraScale: Double) {
         SCNTransaction.begin()
         SCNTransaction.disableActions = true
 
@@ -189,11 +197,23 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
                 placement.position.y,
                 placement.position.z
             )
-            bodyVisualNodes[placement.id]?.eulerAngles = SolarSystemSceneFactory.rotationEuler(for: placement)
+            bodyTiltNodes[placement.id]?.eulerAngles = SolarSystemSceneRotation.tiltEuler(for: placement)
+            bodySpinNodes[placement.id]?.eulerAngles = SolarSystemSceneRotation.spinEuler(for: placement)
+            if let labelNode = labelNodes[placement.id] {
+                labelNode.position = SolarSystemSceneFactory.labelPosition(for: placement.displayRadius)
+                labelNode.scale = SolarSystemSceneLabelScale.scaleVector(
+                    for: cameraScale,
+                    sceneSpan: snapshot.bounds.span
+                )
+            }
         }
 
         for orbitPath in snapshot.orbitPaths {
-            orbitNodes[orbitPath.id]?.geometry = SolarSystemSceneFactory.orbitGeometry(path: orbitPath)
+            orbitNodes[orbitPath.id]?.geometry = SolarSystemSceneFactory.orbitGeometry(
+                path: orbitPath,
+                cameraScale: cameraScale,
+                viewportHeight: 800
+            )
         }
 
         SCNTransaction.commit()
@@ -201,18 +221,24 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
     private func captureNodes(from scene: SCNScene) {
         bodyNodes.removeAll()
-        bodyVisualNodes.removeAll()
+        bodyTiltNodes.removeAll()
+        bodySpinNodes.removeAll()
         orbitNodes.removeAll()
+        labelNodes.removeAll()
 
         scene.rootNode.enumerateChildNodes { node, _ in
             guard let name = node.name else { return }
 
             if name.hasPrefix("body:") {
                 bodyNodes[String(name.dropFirst(5))] = node
-            } else if name.hasPrefix("bodyVisual:") {
-                bodyVisualNodes[String(name.dropFirst(11))] = node
+            } else if name.hasPrefix("bodyTilt:") {
+                bodyTiltNodes[String(name.dropFirst(9))] = node
+            } else if name.hasPrefix("bodySpin:") {
+                bodySpinNodes[String(name.dropFirst(9))] = node
             } else if name.hasPrefix("orbit:") {
                 orbitNodes[String(name.dropFirst(6))] = node
+            } else if name.hasPrefix("label:") {
+                labelNodes[String(name.dropFirst(6))] = node
             }
         }
     }
@@ -247,6 +273,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         var currentNode: SCNNode? = node
         while let node = currentNode {
             if let name = node.name {
+                if name.hasPrefix("label:") {
+                    return nil
+                }
                 if name.hasPrefix("body:") {
                     return String(name.dropFirst(5))
                 }
@@ -323,68 +352,86 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             return
         }
 
-        if savedCameraFocusState == nil {
-            savedCameraFocusState = CameraFocusState(
-                cameraPosition: pointOfView.position,
-                cameraEulerAngles: pointOfView.eulerAngles,
-                orthographicScale: pointOfView.camera?.orthographicScale ?? cameraLimit.preferredOrthographicScale,
-                controllerTarget: view.defaultCameraController.target
-            )
-        }
-
-        guard let state = savedCameraFocusState,
-              let focusCenter = bodyNodes[focusedBodyID]?.presentation.convertPosition(SCNVector3Zero, to: nil) else {
+        guard let focusCenter = bodyNodes[focusedBodyID]?.presentation.convertPosition(SCNVector3Zero, to: nil) else {
             return
         }
 
         let focusChanged = activeFocusID != focusedBodyID
-        let viewOffset = state.cameraPosition - state.controllerTarget
-        let desiredPosition = focusCenter + viewOffset
-        let desiredScale = focusedOrthographicScale(for: focusedBodyID)
+        let previousTarget = focusState?.target ?? view.defaultCameraController.target
+        let currentOffset = pointOfView.position - previousTarget
+        let minimumDistance = max(Float(focusedOrthographicScale(for: focusedBodyID) * 1.25), 2.2)
+        let nextOffset = currentOffset.length < minimumDistance ? currentOffset.normalizedOrDefault * minimumDistance : currentOffset
+        let desiredScale = focusChanged
+            ? focusedOrthographicScale(for: focusedBodyID)
+            : min(max(pointOfView.camera?.orthographicScale ?? focusedOrthographicScale(for: focusedBodyID), cameraLimit.minimumOrthographicScale), cameraLimit.maximumOrthographicScale)
 
         SCNTransaction.begin()
         SCNTransaction.animationDuration = focusChanged ? 0.26 : 0
-        pointOfView.position = desiredPosition
-        pointOfView.eulerAngles = state.cameraEulerAngles
+        pointOfView.position = focusCenter + nextOffset
         pointOfView.camera?.orthographicScale = desiredScale
         SCNTransaction.commit()
 
         view.defaultCameraController.target = focusCenter
+        focusState = CameraFocusState(
+            target: focusCenter,
+            cameraOffset: nextOffset,
+            orthographicScale: desiredScale
+        )
         activeFocusID = focusedBodyID
     }
 
     private func restoreCameraFocusIfNeeded(to view: SCNView) {
-        guard let state = savedCameraFocusState,
-              let pointOfView = view.pointOfView else {
-            activeFocusID = nil
+        guard activeFocusID != nil || focusState != nil else {
             return
         }
 
+        guard let pointOfView = view.pointOfView else {
+            activeFocusID = nil
+            focusState = nil
+            return
+        }
+
+        let restoreTarget = cameraLimit.subjectCenter
+        let offset = focusState?.cameraOffset ?? (pointOfView.position - view.defaultCameraController.target)
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0.22
-        pointOfView.position = state.cameraPosition
-        pointOfView.eulerAngles = state.cameraEulerAngles
-        pointOfView.camera?.orthographicScale = state.orthographicScale
+        pointOfView.position = restoreTarget + offset
+        pointOfView.camera?.orthographicScale = cameraLimit.preferredOrthographicScale
         SCNTransaction.commit()
 
-        view.defaultCameraController.target = state.controllerTarget
-        savedCameraFocusState = nil
+        view.defaultCameraController.target = restoreTarget
+        focusState = nil
         activeFocusID = nil
     }
 
     private func focusedOrthographicScale(for bodyID: String) -> Double {
-        guard let placement = snapshot.bodies.first(where: { $0.id == bodyID }) else {
-            return 2.2
+        SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: bodyID, in: snapshot)
+    }
+
+    private func updateOrbitAndLabelScale(for renderer: any SCNSceneRenderer) {
+        guard let cameraScale = renderer.pointOfView?.camera?.orthographicScale else { return }
+        let viewportHeight = max(Double(renderer.currentViewport.height), 1)
+        let orbitThicknessKey = "\(Int((cameraScale * 100).rounded())):\(Int(viewportHeight.rounded()))"
+
+        if orbitThicknessKey != lastOrbitThicknessKey {
+            for orbitPath in snapshot.orbitPaths {
+                guard let node = orbitNodes[orbitPath.id] else { continue }
+                node.geometry = SolarSystemSceneFactory.orbitGeometry(
+                    path: orbitPath,
+                    cameraScale: cameraScale,
+                    viewportHeight: viewportHeight
+                )
+            }
+            lastOrbitThicknessKey = orbitThicknessKey
         }
 
-        let childEnvelope = snapshot.bodies
-            .filter { $0.body.parentBodyId == bodyID }
-            .map { child in
-                length(child.position - placement.position) + child.displayRadius
-            }
-            .max() ?? 0
-        let subjectRadius = max(placement.displayRadius, childEnvelope, 0.32)
-        return max(1.15, Double(subjectRadius * 4.2))
+        let labelScale = SolarSystemSceneLabelScale.scaleVector(
+            for: cameraScale,
+            sceneSpan: snapshot.bounds.span
+        )
+        for node in labelNodes.values {
+            node.scale = labelScale
+        }
     }
 
     private static func structureKey(for snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings, showsLabels: Bool) -> String {
@@ -403,10 +450,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 }
 
 private struct CameraFocusState {
-    let cameraPosition: SCNVector3
-    let cameraEulerAngles: SCNVector3
+    let target: SCNVector3
+    let cameraOffset: SCNVector3
     let orthographicScale: Double
-    let controllerTarget: SCNVector3
 }
 
 private enum SolarSystemSceneFactory {
@@ -424,7 +470,7 @@ private enum SolarSystemSceneFactory {
         scene.rootNode.addChildNode(root)
 
         for orbitPath in snapshot.orbitPaths {
-            root.addChildNode(orbitNode(path: orbitPath))
+            root.addChildNode(orbitNode(path: orbitPath, cameraScale: SolarSystemSceneCameraMetrics(snapshot: snapshot).orthographicScale))
         }
 
         for placement in snapshot.bodies {
@@ -432,7 +478,7 @@ private enum SolarSystemSceneFactory {
             root.addChildNode(bodyNode)
 
             if showsLabels {
-                bodyNode.addChildNode(labelNode(for: placement.body, radius: placement.displayRadius))
+                bodyNode.addChildNode(labelNode(for: placement.body, radius: placement.displayRadius, sceneSpan: snapshot.bounds.span))
             }
         }
 
@@ -443,6 +489,14 @@ private enum SolarSystemSceneFactory {
         let root = SCNNode()
         root.name = "body:\(placement.id)"
         root.position = SCNVector3(placement.position.x, placement.position.y, placement.position.z)
+
+        let tiltNode = SCNNode()
+        tiltNode.name = "bodyTilt:\(placement.id)"
+        tiltNode.eulerAngles = SolarSystemSceneRotation.tiltEuler(for: placement)
+
+        let spinNode = SCNNode()
+        spinNode.name = "bodySpin:\(placement.id)"
+        spinNode.eulerAngles = SolarSystemSceneRotation.spinEuler(for: placement)
 
         let visualNode: SCNNode
 
@@ -462,8 +516,9 @@ private enum SolarSystemSceneFactory {
         }
 
         visualNode.name = "bodyVisual:\(placement.id)"
-        visualNode.eulerAngles = rotationEuler(for: placement)
-        root.addChildNode(visualNode)
+        spinNode.addChildNode(visualNode)
+        tiltNode.addChildNode(spinNode)
+        root.addChildNode(tiltNode)
 
         if placement.interactionRadius > placement.displayRadius {
             root.addChildNode(interactionNode(for: placement))
@@ -485,11 +540,7 @@ private enum SolarSystemSceneFactory {
     }
 
     static func rotationEuler(for placement: ExperienceSceneBody) -> SCNVector3 {
-        SCNVector3(
-            placement.axialTiltRadians,
-            placement.rotationAngleRadians,
-            0
-        )
+        SolarSystemSceneRotation.combinedEuler(for: placement)
     }
 
     private static func satelliteNode() -> SCNNode {
@@ -568,17 +619,22 @@ private enum SolarSystemSceneFactory {
         }
     }
 
-    private static func labelNode(for body: CelestialBody, radius: Float) -> SCNNode {
+    static func labelPosition(for radius: Float) -> SCNVector3 {
+        SCNVector3(0, radius + max(0.30, min(0.54, radius * 0.55)), 0)
+    }
+
+    private static func labelNode(for body: CelestialBody, radius: Float, sceneSpan: Float) -> SCNNode {
         let text = SCNText(string: body.name, extrusionDepth: 0.006)
-        text.font = .systemFont(ofSize: 1.35, weight: .bold)
+        text.font = .systemFont(ofSize: 1.0, weight: .bold)
         text.flatness = 0.02
         text.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.92)
         text.firstMaterial?.emission.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.18)
         text.alignmentMode = CATextLayerAlignmentMode.center.rawValue
 
         let node = SCNNode(geometry: text)
-        node.scale = SCNVector3(0.42, 0.42, 0.42)
-        node.position = SCNVector3(0, radius + max(0.54, radius * 0.55), 0)
+        node.name = "label:\(body.id)"
+        node.scale = SolarSystemSceneLabelScale.scaleVector(for: Double(max(sceneSpan, 1)), sceneSpan: sceneSpan)
+        node.position = labelPosition(for: radius)
         node.constraints = [SCNBillboardConstraint()]
 
         let (minVector, maxVector) = text.boundingBox
@@ -591,8 +647,8 @@ private enum SolarSystemSceneFactory {
         return node
     }
 
-    private static func orbitNode(path: ExperienceOrbitPath) -> SCNNode {
-        let node = SCNNode(geometry: orbitGeometry(path: path))
+    private static func orbitNode(path: ExperienceOrbitPath, cameraScale: Double) -> SCNNode {
+        let node = SCNNode(geometry: orbitGeometry(path: path, cameraScale: cameraScale, viewportHeight: 800))
         node.name = "orbit:\(path.id)"
 
         for point in path.points.enumerated() where point.offset.isMultiple(of: 8) {
@@ -605,21 +661,16 @@ private enum SolarSystemSceneFactory {
         return node
     }
 
-    static func orbitGeometry(path: ExperienceOrbitPath) -> SCNGeometry {
-        let vertices = path.points.map { SCNVector3($0.x, $0.y, $0.z) }
-        let source = SCNGeometrySource(vertices: vertices)
-        var indices: [Int32] = []
-
-        for index in vertices.indices {
-            indices.append(Int32(index))
-            indices.append(Int32((index + 1) % vertices.count))
-        }
-
-        let element = SCNGeometryElement(indices: indices, primitiveType: .line)
+    static func orbitGeometry(path: ExperienceOrbitPath, cameraScale: Double, viewportHeight: Double) -> SCNGeometry {
+        let thickness = SolarSystemSceneOrbitRibbon.thickness(cameraScale: cameraScale, viewportHeight: viewportHeight, isMoon: path.bodyId == "moon")
+        let mesh = SolarSystemSceneOrbitRibbon.mesh(points: path.points, thickness: thickness)
+        let source = SCNGeometrySource(vertices: mesh.vertices.map { SCNVector3($0.x, $0.y, $0.z) })
+        let element = SCNGeometryElement(indices: mesh.indices, primitiveType: .triangles)
         let geometry = SCNGeometry(sources: [source], elements: [element])
         geometry.firstMaterial?.diffuse.contents = platformColor(red: 1, green: 1, blue: 1, alpha: path.bodyId == "moon" ? 0.22 : 0.13)
         geometry.firstMaterial?.emission.contents = platformColor(red: 1, green: 1, blue: 1, alpha: 0.10)
         geometry.firstMaterial?.lightingModel = .constant
+        geometry.firstMaterial?.isDoubleSided = true
         return geometry
     }
 
@@ -639,7 +690,7 @@ private enum SolarSystemSceneFactory {
         let camera = SCNCamera()
         camera.usesOrthographicProjection = true
         camera.orthographicScale = metrics.orthographicScale
-        camera.zNear = 0.1
+        camera.zNear = metrics.zNear
         camera.zFar = metrics.zFar
 
         let node = SCNNode()
@@ -673,22 +724,121 @@ private enum SolarSystemSceneFactory {
     }
 }
 
+struct SolarSystemSceneFocusMetrics {
+    static func focusedOrthographicScale(for bodyID: String, in snapshot: ExperienceSceneSnapshot) -> Double {
+        guard let placement = snapshot.bodies.first(where: { $0.id == bodyID }) else {
+            return 2.2
+        }
+
+        let childEnvelope = snapshot.bodies
+            .filter { $0.body.parentBodyId == bodyID }
+            .map { child in
+                length(child.position - placement.position) + child.displayRadius
+            }
+            .max() ?? 0
+        let subjectRadius = max(placement.displayRadius, childEnvelope, placement.interactionRadius, 0.22)
+        return max(0.85, Double(subjectRadius * 4.8))
+    }
+}
+
+struct SolarSystemSceneOrbitRibbon {
+    struct Mesh {
+        let vertices: [SIMD3<Float>]
+        let indices: [Int32]
+    }
+
+    static func thickness(cameraScale: Double, viewportHeight: Double, isMoon: Bool = false) -> Float {
+        let pixels = isMoon ? 2.4 : 1.8
+        let worldPerPixel = cameraScale / max(viewportHeight, 1)
+        return Float(min(max(worldPerPixel * pixels, 0.006), isMoon ? 0.06 : 0.045))
+    }
+
+    static func mesh(points: [SIMD3<Float>], thickness: Float) -> Mesh {
+        guard points.count > 2 else {
+            return Mesh(vertices: [], indices: [])
+        }
+
+        let halfThickness = thickness / 2
+        var vertices: [SIMD3<Float>] = []
+        var indices: [Int32] = []
+
+        for index in points.indices {
+            let previous = points[(index - 1 + points.count) % points.count]
+            let next = points[(index + 1) % points.count]
+            var tangent = next - previous
+            if simd_length_squared(tangent) < 0.000_001 {
+                tangent = SIMD3<Float>(1, 0, 0)
+            }
+            tangent = simd_normalize(tangent)
+
+            var side = simd_cross(tangent, SIMD3<Float>(0, 1, 0))
+            if simd_length_squared(side) < 0.000_001 {
+                side = simd_cross(tangent, SIMD3<Float>(0, 0, 1))
+            }
+            side = simd_normalize(side) * halfThickness
+            vertices.append(points[index] - side)
+            vertices.append(points[index] + side)
+        }
+
+        for index in points.indices {
+            let current = Int32(index * 2)
+            let next = Int32(((index + 1) % points.count) * 2)
+            indices.append(contentsOf: [
+                current, current + 1, next,
+                current + 1, next + 1, next
+            ])
+        }
+
+        return Mesh(vertices: vertices, indices: indices)
+    }
+}
+
+struct SolarSystemSceneLabelScale {
+    static func scale(for cameraScale: Double, sceneSpan: Float) -> Float {
+        let sceneFactor = Double(max(sceneSpan, 1))
+        let scale = 0.22 + min(0.22, cameraScale / max(sceneFactor, 1) * 0.20)
+        return Float(min(max(scale, 0.16), 0.38))
+    }
+
+    static func scaleVector(for cameraScale: Double, sceneSpan: Float) -> SCNVector3 {
+        let value = scale(for: cameraScale, sceneSpan: sceneSpan)
+        return SCNVector3(value, value, value)
+    }
+}
+
+struct SolarSystemSceneRotation {
+    static func tiltEuler(for placement: ExperienceSceneBody) -> SCNVector3 {
+        SCNVector3(placement.axialTiltRadians, 0, 0)
+    }
+
+    static func spinEuler(for placement: ExperienceSceneBody) -> SCNVector3 {
+        SCNVector3(0, placement.rotationAngleRadians, 0)
+    }
+
+    static func combinedEuler(for placement: ExperienceSceneBody) -> SCNVector3 {
+        SCNVector3(placement.axialTiltRadians, placement.rotationAngleRadians, 0)
+    }
+}
+
 struct SolarSystemSceneCameraMetrics {
     let position: SCNVector3
     let orthographicScale: Double
+    let zNear: Double
     let zFar: Double
     let cameraDistance: Double
 
     init(snapshot: ExperienceSceneSnapshot) {
+        let center = SCNVector3(snapshot.bounds.center.x, snapshot.bounds.center.y, snapshot.bounds.center.z)
         let span = Double(max(snapshot.bounds.span, 1))
         orthographicScale = max(7, span + 2.6)
-        cameraDistance = max(22, span * 1.35 + 22)
-        zFar = max(100, cameraDistance + span * 2.5 + 50)
-        position = SCNVector3(6, 9, Float(cameraDistance))
+        cameraDistance = max(22, span * 1.8 + 28)
+        zNear = 0.001
+        zFar = max(250, cameraDistance + span * 4.0 + 120)
+        position = center + SCNVector3(6, 9, Float(cameraDistance))
     }
 }
 
-private struct SceneCameraLimit {
+struct SceneCameraLimit {
     static let `default` = SceneCameraLimit(
         subjectCenter: SCNVector3Zero,
         preferredOrthographicScale: 7,
@@ -721,8 +871,8 @@ private struct SceneCameraLimit {
             subjectCenter: center,
             minimumOrthographicScale: max(0.65, Double(largestBodyRadius) * 2.25),
             preferredOrthographicScale: initialOrthographicScale,
-            maximumOrthographicScale: initialOrthographicScale * 1.35,
-            maximumCameraDistance: max(initialCameraDistance * 1.35, subjectRadius * 3.2)
+            maximumOrthographicScale: initialOrthographicScale * 1.75,
+            maximumCameraDistance: max(initialCameraDistance * 1.75, subjectRadius * 5.0)
         )
     }
 
@@ -778,6 +928,10 @@ private extension SCNVector3 {
 #else
         return SCNVector3(x / vectorLength, y / vectorLength, z / vectorLength)
 #endif
+    }
+
+    var normalizedOrDefault: SCNVector3 {
+        length > 0 ? normalized : SCNVector3(0, 0, 1)
     }
 }
 

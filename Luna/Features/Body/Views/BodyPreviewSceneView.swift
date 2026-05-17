@@ -79,7 +79,8 @@ private extension BodyPreviewSceneContainer {
             view.scene = BodyPreviewSceneFactory.scene(for: celestialBody)
             coordinator?.attach(
                 body: celestialBody,
-                subjectNode: view.scene?.rootNode.childNode(withName: BodyPreviewSceneFactory.subjectNodeName, recursively: true)
+                tiltNode: view.scene?.rootNode.childNode(withName: BodyPreviewSceneFactory.tiltNodeName, recursively: true),
+                spinNode: view.scene?.rootNode.childNode(withName: BodyPreviewSceneFactory.spinNodeName, recursively: true)
             )
         }
 
@@ -91,7 +92,8 @@ private final class BodyPreviewCameraCoordinator: NSObject, SCNSceneRendererDele
     private var minimumOrthographicScale: Double = 1.1
     private var maximumOrthographicScale: Double = 3.0
     private let maximumCameraDistance: Float = 8.0
-    private weak var subjectNode: SCNNode?
+    private weak var tiltNode: SCNNode?
+    private weak var spinNode: SCNNode?
     private var body: CelestialBody?
     private var rotationAngle: Float = 0
     private var lastUpdateTime: TimeInterval?
@@ -127,18 +129,15 @@ private final class BodyPreviewCameraCoordinator: NSObject, SCNSceneRendererDele
             lastCameraEulerAngles = pointOfView.eulerAngles
         }
 
-        guard let body, let subjectNode else { return }
+        guard let body, let tiltNode, let spinNode else { return }
         let deltaTime = lastUpdateTime.map { max(0, time - $0) } ?? 0
 
         if time - lastInteractionTime >= 5 {
             rotationAngle += Float(deltaTime) * previewRotationSpeed(for: body)
         }
 
-        subjectNode.eulerAngles = SCNVector3(
-            ExperienceSceneEngine.axialTiltRadians(for: body),
-            rotationAngle,
-            0
-        )
+        tiltNode.eulerAngles = SCNVector3(ExperienceSceneEngine.axialTiltRadians(for: body), 0, 0)
+        spinNode.eulerAngles = SCNVector3(0, rotationAngle, 0)
     }
 
     func update(subjectRadius: CGFloat) {
@@ -146,9 +145,10 @@ private final class BodyPreviewCameraCoordinator: NSObject, SCNSceneRendererDele
         maximumOrthographicScale = max(2.2, Double(subjectRadius) * 3.5)
     }
 
-    func attach(body: CelestialBody, subjectNode: SCNNode?) {
+    func attach(body: CelestialBody, tiltNode: SCNNode?, spinNode: SCNNode?) {
         self.body = body
-        self.subjectNode = subjectNode
+        self.tiltNode = tiltNode
+        self.spinNode = spinNode
         currentBodyID = body.id
         rotationAngle = 0
         lastUpdateTime = nil
@@ -180,7 +180,8 @@ private final class BodyPreviewCameraCoordinator: NSObject, SCNSceneRendererDele
 }
 
 private enum BodyPreviewSceneFactory {
-    static let subjectNodeName = "previewSubject"
+    static let tiltNodeName = "previewTilt"
+    static let spinNodeName = "previewSpin"
 
     static func subjectRadius(for body: CelestialBody) -> CGFloat {
         body.type == .star ? 0.95 : 0.82
@@ -195,15 +196,18 @@ private enum BodyPreviewSceneFactory {
         scene.rootNode.addChildNode(ambientLightNode())
         scene.rootNode.addChildNode(keyLightNode())
 
-        let subjectNode = SCNNode()
-        subjectNode.name = subjectNodeName
-        subjectNode.addChildNode(previewNode(for: body))
+        let tiltNode = SCNNode()
+        tiltNode.name = tiltNodeName
+        let spinNode = SCNNode()
+        spinNode.name = spinNodeName
+        spinNode.addChildNode(previewNode(for: body))
 
         if body.id == "saturn" {
-            subjectNode.addChildNode(ringNode())
+            spinNode.addChildNode(ringNode())
         }
 
-        scene.rootNode.addChildNode(subjectNode)
+        tiltNode.addChildNode(spinNode)
+        scene.rootNode.addChildNode(tiltNode)
         return scene
     }
 
