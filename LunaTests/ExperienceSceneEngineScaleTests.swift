@@ -415,6 +415,35 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertNil(BundledThumbnailImageLoader.image(named: "missing-spacecraft.png"))
     }
 
+    func testBundledArtifactModelsResolveWithoutDracoAndLoadGeometry() throws {
+        let bodies = try LocalCelestialBodyRepository(bundle: .main).fetchBodies()
+        let modelBodies = bodies.filter { body in
+            body.modelName != nil && Self.usesBundledArtifactModel(body.type)
+        }
+
+        XCTAssertEqual(modelBodies.count, 10)
+
+        for body in modelBodies {
+            let modelName = try XCTUnwrap(body.modelName, body.id)
+            let url = try XCTUnwrap(Self.modelURL(named: modelName), "\(body.id) should resolve \(modelName)")
+            let extensions = try Self.glbExtensionsUsed(at: url)
+            XCTAssertFalse(
+                extensions.contains("KHR_draco_mesh_compression"),
+                "\(body.id) should be bundled as an app-readable uncompressed GLB"
+            )
+
+            let fittedNode = try XCTUnwrap(
+                BundledSceneModelLoader.fittedNode(named: modelName, targetLongestAxis: 1.2),
+                "\(body.id) should load \(modelName)"
+            )
+            XCTAssertGreaterThan(
+                BundledSceneModelLoader.longestAxis(for: fittedNode),
+                1.1,
+                "\(body.id) should produce visible geometry"
+            )
+        }
+    }
+
     func testBundledSceneModelLoaderFitsModelToTargetAxis() throws {
         let fittedNode = try XCTUnwrap(BundledSceneModelLoader.fittedNode(
             named: "saturn_v.glb",
@@ -636,6 +665,58 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         )
     }
 
+    private static func usesBundledArtifactModel(_ type: CelestialBodyType) -> Bool {
+        switch type {
+        case .satellite, .rocket, .spacecraft, .station, .astronaut:
+            return true
+        case .star, .planet, .moon, .asteroid, .dwarfPlanet:
+            return false
+        }
+    }
+
+    private static func modelURL(named modelName: String) -> URL? {
+        let resourceName = (modelName as NSString).deletingPathExtension
+        let resourceExtension = (modelName as NSString).pathExtension.isEmpty
+            ? "glb"
+            : (modelName as NSString).pathExtension
+
+        for subdirectory in ["NASA", "Satellites", "Moons"] {
+            if let url = Bundle.main.url(
+                forResource: resourceName,
+                withExtension: resourceExtension,
+                subdirectory: subdirectory
+            ) {
+                return url
+            }
+        }
+
+        return Bundle.main.url(forResource: resourceName, withExtension: resourceExtension)
+    }
+
+    private static func glbExtensionsUsed(at url: URL) throws -> [String] {
+        let data = try Data(contentsOf: url)
+        var offset = 12
+
+        while offset + 8 <= data.count {
+            let chunkLength = Int(data.testUInt32(at: offset))
+            let chunkType = data.testUInt32(at: offset + 4)
+            let chunkStart = offset + 8
+            let chunkEnd = chunkStart + chunkLength
+            guard chunkEnd <= data.count else { break }
+
+            if chunkType == 0x4E4F_534A,
+               let json = try JSONSerialization.jsonObject(
+                with: data.subdata(in: chunkStart..<chunkEnd)
+               ) as? [String: Any] {
+                return json["extensionsUsed"] as? [String] ?? []
+            }
+
+            offset = chunkEnd
+        }
+
+        return []
+    }
+
     private func body(_ id: String, in snapshot: ExperienceSceneSnapshot) throws -> ExperienceSceneBody {
         try XCTUnwrap(snapshot.bodies.first { $0.id == id })
     }
@@ -752,6 +833,14 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let lhsBody = Self.bodies.first { $0.id == lhs }!
         let rhsBody = Self.bodies.first { $0.id == rhs }!
         return lhsBody.radiusKm / rhsBody.radiusKm
+    }
+}
+
+private extension Data {
+    func testUInt32(at offset: Int) -> UInt32 {
+        subdata(in: offset..<(offset + 4)).withUnsafeBytes {
+            UInt32(littleEndian: $0.load(as: UInt32.self))
+        }
     }
 }
 
