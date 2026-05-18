@@ -330,6 +330,41 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertGreaterThan(limits.maximumCameraDistance, snapshot.bounds.span * 2.5)
     }
 
+    func testArtifactObjectCameraUsesCloseFramingWhilePlanetObjectDoesNot() {
+        let artifact = Self.makeBody(
+            id: "saturn_v",
+            name: "Saturn V",
+            type: .rocket,
+            radiusKm: 0.055,
+            parentBodyId: nil,
+            displayOrder: 1
+        )
+        let artifactSnapshot = ExperienceSceneEngine.snapshot(
+            for: [artifact],
+            settings: settings(distance: .compressed, object: .relative),
+            content: .object("saturn_v")
+        )
+        let planetSnapshot = ExperienceSceneEngine.snapshot(
+            for: [Self.makeBody(id: "earth", name: "Earth", radiusKm: 6_371, displayOrder: 1)],
+            settings: settings(distance: .compressed, object: .relative),
+            content: .object("earth")
+        )
+
+        let artifactMetrics = SolarSystemSceneCameraMetrics(
+            snapshot: artifactSnapshot,
+            settings: settings(distance: .compressed, object: .relative)
+        )
+        let planetMetrics = SolarSystemSceneCameraMetrics(
+            snapshot: planetSnapshot,
+            settings: settings(distance: .compressed, object: .relative)
+        )
+
+        XCTAssertTrue(SolarSystemSceneCameraMetrics.isArtifactObjectSnapshot(artifactSnapshot))
+        XCTAssertFalse(SolarSystemSceneCameraMetrics.isArtifactObjectSnapshot(planetSnapshot))
+        XCTAssertLessThan(artifactMetrics.cameraDistance, planetMetrics.cameraDistance)
+        XCTAssertLessThan(artifactMetrics.orthographicScale, planetMetrics.orthographicScale)
+    }
+
     func testOrbitRibbonMeshAndThicknessAreBounded() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,
@@ -345,13 +380,14 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertEqual(mesh.indices.count, earthOrbit.points.count * 6)
     }
 
-    func testLabelScaleShrinksForLargeScenesWithinBounds() {
-        let compactScale = SolarSystemSceneLabelScale.scale(for: 8, sceneSpan: 8)
-        let largeSceneScale = SolarSystemSceneLabelScale.scale(for: 8, sceneSpan: 120)
+    func testLabelScaleFollowsCameraZoomWithinBounds() {
+        let zoomedInScale = SolarSystemSceneLabelScale.scale(for: 1.2)
+        let zoomedOutScale = SolarSystemSceneLabelScale.scale(for: 12)
+        let farScale = SolarSystemSceneLabelScale.scale(for: 80)
 
-        XCTAssertGreaterThan(compactScale, largeSceneScale)
-        XCTAssertGreaterThanOrEqual(largeSceneScale, 0.16)
-        XCTAssertLessThanOrEqual(compactScale, 0.38)
+        XCTAssertLessThan(zoomedInScale, zoomedOutScale)
+        XCTAssertGreaterThanOrEqual(zoomedInScale, 0.055)
+        XCTAssertLessThanOrEqual(farScale, 0.28)
     }
 
     func testRotationHelpersSeparateTiltAndSpin() throws {
@@ -372,6 +408,71 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
     func testBundledSceneModelLoaderLoadsNASAAssetAndFallsBackForMissingAsset() {
         XCTAssertNotNil(BundledSceneModelLoader.node(named: "apollo_lunar_module.glb"))
         XCTAssertNil(BundledSceneModelLoader.node(named: "missing-spacecraft.glb"))
+    }
+
+    func testBundledThumbnailImageLoaderLoadsNASAAssetAndFallsBackForMissingAsset() {
+        XCTAssertNotNil(BundledThumbnailImageLoader.image(named: "apollo_lunar_module.png"))
+        XCTAssertNil(BundledThumbnailImageLoader.image(named: "missing-spacecraft.png"))
+    }
+
+    func testBundledSceneModelLoaderFitsModelToTargetAxis() throws {
+        let fittedNode = try XCTUnwrap(BundledSceneModelLoader.fittedNode(
+            named: "saturn_v.glb",
+            targetLongestAxis: 1.4
+        ))
+
+        XCTAssertEqual(BundledSceneModelLoader.longestAxis(for: fittedNode), 1.4, accuracy: 0.05)
+    }
+
+    func testBundledSceneModelLoaderCentersFittedModel() throws {
+        let fittedNode = try XCTUnwrap(BundledSceneModelLoader.fittedNode(
+            named: "iss.glb",
+            targetLongestAxis: 1.2
+        ))
+
+        let bounds = fittedNode.boundingBox
+        let center = SCNVector3(
+            (bounds.min.x + bounds.max.x) / 2,
+            (bounds.min.y + bounds.max.y) / 2,
+            (bounds.min.z + bounds.max.z) / 2
+        )
+
+        XCTAssertEqual(center.x, 0, accuracy: 0.08)
+        XCTAssertEqual(center.y, 0, accuracy: 0.08)
+        XCTAssertEqual(center.z, 0, accuracy: 0.08)
+    }
+
+    func testExploreSearchMatchesCategoryNames() {
+        let viewModel = ExploreViewModel()
+        viewModel.configure(repository: TestCelestialBodyRepository(bodies: [
+            Self.makeBody(id: "earth", name: "Earth", radiusKm: 6371, displayOrder: 1),
+            Self.makeBody(id: "terra", name: "Terra", type: .satellite, radiusKm: 0.0034, displayOrder: 2),
+            Self.makeBody(id: "saturn_v", name: "Saturn V", type: .rocket, radiusKm: 0.055, parentBodyId: nil, displayOrder: 3)
+        ]))
+        viewModel.searchText = "NASA"
+
+        XCTAssertEqual(viewModel.filteredBodies.map(\.id), ["terra", "saturn_v"])
+
+        viewModel.searchText = "satellites"
+        XCTAssertEqual(viewModel.filteredBodies.map(\.id), ["terra"])
+    }
+
+    func testExploreCategorySearchStaysWithinCategory() {
+        let viewModel = ExploreViewModel()
+        viewModel.configure(repository: TestCelestialBodyRepository(bodies: [
+            Self.makeBody(id: "earth", name: "Earth", radiusKm: 6371, displayOrder: 1),
+            Self.makeBody(id: "terra", name: "Terra", type: .satellite, radiusKm: 0.0034, displayOrder: 2),
+            Self.makeBody(id: "saturn_v", name: "Saturn V", type: .rocket, radiusKm: 0.055, parentBodyId: nil, displayOrder: 3)
+        ]))
+
+        XCTAssertEqual(
+            viewModel.filteredBodies(in: .earthOrbit, searchText: "saturn").map(\.id),
+            []
+        )
+        XCTAssertEqual(
+            viewModel.filteredBodies(in: .iconicNASA, searchText: "rocket").map(\.id),
+            ["saturn_v"]
+        )
     }
 
     func testAROrbitBudgetCapsBalancedPathSamples() throws {
@@ -507,6 +608,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
             axialTiltDegrees: nil,
             gravity: nil,
             imageName: nil,
+            thumbnailName: nil,
             textureName: nil,
             modelName: nil,
             orbit: orbit,
@@ -650,5 +752,17 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let lhsBody = Self.bodies.first { $0.id == lhs }!
         let rhsBody = Self.bodies.first { $0.id == rhs }!
         return lhsBody.radiusKm / rhsBody.radiusKm
+    }
+}
+
+private struct TestCelestialBodyRepository: CelestialBodyRepository {
+    let bodies: [CelestialBody]
+
+    func fetchBodies() throws -> [CelestialBody] {
+        bodies
+    }
+
+    func body(id: String) throws -> CelestialBody? {
+        bodies.first { $0.id == id }
     }
 }

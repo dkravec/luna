@@ -31,11 +31,7 @@ final class ExploreViewModel: ObservableObject {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return filteredByType }
 
-        return filteredByType.filter { body in
-            body.name.localizedCaseInsensitiveContains(query)
-                || body.type.title.localizedCaseInsensitiveContains(query)
-                || body.summary.localizedCaseInsensitiveContains(query)
-        }
+        return filteredByType.filter { bodyMatches($0, query: query, includeCollectionTokens: true) }
     }
 
     var bodyCountText: String {
@@ -78,6 +74,27 @@ final class ExploreViewModel: ObservableObject {
 
     func bodies(in collection: ExploreCollection) -> [CelestialBody] {
         bodies.filter { $0.exploreCollection == collection }
+    }
+
+    func filteredBodies(in collection: ExploreCollection, searchText: String) -> [CelestialBody] {
+        let categoryBodies = bodies(in: collection)
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return categoryBodies }
+
+        return categoryBodies.filter { bodyMatches($0, query: query, includeCollectionTokens: false) }
+    }
+
+    func bodyCount(in collection: ExploreCollection) -> Int {
+        bodies(in: collection).count
+    }
+
+    private func bodyMatches(
+        _ body: CelestialBody,
+        query: String,
+        includeCollectionTokens: Bool
+    ) -> Bool {
+        body.searchTokens(includeCollectionTokens: includeCollectionTokens)
+            .contains { $0.localizedCaseInsensitiveContains(query) }
     }
 }
 
@@ -134,6 +151,28 @@ enum ExploreCollection: String, CaseIterable, Identifiable {
             return "Rockets, spacecraft, stations, and astronauts"
         }
     }
+
+    var systemImage: String {
+        switch self {
+        case .solarSystem:
+            return "sun.max"
+        case .earthOrbit:
+            return "globe.americas"
+        case .iconicNASA:
+            return "sparkles"
+        }
+    }
+
+    var searchTokens: [String] {
+        switch self {
+        case .solarSystem:
+            return ["solar system", "planet", "planets", "moon", "moons", "worlds"]
+        case .earthOrbit:
+            return ["earth orbit", "satellite", "satellites", "earth observation"]
+        case .iconicNASA:
+            return ["iconic nasa", "nasa", "rocket", "rockets", "spacecraft", "station", "astronaut"]
+        }
+    }
 }
 
 extension CelestialBody {
@@ -146,5 +185,23 @@ extension CelestialBody {
         case .rocket, .spacecraft, .station, .astronaut:
             return .iconicNASA
         }
+    }
+
+    func searchTokens(includeCollectionTokens: Bool) -> [String] {
+        var tokens = [
+            name,
+            type.title,
+            subtitle,
+            summary
+        ] + tags
+
+        if includeCollectionTokens {
+            let collection = exploreCollection
+            tokens.append(collection.title)
+            tokens.append(collection.subtitle)
+            tokens.append(contentsOf: collection.searchTokens)
+        }
+
+        return tokens
     }
 }

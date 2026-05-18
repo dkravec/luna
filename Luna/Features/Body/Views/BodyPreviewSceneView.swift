@@ -212,15 +212,13 @@ private enum BodyPreviewSceneFactory {
     }
 
     private static func previewNode(for body: CelestialBody) -> SCNNode {
-        if let modelNode = BundledSceneModelLoader.node(named: body.modelName) {
+        if usesBundledModel(for: body),
+           let modelNode = BundledSceneModelLoader.fittedNode(
+            named: body.modelName,
+            targetLongestAxis: 2.12
+        ) {
             let root = SCNNode()
             root.addChildNode(modelNode)
-            let scale = Float(subjectRadius(for: body) * 1.55)
-            modelNode.scale = SCNVector3(
-                modelNode.scale.x * scale,
-                modelNode.scale.y * scale,
-                modelNode.scale.z * scale
-            )
             root.eulerAngles = SCNVector3(-0.18, 0.42, 0)
             return root
         }
@@ -233,6 +231,15 @@ private enum BodyPreviewSceneFactory {
         sphere.segmentCount = 64
         sphere.firstMaterial = material(for: body)
         return SCNNode(geometry: sphere)
+    }
+
+    private static func usesBundledModel(for body: CelestialBody) -> Bool {
+        switch body.type {
+        case .satellite, .rocket, .spacecraft, .station, .astronaut:
+            return true
+        case .star, .planet, .moon, .asteroid, .dwarfPlanet:
+            return false
+        }
     }
 
     private static func satelliteNode() -> SCNNode {

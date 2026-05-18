@@ -15,6 +15,7 @@ struct CelestialBody: Codable, Identifiable, Equatable {
     let axialTiltDegrees: Double?
     let gravity: Double?
     let imageName: String?
+    let thumbnailName: String?
     let textureName: String?
     let modelName: String?
     let orbit: CelestialOrbit?

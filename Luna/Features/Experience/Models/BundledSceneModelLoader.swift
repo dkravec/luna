@@ -2,10 +2,73 @@ import SceneKit
 #if os(iOS)
 import UIKit
 private typealias LoaderColor = UIColor
+typealias BundledThumbnailImage = UIImage
 #elseif os(macOS)
 import AppKit
 private typealias LoaderColor = NSColor
+typealias BundledThumbnailImage = NSImage
 #endif
+
+enum BundledThumbnailImageLoader {
+    private final class BundleToken {}
+
+    private static let thumbnailSubdirectories = [
+        "Thumbnails/NASA",
+        "NASA"
+    ]
+
+    static func image(named thumbnailName: String?) -> BundledThumbnailImage? {
+        guard let thumbnailName, !thumbnailName.isEmpty else { return nil }
+        let resourceName = (thumbnailName as NSString).deletingPathExtension
+        let resourceExtension = (thumbnailName as NSString).pathExtension.isEmpty
+            ? "png"
+            : (thumbnailName as NSString).pathExtension
+
+        guard let url = imageURL(
+            resourceName: resourceName,
+            resourceExtension: resourceExtension
+        ) else {
+            return nil
+        }
+
+#if os(iOS)
+        return BundledThumbnailImage(contentsOfFile: url.path)
+#elseif os(macOS)
+        return BundledThumbnailImage(contentsOf: url)
+#endif
+    }
+
+    private static func imageURL(resourceName: String, resourceExtension: String) -> URL? {
+        for bundle in candidateBundles {
+            for subdirectory in thumbnailSubdirectories {
+                if let url = bundle.url(
+                    forResource: resourceName,
+                    withExtension: resourceExtension,
+                    subdirectory: subdirectory
+                ) {
+                    return url
+                }
+            }
+
+            if let url = bundle.url(forResource: resourceName, withExtension: resourceExtension) {
+                return url
+            }
+        }
+
+        return nil
+    }
+
+    private static var candidateBundles: [Bundle] {
+        let bundles = [
+            Bundle.main,
+            Bundle(for: BundleToken.self)
+        ] + Bundle.allBundles + Bundle.allFrameworks
+        return bundles.reduce(into: []) { result, bundle in
+            guard !result.contains(bundle) else { return }
+            result.append(bundle)
+        }
+    }
+}
 
 enum BundledSceneModelLoader {
     private final class BundleToken {}
@@ -48,6 +111,38 @@ enum BundledSceneModelLoader {
         return root
     }
 
+    static func fittedNode(named modelName: String?, targetLongestAxis: Float) -> SCNNode? {
+        guard let node = node(named: modelName) else { return nil }
+        ensureVisibleMaterials(in: node)
+
+        let wrapper = SCNNode()
+        wrapper.addChildNode(node)
+        center(node, in: wrapper)
+        scaleToFit(wrapper, targetLongestAxis: targetLongestAxis)
+        return wrapper
+    }
+
+    static func scaleToFit(_ node: SCNNode, targetLongestAxis: Float) {
+        guard targetLongestAxis.isFinite, targetLongestAxis > 0 else { return }
+        let longestAxis = longestAxis(for: node)
+        guard longestAxis.isFinite, longestAxis > 0 else { return }
+
+        let scale = targetLongestAxis / longestAxis
+        node.scale = SCNVector3(
+            node.scale.x * scale,
+            node.scale.y * scale,
+            node.scale.z * scale
+        )
+    }
+
+    static func longestAxis(for node: SCNNode) -> Float {
+        guard let bounds = recursiveBounds(for: node, relativeTo: node) else { return 0 }
+        let size = bounds.size
+        let rawAxis = max(size.x, max(size.y, size.z))
+        let rootScale = max(abs(node.scale.x), max(abs(node.scale.y), abs(node.scale.z)))
+        return rawAxis * rootScale
+    }
+
     private static func modelURL(resourceName: String, resourceExtension: String) -> URL? {
         for bundle in candidateBundles {
             for subdirectory in modelSubdirectories {
@@ -80,29 +175,141 @@ enum BundledSceneModelLoader {
     }
 
     private static func normalize(_ node: SCNNode) {
-        let bounds = node.boundingBox
-        let minVector = bounds.min
-        let maxVector = bounds.max
-        let size = SCNVector3(
-            maxVector.x - minVector.x,
-            maxVector.y - minVector.y,
-            maxVector.z - minVector.z
-        )
-        let longestAxis = max(size.x, max(size.y, size.z))
+        guard let bounds = recursiveBounds(for: node, relativeTo: node) else { return }
+        let longestAxis = max(bounds.size.x, max(bounds.size.y, bounds.size.z))
         guard longestAxis.isFinite, longestAxis > 0 else { return }
 
-        let center = SCNVector3(
-            (minVector.x + maxVector.x) / 2,
-            (minVector.y + maxVector.y) / 2,
-            (minVector.z + maxVector.z) / 2
-        )
         let scale = 1 / longestAxis
 
         node.scale = SCNVector3(scale, scale, scale)
         node.position = SCNVector3(
-            -center.x * scale,
-            -center.y * scale,
-            -center.z * scale
+            -bounds.center.x * scale,
+            -bounds.center.y * scale,
+            -bounds.center.z * scale
+        )
+    }
+
+    private static func center(_ node: SCNNode, in root: SCNNode) {
+        guard let bounds = recursiveBounds(for: root, relativeTo: root) else { return }
+        node.position = SCNVector3(
+            node.position.x - bounds.center.x,
+            node.position.y - bounds.center.y,
+            node.position.z - bounds.center.z
+        )
+    }
+
+    private static func recursiveBounds(for node: SCNNode, relativeTo root: SCNNode) -> ModelBounds? {
+        recursiveBounds(for: node, transform: SCNMatrix4Identity)
+    }
+
+    private static func recursiveBounds(for node: SCNNode, transform: SCNMatrix4) -> ModelBounds? {
+        var result: ModelBounds?
+
+        if node.geometry != nil {
+            let localBounds = node.boundingBox
+            let corners = [
+                SCNVector3(localBounds.min.x, localBounds.min.y, localBounds.min.z),
+                SCNVector3(localBounds.min.x, localBounds.min.y, localBounds.max.z),
+                SCNVector3(localBounds.min.x, localBounds.max.y, localBounds.min.z),
+                SCNVector3(localBounds.min.x, localBounds.max.y, localBounds.max.z),
+                SCNVector3(localBounds.max.x, localBounds.min.y, localBounds.min.z),
+                SCNVector3(localBounds.max.x, localBounds.min.y, localBounds.max.z),
+                SCNVector3(localBounds.max.x, localBounds.max.y, localBounds.min.z),
+                SCNVector3(localBounds.max.x, localBounds.max.y, localBounds.max.z)
+            ]
+
+            for corner in corners {
+                result = result.expanded(toInclude: corner.transformed(by: transform))
+            }
+        }
+
+        for child in node.childNodes {
+            let childTransform = SCNMatrix4Mult(transform, child.transform)
+            if let childBounds = recursiveBounds(for: child, transform: childTransform) {
+                result = result.expanded(toInclude: childBounds.min)
+                result = result.expanded(toInclude: childBounds.max)
+            }
+        }
+
+        return result
+    }
+
+    private static func ensureVisibleMaterials(in node: SCNNode) {
+        node.enumerateChildNodes { child, _ in
+            guard let geometry = child.geometry else { return }
+            if geometry.materials.isEmpty {
+                geometry.materials = [fallbackModelMaterial()]
+            }
+
+            for material in geometry.materials {
+                material.isDoubleSided = true
+                if material.transparency <= 0 {
+                    material.transparency = 1
+                }
+                if material.diffuse.contents == nil {
+                    material.diffuse.contents = LoaderColor(white: 0.84, alpha: 1)
+                }
+                if material.emission.contents == nil {
+                    material.emission.contents = LoaderColor(white: 0.10, alpha: 1)
+                }
+            }
+        }
+    }
+
+    private static func fallbackModelMaterial() -> SCNMaterial {
+        let material = SCNMaterial()
+        material.diffuse.contents = LoaderColor(white: 0.84, alpha: 1)
+        material.emission.contents = LoaderColor(white: 0.10, alpha: 1)
+        material.roughness.contents = 0.72
+        material.isDoubleSided = true
+        return material
+    }
+
+    fileprivate struct ModelBounds {
+        let min: SCNVector3
+        let max: SCNVector3
+
+        var center: SCNVector3 {
+            SCNVector3(
+                (min.x + max.x) / 2,
+                (min.y + max.y) / 2,
+                (min.z + max.z) / 2
+            )
+        }
+
+        var size: SCNVector3 {
+            SCNVector3(max.x - min.x, max.y - min.y, max.z - min.z)
+        }
+    }
+}
+
+private extension Optional where Wrapped == BundledSceneModelLoader.ModelBounds {
+    func expanded(toInclude point: SCNVector3) -> BundledSceneModelLoader.ModelBounds {
+        guard let bounds = self else {
+            return BundledSceneModelLoader.ModelBounds(min: point, max: point)
+        }
+
+        return BundledSceneModelLoader.ModelBounds(
+            min: SCNVector3(
+                Swift.min(bounds.min.x, point.x),
+                Swift.min(bounds.min.y, point.y),
+                Swift.min(bounds.min.z, point.z)
+            ),
+            max: SCNVector3(
+                Swift.max(bounds.max.x, point.x),
+                Swift.max(bounds.max.y, point.y),
+                Swift.max(bounds.max.z, point.z)
+            )
+        )
+    }
+}
+
+private extension SCNVector3 {
+    func transformed(by matrix: SCNMatrix4) -> SCNVector3 {
+        SCNVector3(
+            x * matrix.m11 + y * matrix.m21 + z * matrix.m31 + matrix.m41,
+            x * matrix.m12 + y * matrix.m22 + z * matrix.m32 + matrix.m42,
+            x * matrix.m13 + y * matrix.m23 + z * matrix.m33 + matrix.m43
         )
     }
 }

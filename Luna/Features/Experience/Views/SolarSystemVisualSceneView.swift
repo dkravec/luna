@@ -202,8 +202,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             if let labelNode = labelNodes[placement.id] {
                 labelNode.position = SolarSystemSceneFactory.labelPosition(for: placement.displayRadius)
                 labelNode.scale = SolarSystemSceneLabelScale.scaleVector(
-                    for: cameraScale,
-                    sceneSpan: snapshot.bounds.span
+                    for: cameraScale
                 )
             }
         }
@@ -426,8 +425,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         }
 
         let labelScale = SolarSystemSceneLabelScale.scaleVector(
-            for: cameraScale,
-            sceneSpan: snapshot.bounds.span
+            for: cameraScale
         )
         for node in labelNodes.values {
             node.scale = labelScale
@@ -474,18 +472,30 @@ private enum SolarSystemSceneFactory {
         }
 
         for placement in snapshot.bodies {
-            let bodyNode = node(for: placement, renderDetail: settings.renderDetail)
+            let bodyNode = node(
+                for: placement,
+                renderDetail: settings.renderDetail,
+                isObjectSnapshot: SolarSystemSceneCameraMetrics.isArtifactObjectSnapshot(snapshot)
+            )
             root.addChildNode(bodyNode)
 
             if showsLabels {
-                bodyNode.addChildNode(labelNode(for: placement.body, radius: placement.displayRadius, sceneSpan: snapshot.bounds.span))
+                bodyNode.addChildNode(labelNode(
+                    for: placement.body,
+                    radius: placement.displayRadius,
+                    cameraScale: SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: settings).orthographicScale
+                ))
             }
         }
 
         return scene
     }
 
-    private static func node(for placement: ExperienceSceneBody, renderDetail: SceneRenderDetail) -> SCNNode {
+    private static func node(
+        for placement: ExperienceSceneBody,
+        renderDetail: SceneRenderDetail,
+        isObjectSnapshot: Bool
+    ) -> SCNNode {
         let root = SCNNode()
         root.name = "body:\(placement.id)"
         root.position = SCNVector3(placement.position.x, placement.position.y, placement.position.z)
@@ -500,14 +510,13 @@ private enum SolarSystemSceneFactory {
 
         let visualNode: SCNNode
 
-        if let modelNode = BundledSceneModelLoader.node(named: placement.body.modelName) {
+        let modelTargetAxis = bundledModelTargetAxis(for: placement, isObjectSnapshot: isObjectSnapshot)
+        if usesBundledModel(for: placement.body),
+           let modelNode = BundledSceneModelLoader.fittedNode(
+            named: placement.body.modelName,
+            targetLongestAxis: modelTargetAxis
+        ) {
             visualNode = modelNode
-            let modelScale = max(0.20, placement.displayRadius * 3.8)
-            visualNode.scale = SCNVector3(
-                visualNode.scale.x * modelScale,
-                visualNode.scale.y * modelScale,
-                visualNode.scale.z * modelScale
-            )
         } else if placement.body.type == .satellite {
             visualNode = satelliteNode()
             let satelliteScale = max(0.22, placement.displayRadius * 5.5)
@@ -532,6 +541,23 @@ private enum SolarSystemSceneFactory {
             root.addChildNode(interactionNode(for: placement))
         }
         return root
+    }
+
+    private static func bundledModelTargetAxis(for placement: ExperienceSceneBody, isObjectSnapshot: Bool) -> Float {
+        if isObjectSnapshot {
+            return max(1.24, placement.displayRadius * 10.5)
+        }
+
+        return max(0.82, placement.displayRadius * 7.2)
+    }
+
+    private static func usesBundledModel(for body: CelestialBody) -> Bool {
+        switch body.type {
+        case .satellite, .rocket, .spacecraft, .station, .astronaut:
+            return true
+        case .star, .planet, .moon, .asteroid, .dwarfPlanet:
+            return false
+        }
     }
 
     private static func interactionNode(for placement: ExperienceSceneBody) -> SCNNode {
@@ -631,7 +657,7 @@ private enum SolarSystemSceneFactory {
         SCNVector3(0, radius + max(0.30, min(0.54, radius * 0.55)), 0)
     }
 
-    private static func labelNode(for body: CelestialBody, radius: Float, sceneSpan: Float) -> SCNNode {
+    private static func labelNode(for body: CelestialBody, radius: Float, cameraScale: Double) -> SCNNode {
         let text = SCNText(string: body.name, extrusionDepth: 0.006)
         text.font = .systemFont(ofSize: 1.0, weight: .bold)
         text.flatness = 0.02
@@ -641,7 +667,7 @@ private enum SolarSystemSceneFactory {
 
         let node = SCNNode(geometry: text)
         node.name = "label:\(body.id)"
-        node.scale = SolarSystemSceneLabelScale.scaleVector(for: Double(max(sceneSpan, 1)), sceneSpan: sceneSpan)
+        node.scale = SolarSystemSceneLabelScale.scaleVector(for: cameraScale)
         node.position = labelPosition(for: radius)
         node.constraints = [SCNBillboardConstraint()]
 
@@ -705,7 +731,7 @@ private enum SolarSystemSceneFactory {
         node.name = "sceneCamera"
         node.camera = camera
         node.position = metrics.position
-        node.eulerAngles = SCNVector3(-0.42, 0.22, 0)
+        node.look(at: metrics.subjectCenter)
         return node
     }
 
@@ -802,14 +828,13 @@ struct SolarSystemSceneOrbitRibbon {
 }
 
 struct SolarSystemSceneLabelScale {
-    static func scale(for cameraScale: Double, sceneSpan: Float) -> Float {
-        let sceneFactor = Double(max(sceneSpan, 1))
-        let scale = 0.22 + min(0.22, cameraScale / max(sceneFactor, 1) * 0.20)
-        return Float(min(max(scale, 0.16), 0.38))
+    static func scale(for cameraScale: Double) -> Float {
+        let scale = cameraScale * 0.028
+        return Float(min(max(scale, 0.055), 0.28))
     }
 
-    static func scaleVector(for cameraScale: Double, sceneSpan: Float) -> SCNVector3 {
-        let value = scale(for: cameraScale, sceneSpan: sceneSpan)
+    static func scaleVector(for cameraScale: Double) -> SCNVector3 {
+        let value = scale(for: cameraScale)
         return SCNVector3(value, value, value)
     }
 }
@@ -838,13 +863,23 @@ struct SolarSystemSceneCameraMetrics {
 
     init(snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings = .defaults) {
         let center = Self.initialSubjectCenter(for: snapshot)
-        let span = Double(max(snapshot.bounds.span, 1))
+        let objectSnapshot = Self.isArtifactObjectSnapshot(snapshot)
+        let trueScaleScene = settings.distanceScaleMode == .trueScale || settings.sceneScaleProfile == .trueSize
+        let span = objectSnapshot
+            ? Double(max(snapshot.bounds.span, 0.2))
+            : Double(max(snapshot.bounds.span, 1))
         subjectCenter = center
         orthographicScale = Self.initialOrthographicScale(for: snapshot, settings: settings)
-        cameraDistance = max(22, span * 1.8 + 28)
+        cameraDistance = objectSnapshot
+            ? max(6, span * 4.0 + 6)
+            : max(22, span * 1.8 + 28)
         zNear = 0.001
-        zFar = max(250, cameraDistance + span * 4.0 + 120)
-        position = center + SCNVector3(6, 9, Float(cameraDistance))
+        zFar = objectSnapshot
+            ? max(80, cameraDistance + span * 8.0 + 40)
+            : max(trueScaleScene ? 900 : 250, cameraDistance + span * (trueScaleScene ? 7.0 : 4.8) + (trueScaleScene ? 260 : 140))
+        position = objectSnapshot
+            ? center + SCNVector3(0, 0, Float(cameraDistance))
+            : center + SCNVector3(6, 9, Float(cameraDistance))
     }
 
     private static func initialSubjectCenter(for snapshot: ExperienceSceneSnapshot) -> SCNVector3 {
@@ -856,6 +891,13 @@ struct SolarSystemSceneCameraMetrics {
     }
 
     private static func initialOrthographicScale(for snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings) -> Double {
+        if isArtifactObjectSnapshot(snapshot) {
+            let largestBodyRadius = snapshot.bodies.map(\.displayRadius).max() ?? 0.16
+            let largestInteractionRadius = snapshot.bodies.map(\.interactionRadius).max() ?? largestBodyRadius
+            let subjectRadius = max(largestBodyRadius, largestInteractionRadius, 0.16)
+            return max(0.95, Double(subjectRadius) * 5.8)
+        }
+
         let span = Double(max(snapshot.bounds.span, 1))
 
         switch settings.sceneScaleProfile {
@@ -874,6 +916,21 @@ struct SolarSystemSceneCameraMetrics {
             case .compressed:
                 return max(7, min(22, span * 0.95 + 2.4))
             }
+        }
+    }
+
+    static func isArtifactObjectSnapshot(_ snapshot: ExperienceSceneSnapshot) -> Bool {
+        guard snapshot.bodies.count == 1,
+              snapshot.orbitPaths.isEmpty,
+              let body = snapshot.bodies.first?.body else {
+            return false
+        }
+
+        switch body.type {
+        case .satellite, .rocket, .spacecraft, .station, .astronaut:
+            return true
+        case .star, .planet, .moon, .asteroid, .dwarfPlanet:
+            return false
         }
     }
 }
@@ -911,8 +968,8 @@ struct SceneCameraLimit {
             subjectCenter: center,
             minimumOrthographicScale: max(0.65, Double(largestBodyRadius) * 2.25),
             preferredOrthographicScale: initialOrthographicScale,
-            maximumOrthographicScale: initialOrthographicScale * 1.75,
-            maximumCameraDistance: max(initialCameraDistance * 1.75, subjectRadius * 5.0)
+            maximumOrthographicScale: initialOrthographicScale * 2.1,
+            maximumCameraDistance: max(initialCameraDistance * 2.5, subjectRadius * 7.0)
         )
     }
 
