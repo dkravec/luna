@@ -1,32 +1,55 @@
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+private typealias BundledImage = UIImage
+#elseif os(macOS)
+import AppKit
+private typealias BundledImage = NSImage
+#endif
+
 struct HomeView: View {
     @EnvironmentObject private var appState: LunaAppState
 
     private let dailyContentProvider = HomeDailyContentProvider()
 
-    var body: some View {
-        let dailyContent = dailyContentProvider.content(for: appState.celestialBodies)
-
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                homeIntroSection
-
-                featuredBodySection(dailyContent.featuredBody)
-
-                factOfTheDaySection(dailyContent.dailyFact)
-
-                primaryActions
-
-                NASAImageOfTheDayView()
-
-                overviewSection
-            }
-            .screenContentPadding()
-        }
-        .appBackground()
+    private enum ScrollAnchor {
+        static let overview = "home.overview"
+        static let exploreAction = "home.exploreAction"
     }
 
+    var body: some View {
+        let offsetDate = Calendar.current.date(byAdding: .day, value: appState.dailyFactOffset, to: Date()) ?? Date()
+        let dailyContent = dailyContentProvider.content(for: appState.celestialBodies, date: offsetDate)
+
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                    homeIntroSection
+
+                    featuredBodySection(dailyContent.featuredBody)
+
+                    factOfTheDaySection(dailyContent.dailyFact, featuredBody: dailyContent.featuredBody)
+
+                    primaryActions
+
+                    NASAImageOfTheDayView()
+
+                    overviewSection
+                }
+                .screenContentPadding()
+            }
+            .appBackground()
+            .onAppear {
+                scrollForGuidedTourStep(appState.guidedTourStep, proxy: proxy)
+            }
+            .onChange(of: appState.guidedTourStep) { step in
+                scrollForGuidedTourStep(step, proxy: proxy)
+            }
+        }
+    }
+
+    @ViewBuilder
     private var homeIntroSection: some View {
         VStack(alignment: .leading, spacing: Spacing.section) {
             PageHeader(
@@ -36,6 +59,7 @@ struct HomeView: View {
 
             miniSolarSystemPreview
         }
+        .id(ScrollAnchor.overview)
         .guidedTourTarget(.homeOverview)
     }
 
@@ -82,7 +106,7 @@ struct HomeView: View {
                 } label: {
                     Card {
                         HStack(alignment: .center, spacing: 14) {
-                            BodyVisual(celestialBody: body, size: 82)
+                            BodyCardVisual(celestialBody: body, size: 82)
 
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack(spacing: 8) {
@@ -125,13 +149,17 @@ struct HomeView: View {
         }
     }
 
-    private func factOfTheDaySection(_ fact: HomeDailyFact) -> some View {
+    private func factOfTheDaySection(_ fact: HomeDailyFact, featuredBody: CelestialBody?) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: fact.title)
 
             Card {
                 HStack(alignment: .top, spacing: 12) {
-                    IconBadge(systemImage: fact.systemImage)
+                    if let body = featuredBody {
+                        BodyCardVisual(celestialBody: body, size: 72)
+                    } else {
+                        IconBadge(systemImage: fact.systemImage)
+                    }
 
                     Text(fact.message)
                         .font(.headline)
@@ -167,6 +195,7 @@ struct HomeView: View {
                 .buttonStyle(.plain)
                 .hapticTap()
                 .guidedTourTarget(.homeExploreAction)
+                .id(ScrollAnchor.exploreAction)
 
                 CardDivider(leadingInset: 56)
 
@@ -204,6 +233,23 @@ struct HomeView: View {
                     value: "\(appState.celestialBodies.count)",
                     systemImage: "circle.grid.cross"
                 )
+            }
+        }
+    }
+
+    private func scrollForGuidedTourStep(_ step: GuidedTourStep?, proxy: ScrollViewProxy) {
+        guard let step else { return }
+
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                switch step {
+                case .homeWelcome:
+                    proxy.scrollTo(ScrollAnchor.overview, anchor: .top)
+                case .homeExplore:
+                    proxy.scrollTo(ScrollAnchor.exploreAction, anchor: .center)
+                default:
+                    break
+                }
             }
         }
     }

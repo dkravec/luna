@@ -18,6 +18,7 @@ struct SettingsView: View {
 
                 generalSection
                 experienceSection
+                dailyFactSection
                 profileSection
                 storageSection
             }
@@ -118,6 +119,29 @@ struct SettingsView: View {
                         )
                     }
                 }
+            }
+        }
+    }
+
+    private var dailyFactSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Daily Fact")
+
+            CardSection {
+                Button {
+                    appState.refreshDailyFact()
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "Refresh Daily Fact",
+                            subtitle: "Get a different fact and featured body",
+                            systemImage: "arrow.clockwise",
+                            showsChevron: true
+                        )
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
             }
         }
     }

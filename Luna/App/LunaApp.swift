@@ -24,11 +24,15 @@ final class LunaAppState: ObservableObject {
     @Published var selectedTab: LunaTab = .home
     @Published var guidedTourStep: GuidedTourStep?
     @Published var guidedTourBodyID: String?
+    @Published private(set) var guidedTourPresentationID = UUID()
     @Published var appearancePreference: AppAppearancePreference = .system
+    @Published var dailyFactOffset: Int = 0
     @Published private(set) var userProfile: UserProfile
     @Published private(set) var experiencePreferences: ExperiencePreferences
     @Published private(set) var celestialBodies: [CelestialBody] = []
     @Published private(set) var lastRepositoryError: String?
+
+    private var isTourTransitionLocked = false
 
     init(
         userProfileRepository: UserProfileRepository = CoreDataUserProfileRepository(),
@@ -183,8 +187,10 @@ final class LunaAppState: ObservableObject {
     }
 
     func startFirstRunTour() {
+        isTourTransitionLocked = false
         guidedTourBodyID = nil
         selectedTab = .home
+        refreshGuidedTourPresentation()
         guidedTourStep = .homeWelcome
     }
 
@@ -193,37 +199,31 @@ final class LunaAppState: ObservableObject {
         startFirstRunTour()
     }
 
+    func refreshDailyFact() {
+        Haptics.selection()
+        dailyFactOffset += 1
+    }
+
     func advanceTour() {
         guard let step = guidedTourStep else { return }
+        guard beginTourTransition() else { return }
 
         Haptics.selection()
 
-        switch step {
-        case .homeWelcome:
-            guidedTourStep = .homeExplore
-        case .homeExplore:
-            selectedTab = .solarSystem
-            guidedTourStep = .exploreCategories
-        case .exploreCategories:
-            guidedTourStep = .exploreBody
-        case .exploreBody:
-            guidedTourBodyID = defaultGuidedTourBody?.id
-            guidedTourStep = .bodyDetailExperience
-        case .bodyDetailExperience:
-            guidedTourBodyID = nil
-            selectedTab = .arExperience
-            guidedTourStep = .experienceScene
-        case .experienceScene:
-            guidedTourStep = .experienceMode
-        case .experienceMode:
-            guidedTourStep = .experienceControls
-        case .experienceControls:
-            guidedTourStep = .experiencePlayback
-        case .experiencePlayback:
-            guidedTourStep = .finish
-        case .finish:
+        if let nextStep = nextTourStep(after: step) {
+            setTourStep(nextStep)
+        } else {
             finishTour()
         }
+    }
+
+    func goBackTour() {
+        guard let step = guidedTourStep else { return }
+        guard let previousStep = previousTourStep(before: step) else { return }
+        guard beginTourTransition() else { return }
+
+        Haptics.selection()
+        setTourStep(previousStep)
     }
 
     func skipTour() {
@@ -232,10 +232,17 @@ final class LunaAppState: ObservableObject {
     }
 
     func finishTour() {
+        isTourTransitionLocked = false
         guidedTourStep = nil
         guidedTourBodyID = nil
+        refreshGuidedTourPresentation()
         userProfile.hasCompletedFirstRunTour = true
         saveUserProfile()
+    }
+
+    var canGoBackTour: Bool {
+        guard let step = guidedTourStep else { return false }
+        return previousTourStep(before: step) != nil
     }
 
     func defaultBodyForGuidedTour() -> CelestialBody? {
@@ -244,6 +251,8 @@ final class LunaAppState: ObservableObject {
 
     func resetOnboarding() {
         do {
+            isTourTransitionLocked = false
+            refreshGuidedTourPresentation()
             userProfile = try userProfileRepository.resetOnboarding()
             selectedTab = .home
             guidedTourStep = nil
@@ -256,6 +265,8 @@ final class LunaAppState: ObservableObject {
 
     func resetUserProfile() {
         do {
+            isTourTransitionLocked = false
+            refreshGuidedTourPresentation()
             userProfile = try userProfileRepository.resetProfile()
             experiencePreferences = try experiencePreferencesRepository.resetPreferences()
             appearancePreference = userProfile.appearancePreference
@@ -294,6 +305,108 @@ final class LunaAppState: ObservableObject {
             lastRepositoryError = nil
         } catch {
             lastRepositoryError = error.localizedDescription
+        }
+    }
+
+    private func beginTourTransition() -> Bool {
+        guard !isTourTransitionLocked else { return false }
+
+        isTourTransitionLocked = true
+        DispatchQueue.main.async { [weak self] in
+            self?.isTourTransitionLocked = false
+        }
+        return true
+    }
+
+    private func setTourStep(_ step: GuidedTourStep) {
+        guidedTourStep = step
+
+        switch step {
+        case .homeWelcome:
+            selectedTab = .home
+            guidedTourBodyID = nil
+        case .homeExplore:
+            selectedTab = .home
+            guidedTourBodyID = nil
+        case .exploreCategories:
+            selectedTab = .solarSystem
+            guidedTourBodyID = nil
+        case .exploreBody:
+            selectedTab = .solarSystem
+            guidedTourBodyID = nil
+        case .bodyDetailExperience:
+            selectedTab = .solarSystem
+            guidedTourBodyID = defaultGuidedTourBody?.id
+        case .experienceScene:
+            selectedTab = .arExperience
+            guidedTourBodyID = nil
+        case .experienceMode:
+            selectedTab = .arExperience
+            guidedTourBodyID = nil
+        case .experienceControls:
+            selectedTab = .arExperience
+            guidedTourBodyID = nil
+        case .experiencePlayback:
+            selectedTab = .arExperience
+            guidedTourBodyID = nil
+        case .finish:
+            selectedTab = .arExperience
+            guidedTourBodyID = nil
+        }
+    }
+
+    private func refreshGuidedTourPresentation() {
+        guidedTourPresentationID = UUID()
+    }
+
+    private func nextTourStep(after step: GuidedTourStep) -> GuidedTourStep? {
+        switch step {
+        case .homeWelcome:
+            return .homeExplore
+        case .homeExplore:
+            return .exploreCategories
+        case .exploreCategories:
+            return .exploreBody
+        case .exploreBody:
+            guidedTourBodyID = defaultGuidedTourBody?.id
+            return .bodyDetailExperience
+        case .bodyDetailExperience:
+            return .experienceScene
+        case .experienceScene:
+            return .experienceMode
+        case .experienceMode:
+            return .experienceControls
+        case .experienceControls:
+            return .experiencePlayback
+        case .experiencePlayback:
+            return .finish
+        case .finish:
+            return nil
+        }
+    }
+
+    private func previousTourStep(before step: GuidedTourStep) -> GuidedTourStep? {
+        switch step {
+        case .homeWelcome:
+            return nil
+        case .homeExplore:
+            return .homeWelcome
+        case .exploreCategories:
+            return .homeExplore
+        case .exploreBody:
+            return .exploreCategories
+        case .bodyDetailExperience:
+            return .exploreBody
+        case .experienceScene:
+            return .bodyDetailExperience
+        case .experienceMode:
+            return .experienceScene
+        case .experienceControls:
+            return .experienceMode
+        case .experiencePlayback:
+            return .experienceControls
+        case .finish:
+            return .experiencePlayback
         }
     }
 
@@ -398,7 +511,14 @@ enum GuidedTourStep: String, CaseIterable, Identifiable {
     }
 
     var primaryButtonTitle: String {
-        self == .finish ? "Done" : "Next"
+        switch self {
+        case .bodyDetailExperience:
+            return "Open Experience"
+        case .finish:
+            return "Done"
+        default:
+            return "Next"
+        }
     }
 
     var progressText: String {

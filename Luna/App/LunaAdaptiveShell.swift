@@ -48,8 +48,17 @@ private struct LunaCustomTabShell: View {
     @State private var isTabBarExpanded = true
 
     var body: some View {
-        NavigationStack {
-            appState.selectedTab.destination
+        TabView(selection: $appState.selectedTab) {
+            ForEach(LunaTab.allCases) { tab in
+                NavigationStack {
+                    tab.destination
+                }
+                .tabItem {
+                    Label(tab.title, systemImage: tab.systemImage)
+                }
+                .tag(tab)
+                .toolbar(.hidden, for: .tabBar)
+            }
         }
         .lunaCustomTabBarBottomReserve()
         .overlay(alignment: .bottom) {

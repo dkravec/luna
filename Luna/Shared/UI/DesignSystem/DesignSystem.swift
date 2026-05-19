@@ -492,3 +492,37 @@ private extension HapticIntensity {
     }
 }
 #endif
+
+struct BodyCardVisual: View {
+    let celestialBody: CelestialBody
+    let size: CGFloat
+
+    var body: some View {
+        if let image = Self.image(for: celestialBody) {
+            Self.swiftUIImage(image)
+                .resizable()
+                .scaledToFit()
+                .padding(8)
+                .frame(width: size, height: size)
+                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Radii.tile, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Radii.tile, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                }
+        } else {
+            BodyVisual(celestialBody: celestialBody, size: size)
+        }
+    }
+
+    private static func image(for body: CelestialBody) -> BundledThumbnailImage? {
+        BundledThumbnailImageLoader.image(named: body.thumbnailName)
+    }
+
+    private static func swiftUIImage(_ image: BundledThumbnailImage) -> Image {
+#if os(iOS)
+        Image(uiImage: image)
+#elseif os(macOS)
+        Image(nsImage: image)
+#endif
+    }
+}

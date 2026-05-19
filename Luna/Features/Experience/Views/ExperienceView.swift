@@ -77,14 +77,7 @@ struct ExperienceView: View {
 
     @ViewBuilder
     private var experienceSceneTourTapArea: some View {
-        if appState.guidedTourStep == .experienceScene {
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    appState.advanceTour()
-                }
-                .ignoresSafeArea()
-        }
+        EmptyView()
     }
 
     @ViewBuilder
@@ -607,7 +600,7 @@ struct ExperienceView: View {
     private func initializePreferredModeIfNeeded() {
         guard !hasInitializedMode else { return }
 
-        isAREnabled = appState.experiencePreferences.prefersARMode && canUseAR
+        isAREnabled = false
         hasInitializedMode = true
     }
 

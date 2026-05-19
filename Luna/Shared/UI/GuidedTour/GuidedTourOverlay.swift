@@ -49,10 +49,16 @@ extension View {
                         GuidedTourOverlayView(
                             step: step,
                             targetFrame: targetFrame,
+                            safeAreaInsets: proxy.safeAreaInsets,
                             canUseAR: appState.canUseARForGuidedTour,
+                            canGoBack: appState.canGoBackTour,
                             onNext: appState.advanceTour,
+                            onBack: appState.goBackTour,
                             onSkip: appState.skipTour
                         )
+                        .id(appState.guidedTourPresentationID)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .ignoresSafeArea()
                     }
                 }
             }
@@ -65,8 +71,11 @@ private struct GuidedTourOverlayView: View {
 
     let step: GuidedTourStep
     let targetFrame: CGRect?
+    let safeAreaInsets: EdgeInsets
     let canUseAR: Bool
+    let canGoBack: Bool
     let onNext: () -> Void
+    let onBack: () -> Void
     let onSkip: () -> Void
 
     var body: some View {
@@ -90,18 +99,11 @@ private struct GuidedTourOverlayView: View {
                     .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
                     .allowsHitTesting(false)
 
-                Rectangle()
-                    .fill(Color.white.opacity(0.001))
-                    .frame(width: highlightedFrame.width, height: highlightedFrame.height)
-                    .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        onNext()
-                    }
-
                 calloutCard
                     .frame(width: cardWidth)
                     .readGuidedTourCalloutSize()
+                    .contentShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
+                    .allowsHitTesting(true)
                     .position(calloutPosition(cardSize: measuredCalloutSize(width: cardWidth), proxySize: proxy.size, targetFrame: highlightedFrame))
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.86), value: step)
@@ -124,7 +126,15 @@ private struct GuidedTourOverlayView: View {
 
                 Spacer(minLength: 8)
 
-                Button("Skip") {
+                if canGoBack {
+                    Button("Back") {
+                        onBack()
+                    }
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                }
+
+                Button("End Tour") {
                     onSkip()
                 }
                 .font(.caption.weight(.bold))
@@ -143,8 +153,15 @@ private struct GuidedTourOverlayView: View {
             Button(action: onNext) {
                 Text(step.primaryButtonTitle)
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .foregroundStyle(.white)
+                    .background(Color.accentColor, in: Capsule(style: .continuous))
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                    }
             }
-            .primaryActionButton()
+            .buttonStyle(.plain)
         }
         .padding(16)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
@@ -167,7 +184,7 @@ private struct GuidedTourOverlayView: View {
 
         return CGRect(
             x: 24,
-            y: size.height * 0.24,
+            y: max(size.height * 0.18, safeAreaInsets.top + 72),
             width: max(80, size.width - 48),
             height: min(280, size.height * 0.34)
         )
@@ -180,19 +197,34 @@ private struct GuidedTourOverlayView: View {
     private func calloutPosition(cardSize: CGSize, proxySize: CGSize, targetFrame: CGRect) -> CGPoint {
         let verticalGap: CGFloat = 18
         let safeHorizontal = cardSize.width / 2 + 16
+        let safeTop = safeAreaInsets.top + 16
+        let safeBottom = proxySize.height - safeAreaInsets.bottom - 16
+        let verticalBias: CGFloat = 10
         let x = min(max(targetFrame.midX, safeHorizontal), proxySize.width - safeHorizontal)
+
+        if targetFrame.height >= proxySize.height * 0.55 {
+            let centeredY = proxySize.height * 0.68
+            return CGPoint(
+                x: proxySize.width / 2,
+                y: min(max(centeredY + verticalBias, safeTop + cardSize.height / 2 + 12), safeBottom - cardSize.height / 2)
+            )
+        }
+
         let proposedBelow = targetFrame.maxY + verticalGap + cardSize.height / 2
         let proposedAbove = targetFrame.minY - verticalGap - cardSize.height / 2
 
-        if proposedBelow + cardSize.height / 2 <= proxySize.height - 16 {
-            return CGPoint(x: x, y: proposedBelow)
+        if proposedBelow + cardSize.height / 2 <= safeBottom {
+            return CGPoint(x: x, y: min(proposedBelow + verticalBias, safeBottom - cardSize.height / 2))
         }
 
-        if proposedAbove - cardSize.height / 2 >= 16 {
-            return CGPoint(x: x, y: proposedAbove)
+        if proposedAbove - cardSize.height / 2 >= safeTop {
+            return CGPoint(x: x, y: min(max(proposedAbove + verticalBias, safeTop + cardSize.height / 2), safeBottom - cardSize.height / 2))
         }
 
-        return CGPoint(x: proxySize.width / 2, y: proxySize.height - cardSize.height / 2 - 24)
+        return CGPoint(
+            x: proxySize.width / 2,
+            y: min(max(safeBottom - cardSize.height / 2 - 8, safeTop + cardSize.height / 2), safeBottom - cardSize.height / 2)
+        )
     }
 }
 

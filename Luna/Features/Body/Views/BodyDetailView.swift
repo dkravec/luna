@@ -101,7 +101,7 @@ struct BodyDetailView: View {
                     Button {
                         appState.advanceTour()
                     } label: {
-                        Label("View in AR", systemImage: "arkit")
+                        Label("Open Experience", systemImage: "arkit")
                             .frame(maxWidth: .infinity)
                     }
                     .primaryActionButton()
@@ -110,7 +110,7 @@ struct BodyDetailView: View {
                     NavigationLink {
                         ObjectExperienceView(celestialBody: celestialBody)
                     } label: {
-                        Label("View in AR", systemImage: "arkit")
+                        Label("Open Experience", systemImage: "arkit")
                             .frame(maxWidth: .infinity)
                     }
                     .primaryActionButton()

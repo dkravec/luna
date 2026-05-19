@@ -7,37 +7,48 @@ struct ExploreView: View {
     @State private var selectedCollection: ExploreCollection?
     @State private var selectedBodyID: String?
 
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                PageHeader(
-                    title: "Explore",
-                    subtitle: "Browse worlds, spacecraft, and NASA models from Luna's space library."
-                )
+    private enum ScrollAnchor {
+        static let categorySection = "explore.categories"
+        static let guidedBodySection = "explore.guidedBody"
+    }
 
-                SearchCard(
-                    placeholder: "Search Explore",
-                    text: $viewModel.searchText
-                )
-                if viewModel.isSearching {
-                    filterSection
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                    PageHeader(
+                        title: "Explore",
+                        subtitle: "Browse worlds, spacecraft, and NASA models from Luna's space library."
+                    )
+
+                    SearchCard(
+                        placeholder: "Search Explore",
+                        text: $viewModel.searchText
+                    )
+                    if viewModel.isSearching {
+                        filterSection
+                    }
+                    guidedTourBodySection
+                    bodiesSection
                 }
-                guidedTourBodySection
-                bodiesSection
+                .screenContentPadding()
             }
-            .screenContentPadding()
-        }
-        .appBackground()
-        .background(hiddenNavigationLinks)
-        .onAppear {
-            viewModel.configure(repository: appState.celestialBodyRepository)
-            openRequestedGuidedTourBodyIfNeeded()
-        }
-        .onChange(of: appState.guidedTourBodyID) { _ in
-            openRequestedGuidedTourBodyIfNeeded()
-        }
-        .onChange(of: viewModel.loadState) { _ in
-            openRequestedGuidedTourBodyIfNeeded()
+            .appBackground()
+            .background(hiddenNavigationLinks)
+            .onAppear {
+                viewModel.configure(repository: appState.celestialBodyRepository)
+                openRequestedGuidedTourBodyIfNeeded()
+                scrollForGuidedTourStep(appState.guidedTourStep, proxy: proxy)
+            }
+            .onChange(of: appState.guidedTourBodyID) { _ in
+                openRequestedGuidedTourBodyIfNeeded()
+            }
+            .onChange(of: viewModel.loadState) { _ in
+                openRequestedGuidedTourBodyIfNeeded()
+            }
+            .onChange(of: appState.guidedTourStep) { step in
+                scrollForGuidedTourStep(step, proxy: proxy)
+            }
         }
     }
 
@@ -164,6 +175,7 @@ struct ExploreView: View {
                 bodyLink(for: body)
                     .guidedTourTarget(.exploreBody)
             }
+            .id(ScrollAnchor.guidedBodySection)
         }
     }
 
@@ -217,6 +229,7 @@ struct ExploreView: View {
                 }
             }
         }
+        .id(ScrollAnchor.categorySection)
     }
 
     @ViewBuilder
@@ -256,7 +269,10 @@ struct ExploreView: View {
     }
 
     private func openRequestedGuidedTourBodyIfNeeded() {
-        guard let bodyID = appState.guidedTourBodyID else { return }
+        guard let bodyID = appState.guidedTourBodyID else {
+            guidedTourBodyID = nil
+            return
+        }
 
         let body = viewModel.bodies.first { $0.id == bodyID }
             ?? appState.celestialBodies.first { $0.id == bodyID }
@@ -270,6 +286,23 @@ struct ExploreView: View {
     private func body(withID bodyID: String) -> CelestialBody? {
         viewModel.bodies.first { $0.id == bodyID }
             ?? appState.celestialBodies.first { $0.id == bodyID }
+    }
+
+    private func scrollForGuidedTourStep(_ step: GuidedTourStep?, proxy: ScrollViewProxy) {
+        guard let step else { return }
+
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                switch step {
+                case .exploreCategories:
+                    proxy.scrollTo(ScrollAnchor.categorySection, anchor: .top)
+                case .exploreBody:
+                    proxy.scrollTo(ScrollAnchor.guidedBodySection, anchor: .center)
+                default:
+                    break
+                }
+            }
+        }
     }
 
 }
@@ -475,41 +508,6 @@ private struct BodyCard: View {
     var body: some View {
         bodyContent
     }
-}
-
-private struct BodyCardVisual: View {
-    let celestialBody: CelestialBody
-    let size: CGFloat
-
-    var body: some View {
-        if let image = Self.image(for: celestialBody) {
-            Self.swiftUIImage(image)
-                .resizable()
-                .scaledToFit()
-                .padding(8)
-                .frame(width: size, height: size)
-                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Radii.tile, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Radii.tile, style: .continuous)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                }
-        } else {
-            BodyVisual(celestialBody: celestialBody, size: size)
-        }
-    }
-
-    private static func image(for body: CelestialBody) -> BundledThumbnailImage? {
-        BundledThumbnailImageLoader.image(named: body.thumbnailName)
-    }
-
-    private static func swiftUIImage(_ image: BundledThumbnailImage) -> Image {
-#if os(iOS)
-        Image(uiImage: image)
-#elseif os(macOS)
-        Image(nsImage: image)
-#endif
-    }
-
 }
 
 private struct BodyFactPill: View {
