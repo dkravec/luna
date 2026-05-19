@@ -189,10 +189,7 @@ struct ExperienceView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Show experience controls")
-                .guidedTourTarget(
-                    .experienceControls,
-                    when: appState.guidedTourStep == .experienceControls || appState.guidedTourStep == .finish
-                )
+                .guidedTourTarget(.experienceControls, when: appState.guidedTourStep == .experienceControls)
                 
                 Button {
                     if !appState.guidedTourTargetTapped(.experiencePlayback) {

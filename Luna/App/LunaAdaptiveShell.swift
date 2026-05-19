@@ -20,6 +20,7 @@ struct LunaAdaptiveShell: View {
     }
 }
 
+#if !os(macOS)
 private struct LunaNativeTabShell: View {
     @EnvironmentObject private var appState: LunaAppState
 
@@ -72,6 +73,7 @@ private struct LunaCustomTabShell: View {
         .guidedTourOverlay(appState: appState)
     }
 }
+#endif
 
 struct LunaSidebarShell: View {
     @EnvironmentObject private var appState: LunaAppState

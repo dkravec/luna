@@ -32,6 +32,25 @@ struct SettingsView: View {
             SectionHeader(title: "Experience")
 
             CardSection {
+                Button {
+                    appState.restartTour()
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "Replay App Tour",
+                            subtitle: "Show the guided walkthrough again without changing preferences",
+                            systemImage: "sparkles",
+                            showsChevron: true
+                        )
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
+                .accessibilityIdentifier("settings.replayTour")
+                .guidedTourTarget(.settingsReplayTour, when: appState.guidedTourStep == .finish)
+
+                CardDivider(leadingInset: 56)
+                
                 NavigationLink {
                     SettingsViewingModeView(
                         prefersARMode: Binding(
@@ -53,7 +72,6 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
                 .hapticTap()
-                .accessibilityIdentifier("settings.replayTour")
 
                 CardDivider(leadingInset: 56)
 
@@ -199,23 +217,6 @@ struct SettingsView: View {
                         value: appState.userProfile.displayName ?? "Not set"
                     )
                 }
-
-                CardDivider(leadingInset: 56)
-
-                Button {
-                    appState.restartTour()
-                } label: {
-                    CardRow {
-                        RowLabel(
-                            title: "Replay App Tour",
-                            subtitle: "Show the guided walkthrough again without changing preferences",
-                            systemImage: "sparkles",
-                            showsChevron: true
-                        )
-                    }
-                }
-                .buttonStyle(.plain)
-                .hapticTap()
 
                 CardDivider(leadingInset: 56)
 

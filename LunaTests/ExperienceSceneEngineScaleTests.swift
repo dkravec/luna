@@ -39,6 +39,27 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         )
     }
 
+    func testEllipticalOrbitPathCoversPerihelionAndAphelionAndInclination() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .trueScale, object: .relative, renderDetail: .high)
+        )
+        let mercuryOrbit = try XCTUnwrap(snapshot.orbitPaths.first { $0.bodyId == "mercury" })
+        let distances = mercuryOrbit.points.map { length($0) }
+
+        XCTAssertEqual(
+            Double(distances.min() ?? 0),
+            perihelionDistance("mercury", distance: .trueScale),
+            accuracy: 0.02
+        )
+        XCTAssertEqual(
+            Double(distances.max() ?? 0),
+            aphelionDistance("mercury", distance: .trueScale),
+            accuracy: 0.02
+        )
+        XCTAssertGreaterThan(mercuryOrbit.points.map { abs($0.y) }.max() ?? 0, 0.01)
+    }
+
     func testCompressedDistanceUsesReadableTrueDistanceDivisorForOuterOrbits() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,
@@ -381,6 +402,29 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertEqual(mesh.indices.count, earthOrbit.points.count * 6)
     }
 
+    func testOrbitRibbonMeshIsFiniteForFlatAndVerticalPaths() {
+        let paths: [[SIMD3<Float>]] = [
+            [
+                SIMD3<Float>(1, 0, 0),
+                SIMD3<Float>(0, 0, 1),
+                SIMD3<Float>(-1, 0, 0),
+                SIMD3<Float>(0, 0, -1)
+            ],
+            [
+                SIMD3<Float>(0, 1, 0),
+                SIMD3<Float>(0, 0, 0.8),
+                SIMD3<Float>(0, -1, 0),
+                SIMD3<Float>(0, 0, -0.8)
+            ]
+        ]
+
+        for points in paths {
+            let mesh = SolarSystemSceneOrbitRibbon.mesh(points: points, thickness: 0.02)
+            XCTAssertEqual(mesh.vertices.count, points.count * 2)
+            XCTAssertTrue(mesh.vertices.allSatisfy { $0.x.isFinite && $0.y.isFinite && $0.z.isFinite })
+        }
+    }
+
     func testLabelScaleFollowsCameraZoomWithinBounds() {
         let zoomedInScale = SolarSystemSceneLabelScale.scale(for: 1.2)
         let zoomedOutScale = SolarSystemSceneLabelScale.scale(for: 12)
@@ -400,10 +444,32 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let tilt = SolarSystemSceneRotation.tiltEuler(for: earth)
         let spin = SolarSystemSceneRotation.spinEuler(for: earth)
 
-        XCTAssertEqual(Float(tilt.x), earth.axialTiltRadians, accuracy: 0.0001)
+        XCTAssertEqual(Float(tilt.x), 0, accuracy: 0.0001)
         XCTAssertEqual(Float(tilt.y), 0, accuracy: 0.0001)
+        XCTAssertEqual(Float(tilt.z), earth.axialTiltRadians, accuracy: 0.0001)
         XCTAssertEqual(Float(spin.x), 0, accuracy: 0.0001)
         XCTAssertEqual(Float(spin.y), earth.rotationAngleRadians, accuracy: 0.0001)
+    }
+
+    func testRotationTiltAxisMatchesRealityKitConvention() throws {
+        let earth = try body("earth", in: ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .compressed, object: .relative)
+        ))
+
+        XCTAssertEqual(SolarSystemSceneRotation.axialTiltAxis, SIMD3<Float>(0, 0, 1))
+        XCTAssertEqual(Float(SolarSystemSceneRotation.tiltEuler(for: earth).z), earth.axialTiltRadians, accuracy: 0.0001)
+
+        let uranus = ExperienceSceneBody(
+            body: Self.makeBody(id: "uranus", name: "Uranus", radiusKm: 25_362, displayOrder: 7),
+            position: .zero,
+            displayRadius: 0.2,
+            interactionRadius: 0.2,
+            labelPosition: .zero,
+            rotationAngleRadians: 0,
+            axialTiltRadians: Float(97.77 * .pi / 180)
+        )
+        XCTAssertEqual(Float(SolarSystemSceneRotation.tiltEuler(for: uranus).z), uranus.axialTiltRadians, accuracy: 0.0001)
     }
 
     func testBundledSceneModelLoaderLoadsNASAAssetAndFallsBackForMissingAsset() {
@@ -498,6 +564,42 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertEqual(center.z, 0, accuracy: 0.08)
     }
 
+    func testBundledSceneModelLoaderDebugBoundsIncludeNestedTransforms() throws {
+        let root = SCNNode()
+        let child = SCNNode(geometry: SCNBox(width: 2, height: 4, length: 6, chamferRadius: 0))
+        child.position = SCNVector3(3, -2, 5)
+        child.scale = SCNVector3(0.5, 2, 1)
+        root.addChildNode(child)
+
+        let bounds = try XCTUnwrap(BundledSceneModelLoader.debugBounds(for: root))
+
+        XCTAssertEqual(Float(bounds.min.x), 2.5, accuracy: 0.0001)
+        XCTAssertEqual(Float(bounds.max.x), 3.5, accuracy: 0.0001)
+        XCTAssertEqual(Float(bounds.min.y), -6, accuracy: 0.0001)
+        XCTAssertEqual(Float(bounds.max.y), 2, accuracy: 0.0001)
+        XCTAssertEqual(Float(bounds.min.z), 2, accuracy: 0.0001)
+        XCTAssertEqual(Float(bounds.max.z), 8, accuracy: 0.0001)
+    }
+
+    func testGLBMatrixAndQuaternionDebugConversionMatchSceneKitFields() throws {
+        let matrixNode = try XCTUnwrap(BundledSceneModelLoader.debugNode(matrix: [
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            4, 5, 6, 1
+        ]))
+
+        XCTAssertEqual(Float(matrixNode.transform.m41), 4, accuracy: 0.0001)
+        XCTAssertEqual(Float(matrixNode.transform.m42), 5, accuracy: 0.0001)
+        XCTAssertEqual(Float(matrixNode.transform.m43), 6, accuracy: 0.0001)
+
+        let quaternionNode = try XCTUnwrap(BundledSceneModelLoader.debugNode(rotation: [0, sqrt(0.5), 0, sqrt(0.5)]))
+        XCTAssertEqual(Float(quaternionNode.orientation.x), 0, accuracy: 0.0001)
+        XCTAssertEqual(Float(quaternionNode.orientation.y), Float(sqrt(0.5)), accuracy: 0.0001)
+        XCTAssertEqual(Float(quaternionNode.orientation.z), 0, accuracy: 0.0001)
+        XCTAssertEqual(Float(quaternionNode.orientation.w), Float(sqrt(0.5)), accuracy: 0.0001)
+    }
+
     func testExploreSearchMatchesCategoryNames() {
         let viewModel = ExploreViewModel()
         viewModel.configure(repository: TestCelestialBodyRepository(bodies: [
@@ -531,6 +633,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         )
     }
 
+#if os(iOS)
     func testAROrbitBudgetCapsBalancedPathSamples() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,
@@ -578,6 +681,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
 
         XCTAssertLessThanOrEqual(budget.fallbackDotPoints.count, expectedMaximumDotCount)
     }
+#endif
 
     func testTrueSizePreservesRadiusRatios() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
@@ -593,6 +697,26 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertEqual(radiusRatio(earth, jupiter), sourceRadiusRatio("earth", "jupiter"), accuracy: 0.001)
         XCTAssertEqual(radiusRatio(moon, earth), sourceRadiusRatio("moon", "earth"), accuracy: 0.001)
         XCTAssertEqual(radiusRatio(sun, earth), sourceRadiusRatio("sun", "earth"), accuracy: 0.001)
+    }
+
+    func testObjectCameraMetricsCoverObjectSnapshotBounds() {
+        let artifact = Self.makeBody(
+            id: "astronaut",
+            name: "Astronaut",
+            type: .astronaut,
+            radiusKm: 0.001,
+            parentBodyId: nil,
+            displayOrder: 1
+        )
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: [artifact],
+            settings: settings(distance: .compressed, object: .relative),
+            content: .object("astronaut")
+        )
+        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: settings(distance: .compressed, object: .relative))
+
+        XCTAssertGreaterThan(metrics.zFar, metrics.cameraDistance + Double(snapshot.bounds.span) * 4)
+        XCTAssertGreaterThanOrEqual(metrics.orthographicScale, Double(snapshot.bounds.span))
     }
 
     func testReadableDistanceModesKeepExpectedSceneScale() {
@@ -810,6 +934,16 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let body = Self.bodies.first { $0.id == id }!
         let eccentricity = body.orbit?.eccentricity ?? 0
         return baseSceneSemiMajorAxis(for: body, distance: distance, distanceCompression: distanceCompression) * (1 + eccentricity)
+    }
+
+    private func perihelionDistance(
+        _ id: String,
+        distance: DistanceScaleMode,
+        distanceCompression: Double = 30
+    ) -> Double {
+        let body = Self.bodies.first { $0.id == id }!
+        let eccentricity = body.orbit?.eccentricity ?? 0
+        return baseSceneSemiMajorAxis(for: body, distance: distance, distanceCompression: distanceCompression) * (1 - eccentricity)
     }
 
     private func baseSceneSemiMajorAxis(

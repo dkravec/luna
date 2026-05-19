@@ -84,6 +84,10 @@ final class GuidedTourCoordinatorTests: XCTestCase {
     }
 
     private func waitForTransitionUnlock() {
-        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        let expectation = expectation(description: "Transition lock released")
+        DispatchQueue.main.async {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1)
     }
 }

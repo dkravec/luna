@@ -373,7 +373,7 @@ struct LunaARSceneView: UIViewRepresentable {
         }
 
         private static func rotationOrientation(for placement: ARBodyPlacement) -> simd_quatf {
-            let tilt = simd_quatf(angle: placement.axialTiltRadians, axis: SIMD3<Float>(0, 0, 1))
+            let tilt = simd_quatf(angle: placement.axialTiltRadians, axis: SolarSystemSceneRotation.axialTiltAxis)
             let spin = simd_quatf(angle: placement.rotationAngleRadians, axis: SIMD3<Float>(0, 1, 0))
             return tilt * spin
         }
@@ -426,23 +426,11 @@ struct LunaARSceneView: UIViewRepresentable {
             var indices: [UInt32] = []
 
             for index in points.indices {
-                let previous = points[(index - 1 + points.count) % points.count]
-                let next = points[(index + 1) % points.count]
-                let tangentVector = next - previous
-                guard simd_length_squared(tangentVector) > 0.000_001 else {
-                    return nil
-                }
-
-                let tangent = simd_normalize(tangentVector)
-                var side = simd_cross(tangent, SIMD3<Float>(0, 1, 0))
-                if simd_length_squared(side) < 0.000_001 {
-                    side = simd_cross(tangent, SIMD3<Float>(0, 0, 1))
-                }
-                guard simd_length_squared(side) > 0.000_001 else {
-                    return nil
-                }
-
-                side = simd_normalize(side) * halfThickness
+                let side = SolarSystemSceneOrbitRibbon.sideVector(
+                    for: points,
+                    at: index,
+                    halfThickness: halfThickness
+                )
                 vertices.append(points[index] - side)
                 vertices.append(points[index] + side)
             }

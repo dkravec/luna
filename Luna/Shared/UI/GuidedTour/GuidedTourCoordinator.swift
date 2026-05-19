@@ -11,6 +11,7 @@ enum GuidedTourTarget: String, Hashable {
     case experienceModeToggle
     case experienceControls
     case experiencePlayback
+    case settingsReplayTour
 
     var accessibilityIdentifier: String {
         switch self {
@@ -34,6 +35,8 @@ enum GuidedTourTarget: String, Hashable {
             return "tourTarget.experience.controls"
         case .experiencePlayback:
             return "tourTarget.experience.playback"
+        case .settingsReplayTour:
+            return "tourTarget.settings.replayTour"
         }
     }
 }
@@ -43,6 +46,7 @@ enum GuidedTourRoute: Equatable {
     case explore
     case bodyDetail(String?)
     case experience
+    case settings
 }
 
 enum GuidedTourStep: String, CaseIterable, Identifiable {
@@ -80,7 +84,7 @@ enum GuidedTourStep: String, CaseIterable, Identifiable {
         case .experiencePlayback:
             return .experiencePlayback
         case .finish:
-            return .experienceControls
+            return .settingsReplayTour
         }
     }
 
@@ -92,8 +96,10 @@ enum GuidedTourStep: String, CaseIterable, Identifiable {
             return .explore
         case .bodyDetailExperience:
             return .bodyDetail(nil)
-        case .experienceScene, .experienceMode, .experienceControls, .experiencePlayback, .finish:
+        case .experienceScene, .experienceMode, .experienceControls, .experiencePlayback:
             return .experience
+        case .finish:
+            return .settings
         }
     }
 

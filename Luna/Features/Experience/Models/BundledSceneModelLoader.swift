@@ -2,10 +2,12 @@ import SceneKit
 #if os(iOS)
 import UIKit
 private typealias LoaderColor = UIColor
+private typealias SceneScalar = Float
 typealias BundledThumbnailImage = UIImage
 #elseif os(macOS)
 import AppKit
 private typealias LoaderColor = NSColor
+private typealias SceneScalar = CGFloat
 typealias BundledThumbnailImage = NSImage
 #endif
 
@@ -129,17 +131,17 @@ enum BundledSceneModelLoader {
 
         let scale = targetLongestAxis / longestAxis
         node.scale = SCNVector3(
-            node.scale.x * scale,
-            node.scale.y * scale,
-            node.scale.z * scale
+            sceneScalar(Float(node.scale.x) * scale),
+            sceneScalar(Float(node.scale.y) * scale),
+            sceneScalar(Float(node.scale.z) * scale)
         )
     }
 
     static func longestAxis(for node: SCNNode) -> Float {
         guard let bounds = recursiveBounds(for: node, relativeTo: node) else { return 0 }
         let size = bounds.size
-        let rawAxis = max(size.x, max(size.y, size.z))
-        let rootScale = max(abs(node.scale.x), max(abs(node.scale.y), abs(node.scale.z)))
+        let rawAxis = max(Float(size.x), max(Float(size.y), Float(size.z)))
+        let rootScale = max(abs(Float(node.scale.x)), max(abs(Float(node.scale.y)), abs(Float(node.scale.z))))
         return rawAxis * rootScale
     }
 
@@ -176,25 +178,25 @@ enum BundledSceneModelLoader {
 
     private static func normalize(_ node: SCNNode) {
         guard let bounds = recursiveBounds(for: node, relativeTo: node) else { return }
-        let longestAxis = max(bounds.size.x, max(bounds.size.y, bounds.size.z))
+        let longestAxis = max(Float(bounds.size.x), max(Float(bounds.size.y), Float(bounds.size.z)))
         guard longestAxis.isFinite, longestAxis > 0 else { return }
 
         let scale = 1 / longestAxis
 
-        node.scale = SCNVector3(scale, scale, scale)
+        node.scale = SCNVector3(sceneScalar(scale), sceneScalar(scale), sceneScalar(scale))
         node.position = SCNVector3(
-            -bounds.center.x * scale,
-            -bounds.center.y * scale,
-            -bounds.center.z * scale
+            sceneScalar(-Float(bounds.center.x) * scale),
+            sceneScalar(-Float(bounds.center.y) * scale),
+            sceneScalar(-Float(bounds.center.z) * scale)
         )
     }
 
     private static func center(_ node: SCNNode, in root: SCNNode) {
         guard let bounds = recursiveBounds(for: root, relativeTo: root) else { return }
         node.position = SCNVector3(
-            node.position.x - bounds.center.x,
-            node.position.y - bounds.center.y,
-            node.position.z - bounds.center.z
+            sceneScalar(Float(node.position.x) - Float(bounds.center.x)),
+            sceneScalar(Float(node.position.y) - Float(bounds.center.y)),
+            sceneScalar(Float(node.position.z) - Float(bounds.center.z))
         )
     }
 
@@ -283,6 +285,34 @@ enum BundledSceneModelLoader {
     }
 }
 
+#if DEBUG
+extension BundledSceneModelLoader {
+    static func debugBounds(for node: SCNNode) -> (min: SCNVector3, max: SCNVector3)? {
+        guard let bounds = recursiveBounds(for: node, relativeTo: node) else { return nil }
+        return (bounds.min, bounds.max)
+    }
+
+    static func debugNode(matrix: [Double]) -> SCNNode? {
+        guard matrix.count == 16 else { return nil }
+        let node = SCNNode()
+        node.transform = SCNMatrix4(
+            m11: sceneScalar(matrix[0]), m12: sceneScalar(matrix[1]), m13: sceneScalar(matrix[2]), m14: sceneScalar(matrix[3]),
+            m21: sceneScalar(matrix[4]), m22: sceneScalar(matrix[5]), m23: sceneScalar(matrix[6]), m24: sceneScalar(matrix[7]),
+            m31: sceneScalar(matrix[8]), m32: sceneScalar(matrix[9]), m33: sceneScalar(matrix[10]), m34: sceneScalar(matrix[11]),
+            m41: sceneScalar(matrix[12]), m42: sceneScalar(matrix[13]), m43: sceneScalar(matrix[14]), m44: sceneScalar(matrix[15])
+        )
+        return node
+    }
+
+    static func debugNode(rotation: [Double]) -> SCNNode? {
+        guard rotation.count >= 4 else { return nil }
+        let node = SCNNode()
+        node.orientation = SCNQuaternion(sceneScalar(rotation[0]), sceneScalar(rotation[1]), sceneScalar(rotation[2]), sceneScalar(rotation[3]))
+        return node
+    }
+}
+#endif
+
 private extension Optional where Wrapped == BundledSceneModelLoader.ModelBounds {
     func expanded(toInclude point: SCNVector3) -> BundledSceneModelLoader.ModelBounds {
         guard let bounds = self else {
@@ -307,9 +337,9 @@ private extension Optional where Wrapped == BundledSceneModelLoader.ModelBounds 
 private extension SCNVector3 {
     func transformed(by matrix: SCNMatrix4) -> SCNVector3 {
         SCNVector3(
-            x * matrix.m11 + y * matrix.m21 + z * matrix.m31 + matrix.m41,
-            x * matrix.m12 + y * matrix.m22 + z * matrix.m32 + matrix.m42,
-            x * matrix.m13 + y * matrix.m23 + z * matrix.m33 + matrix.m43
+            sceneScalar(Float(x) * Float(matrix.m11) + Float(y) * Float(matrix.m21) + Float(z) * Float(matrix.m31) + Float(matrix.m41)),
+            sceneScalar(Float(x) * Float(matrix.m12) + Float(y) * Float(matrix.m22) + Float(z) * Float(matrix.m32) + Float(matrix.m42)),
+            sceneScalar(Float(x) * Float(matrix.m13) + Float(y) * Float(matrix.m23) + Float(z) * Float(matrix.m33) + Float(matrix.m43))
         )
     }
 }
@@ -547,23 +577,23 @@ private struct GLBContext {
     private func applyTransform(_ nodeJSON: [String: Any], to node: SCNNode) {
         if let matrix = nodeJSON["matrix"] as? [Double], matrix.count == 16 {
             node.transform = SCNMatrix4(
-                m11: Float(matrix[0]), m12: Float(matrix[1]), m13: Float(matrix[2]), m14: Float(matrix[3]),
-                m21: Float(matrix[4]), m22: Float(matrix[5]), m23: Float(matrix[6]), m24: Float(matrix[7]),
-                m31: Float(matrix[8]), m32: Float(matrix[9]), m33: Float(matrix[10]), m34: Float(matrix[11]),
-                m41: Float(matrix[12]), m42: Float(matrix[13]), m43: Float(matrix[14]), m44: Float(matrix[15])
+                m11: sceneScalar(matrix[0]), m12: sceneScalar(matrix[1]), m13: sceneScalar(matrix[2]), m14: sceneScalar(matrix[3]),
+                m21: sceneScalar(matrix[4]), m22: sceneScalar(matrix[5]), m23: sceneScalar(matrix[6]), m24: sceneScalar(matrix[7]),
+                m31: sceneScalar(matrix[8]), m32: sceneScalar(matrix[9]), m33: sceneScalar(matrix[10]), m34: sceneScalar(matrix[11]),
+                m41: sceneScalar(matrix[12]), m42: sceneScalar(matrix[13]), m43: sceneScalar(matrix[14]), m44: sceneScalar(matrix[15])
             )
         }
 
         if let translation = nodeJSON["translation"] as? [Double], translation.count >= 3 {
-            node.position = SCNVector3(translation[0], translation[1], translation[2])
+            node.position = SCNVector3(sceneScalar(translation[0]), sceneScalar(translation[1]), sceneScalar(translation[2]))
         }
 
         if let scale = nodeJSON["scale"] as? [Double], scale.count >= 3 {
-            node.scale = SCNVector3(scale[0], scale[1], scale[2])
+            node.scale = SCNVector3(sceneScalar(scale[0]), sceneScalar(scale[1]), sceneScalar(scale[2]))
         }
 
         if let rotation = nodeJSON["rotation"] as? [Double], rotation.count >= 4 {
-            node.orientation = SCNQuaternion(rotation[0], rotation[1], rotation[2], rotation[3])
+            node.orientation = SCNQuaternion(sceneScalar(rotation[0]), sceneScalar(rotation[1]), sceneScalar(rotation[2]), sceneScalar(rotation[3]))
         }
     }
 }
@@ -574,6 +604,14 @@ private func loaderColor(red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGF
 #elseif os(macOS)
     LoaderColor(calibratedRed: red, green: green, blue: blue, alpha: alpha)
 #endif
+}
+
+private func sceneScalar(_ value: Float) -> SceneScalar {
+    SceneScalar(value)
+}
+
+private func sceneScalar(_ value: Double) -> SceneScalar {
+    SceneScalar(value)
 }
 
 private extension Data {

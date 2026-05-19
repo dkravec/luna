@@ -367,6 +367,8 @@ final class LunaAppState: ObservableObject {
             selectedTab = .solarSystem
         case .experience:
             selectedTab = .arExperience
+        case .settings:
+            selectedTab = .settings
         }
     }
 

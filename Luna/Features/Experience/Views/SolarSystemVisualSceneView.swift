@@ -797,19 +797,7 @@ struct SolarSystemSceneOrbitRibbon {
         var indices: [Int32] = []
 
         for index in points.indices {
-            let previous = points[(index - 1 + points.count) % points.count]
-            let next = points[(index + 1) % points.count]
-            var tangent = next - previous
-            if simd_length_squared(tangent) < 0.000_001 {
-                tangent = SIMD3<Float>(1, 0, 0)
-            }
-            tangent = simd_normalize(tangent)
-
-            var side = simd_cross(tangent, SIMD3<Float>(0, 1, 0))
-            if simd_length_squared(side) < 0.000_001 {
-                side = simd_cross(tangent, SIMD3<Float>(0, 0, 1))
-            }
-            side = simd_normalize(side) * halfThickness
+            let side = sideVector(for: points, at: index, halfThickness: halfThickness)
             vertices.append(points[index] - side)
             vertices.append(points[index] + side)
         }
@@ -824,6 +812,35 @@ struct SolarSystemSceneOrbitRibbon {
         }
 
         return Mesh(vertices: vertices, indices: indices)
+    }
+
+    static func sideVector(for points: [SIMD3<Float>], at index: Int, halfThickness: Float) -> SIMD3<Float> {
+        guard points.count > 2, points.indices.contains(index) else {
+            return SIMD3<Float>(halfThickness, 0, 0)
+        }
+
+        let previous = points[(index - 1 + points.count) % points.count]
+        let next = points[(index + 1) % points.count]
+        var tangent = next - previous
+        if simd_length_squared(tangent) < 0.000_001 {
+            tangent = SIMD3<Float>(1, 0, 0)
+        }
+        tangent = simd_normalize(tangent)
+
+        let referenceAxes = [
+            SIMD3<Float>(0, 1, 0),
+            SIMD3<Float>(0, 0, 1),
+            SIMD3<Float>(1, 0, 0)
+        ]
+
+        for axis in referenceAxes {
+            let side = simd_cross(tangent, axis)
+            if simd_length_squared(side) >= 0.000_001 {
+                return simd_normalize(side) * halfThickness
+            }
+        }
+
+        return SIMD3<Float>(halfThickness, 0, 0)
     }
 }
 
@@ -840,8 +857,10 @@ struct SolarSystemSceneLabelScale {
 }
 
 struct SolarSystemSceneRotation {
+    static let axialTiltAxis = SIMD3<Float>(0, 0, 1)
+
     static func tiltEuler(for placement: ExperienceSceneBody) -> SCNVector3 {
-        SCNVector3(placement.axialTiltRadians, 0, 0)
+        SCNVector3(0, 0, placement.axialTiltRadians)
     }
 
     static func spinEuler(for placement: ExperienceSceneBody) -> SCNVector3 {
@@ -849,7 +868,7 @@ struct SolarSystemSceneRotation {
     }
 
     static func combinedEuler(for placement: ExperienceSceneBody) -> SCNVector3 {
-        SCNVector3(placement.axialTiltRadians, placement.rotationAngleRadians, 0)
+        SCNVector3(0, placement.rotationAngleRadians, placement.axialTiltRadians)
     }
 }
 
@@ -998,12 +1017,7 @@ private extension SCNVector3 {
     }
 
     static func * (lhs: SCNVector3, rhs: Float) -> SCNVector3 {
-#if os(macOS)
-        let multiplier = CGFloat(rhs)
-        return SCNVector3(lhs.x * multiplier, lhs.y * multiplier, lhs.z * multiplier)
-#else
-        SCNVector3(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
-#endif
+        SCNVector3(Float(lhs.x) * rhs, Float(lhs.y) * rhs, Float(lhs.z) * rhs)
     }
 
     var length: Float {
@@ -1016,15 +1030,7 @@ private extension SCNVector3 {
     var normalized: SCNVector3 {
         let vectorLength = length
         guard vectorLength > 0 else { return SCNVector3Zero }
-#if os(macOS)
-        return SCNVector3(
-            CGFloat(Float(x) / vectorLength),
-            CGFloat(Float(y) / vectorLength),
-            CGFloat(Float(z) / vectorLength)
-        )
-#else
-        return SCNVector3(x / vectorLength, y / vectorLength, z / vectorLength)
-#endif
+        return SCNVector3(Float(x) / vectorLength, Float(y) / vectorLength, Float(z) / vectorLength)
     }
 
     var normalizedOrDefault: SCNVector3 {
