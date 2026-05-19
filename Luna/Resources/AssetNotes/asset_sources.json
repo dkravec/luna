@@ -29,9 +29,9 @@
         {
           "name": "Mercury texture",
           "path": "Textures/Planets/mercury_texture.jpg",
-          "credit": "NASA/Johns Hopkins University Applied Physics Laboratory MESSENGER complete mono basemap.",
-          "licenseNote": "Public domain NASA mission imagery; credit NASA and avoid implying endorsement.",
-          "sourceURL": "https://commons.wikimedia.org/wiki/File:Mercury_-_complete_mono_basemap_2500mpp_equirectangular.png",
+          "credit": "USGS Astrogeology Science Center; NASA, Johns Hopkins Applied Physics Laboratory, Arizona State University, Carnegie Science; MESSENGER MDIS Basemap MD3 Color Global Mosaic.",
+          "licenseNote": "Public-domain MESSENGER mission data via USGS Astrogeology. Please cite authors and avoid implying NASA endorsement.",
+          "sourceURL": "https://astrogeology.usgs.gov/search/map/mercury_messenger_mdis_basemap_md3_color_global_mosaic_665m",
           "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
         },
         {

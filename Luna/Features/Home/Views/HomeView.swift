@@ -238,7 +238,7 @@ private struct HomeSolarSystemPreview: View {
                     }
 
                     ForEach(placements) { placement in
-                        HomeOrbitBodyDot(celestialBody: placement.body, size: placement.bodySize)
+                        BodyVisual(celestialBody: placement.body, size: placement.bodySize)
                             .position(
                                 x: center.x + cos(placement.angle) * placement.orbitRadius,
                                 y: center.y + sin(placement.angle) * placement.orbitRadius
@@ -246,7 +246,7 @@ private struct HomeSolarSystemPreview: View {
                     }
 
                     if let sun = solarSystemBodies.first(where: { $0.type == .star }) {
-                        HomeOrbitBodyDot(celestialBody: sun, size: max(34, size * 0.16))
+                        BodyVisual(celestialBody: sun, size: max(34, size * 0.16))
                             .position(center)
                     }
                 }
@@ -294,57 +294,6 @@ private struct HomeSolarSystemPreview: View {
 
     private var dayOfYear: Int {
         Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
-    }
-}
-
-private struct HomeOrbitBodyDot: View {
-    let celestialBody: CelestialBody
-    let size: CGFloat
-
-    var bodyContent: some View {
-        Circle()
-            .fill(
-                RadialGradient(
-                    colors: colors,
-                    center: .topLeading,
-                    startRadius: 2,
-                    endRadius: size
-                )
-            )
-            .overlay {
-                Circle()
-                    .stroke(Color.white.opacity(0.24), lineWidth: max(1, size * 0.06))
-            }
-            .shadow(color: colors.last?.opacity(0.34) ?? .clear, radius: size * 0.34)
-            .frame(width: size, height: size)
-    }
-
-    var body: some View {
-        bodyContent
-            .accessibilityHidden(true)
-    }
-
-    private var colors: [Color] {
-        switch celestialBody.id {
-        case "sun":
-            return [Color(red: 1.0, green: 0.84, blue: 0.34), Color(red: 0.98, green: 0.36, blue: 0.14)]
-        case "mercury":
-            return [Color(red: 0.70, green: 0.68, blue: 0.62), Color(red: 0.35, green: 0.34, blue: 0.33)]
-        case "venus":
-            return [Color(red: 0.91, green: 0.74, blue: 0.45), Color(red: 0.67, green: 0.47, blue: 0.24)]
-        case "earth":
-            return [Color(red: 0.22, green: 0.56, blue: 0.88), Color(red: 0.18, green: 0.52, blue: 0.34)]
-        case "mars":
-            return [Color(red: 0.86, green: 0.42, blue: 0.22), Color(red: 0.45, green: 0.18, blue: 0.12)]
-        case "jupiter", "saturn":
-            return [Color(red: 0.83, green: 0.68, blue: 0.52), Color(red: 0.55, green: 0.34, blue: 0.22)]
-        case "uranus":
-            return [Color(red: 0.60, green: 0.86, blue: 0.88), Color(red: 0.32, green: 0.60, blue: 0.68)]
-        case "neptune":
-            return [Color(red: 0.28, green: 0.48, blue: 0.92), Color(red: 0.12, green: 0.22, blue: 0.58)]
-        default:
-            return [Palette.moonGrey, Palette.orbitBlue]
-        }
     }
 }
 

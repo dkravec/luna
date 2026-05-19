@@ -1,6 +1,7 @@
 import XCTest
 import simd
 import SceneKit
+import ImageIO
 @testable import Luna
 
 final class ExperienceSceneEngineScaleTests: XCTestCase {
@@ -413,6 +414,32 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
     func testBundledThumbnailImageLoaderLoadsNASAAssetAndFallsBackForMissingAsset() {
         XCTAssertNotNil(BundledThumbnailImageLoader.image(named: "apollo_lunar_module.png"))
         XCTAssertNil(BundledThumbnailImageLoader.image(named: "missing-spacecraft.png"))
+    }
+
+    func testBundledPlanetTexturesUseSceneKitSafeRGBImages() throws {
+        let bodies = try LocalCelestialBodyRepository(bundle: .main).fetchBodies()
+        let texturedBodies = bodies.filter { $0.textureName != nil }
+
+        XCTAssertFalse(texturedBodies.isEmpty)
+
+        for body in texturedBodies {
+            let textureName = try XCTUnwrap(body.textureName)
+            let url = try XCTUnwrap(
+                Bundle.main.url(
+                    forResource: textureName,
+                    withExtension: "jpg",
+                    subdirectory: "Planets"
+                ),
+                "\(body.id) should resolve \(textureName).jpg"
+            )
+            let imageSource = try XCTUnwrap(CGImageSourceCreateWithURL(url as CFURL, nil))
+            let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(imageSource, 0, nil))
+            let colorModel = try XCTUnwrap(image.colorSpace?.model)
+            let channelCount = image.bitsPerPixel / image.bitsPerComponent
+
+            XCTAssertEqual(colorModel, .rgb, "\(body.id) texture must decode as RGB for SceneKit/Metal")
+            XCTAssertGreaterThanOrEqual(channelCount, 3, "\(body.id) texture must not be single-channel grayscale")
+        }
     }
 
     func testBundledArtifactModelsResolveWithoutDracoAndLoadGeometry() throws {
