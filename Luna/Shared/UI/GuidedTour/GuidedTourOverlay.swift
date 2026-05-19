@@ -80,6 +80,7 @@ extension View {
                     .zIndex(250)
                 }
             }
+            .id(appState.guidedTourDismissalID ?? appState.guidedTourPresentationID)
     }
 }
 
@@ -99,6 +100,8 @@ private struct GuidedTourOverlayView: View {
         let highlightedFrame = highlightFrame(in: containerSize)
 
         ZStack {
+            safeAreaDimStrips
+
             Color.clear
                 .frame(width: 1, height: 1)
                 .accessibilityLabel("Tour overlay")
@@ -230,6 +233,23 @@ private struct GuidedTourOverlayView: View {
         )
     }
 
+    private var safeAreaDimStrips: some View {
+        ZStack {
+            if safeAreaInsets.top > 0 {
+                Color.black.opacity(0.58)
+                    .frame(width: containerSize.width, height: safeAreaInsets.top)
+                    .position(x: containerSize.width / 2, y: -safeAreaInsets.top / 2)
+            }
+
+            if safeAreaInsets.bottom > 0 {
+                Color.black.opacity(0.58)
+                    .frame(width: containerSize.width, height: safeAreaInsets.bottom)
+                    .position(x: containerSize.width / 2, y: containerSize.height + safeAreaInsets.bottom / 2)
+            }
+        }
+        .accessibilityHidden(true)
+        .allowsHitTesting(false)
+    }
 }
 
 private struct GuidedTourFloatingCalloutView: View {

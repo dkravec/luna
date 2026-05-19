@@ -28,7 +28,7 @@ struct ExperienceView: View {
         ZStack {
             sceneLayer
                 .ignoresSafeArea(edges: .bottom)
-                .guidedTourTarget(.experienceScene)
+                .guidedTourTarget(.experienceScene, when: appState.guidedTourStep == .experienceScene)
             experienceSceneTourTapArea
             topBar
                 .padding(.horizontal, 16)
@@ -189,7 +189,10 @@ struct ExperienceView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Show experience controls")
-                .guidedTourTarget(.experienceControls)
+                .guidedTourTarget(
+                    .experienceControls,
+                    when: appState.guidedTourStep == .experienceControls || appState.guidedTourStep == .finish
+                )
                 
                 Button {
                     if !appState.guidedTourTargetTapped(.experiencePlayback) {
@@ -207,7 +210,7 @@ struct ExperienceView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isOrbitPlaybackEnabled ? "Pause orbits" : "Play orbits")
-                .guidedTourTarget(.experiencePlayback)
+                .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback)
             }
         }
     }
@@ -263,7 +266,7 @@ struct ExperienceView: View {
             .disabled(!arPlacementState.isReady)
             .opacity(arPlacementState.isReady ? 1 : 0.62)
             .accessibilityLabel(arPlacementAccessibilityLabel)
-            .guidedTourTarget(.experiencePlayback)
+            .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback)
         }
 #endif
     }
@@ -314,7 +317,7 @@ struct ExperienceView: View {
             Capsule(style: .continuous)
                 .stroke(Color.primary.opacity(0.12), lineWidth: 1)
         }
-        .guidedTourTarget(.experienceModeToggle)
+        .guidedTourTarget(.experienceModeToggle, when: appState.guidedTourStep == .experienceMode)
     }
 
     private var controlsSheetContent: some View {

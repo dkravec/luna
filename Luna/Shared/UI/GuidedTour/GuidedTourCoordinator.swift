@@ -181,6 +181,7 @@ final class GuidedTourCoordinator: ObservableObject {
     @Published private(set) var currentStep: GuidedTourStep?
     @Published private(set) var pendingBodyID: String?
     @Published private(set) var presentationID = UUID()
+    @Published private(set) var dismissalID: UUID?
 
     var routeHandler: (GuidedTourRoute) -> Void = { _ in }
     var completionHandler: () -> Void = {}
@@ -202,6 +203,7 @@ final class GuidedTourCoordinator: ObservableObject {
         isTransitionLocked = false
         pendingBodyID = nil
         presentationID = UUID()
+        dismissalID = nil
         routeHandler(.home)
         currentStep = .homeWelcome
         stateDidChange()
@@ -254,6 +256,7 @@ final class GuidedTourCoordinator: ObservableObject {
         currentStep = nil
         pendingBodyID = nil
         presentationID = UUID()
+        dismissalID = UUID()
         stateDidChange()
     }
 
@@ -262,6 +265,7 @@ final class GuidedTourCoordinator: ObservableObject {
         currentStep = nil
         pendingBodyID = nil
         presentationID = UUID()
+        dismissalID = UUID()
         completionHandler()
         stateDidChange()
     }

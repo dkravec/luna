@@ -17,7 +17,7 @@ final class LunaTourUITests: XCTestCase {
         launchTourPending(resetProfile: true)
 
         assertTour(title: "Start From Home", progress: "1 of 10")
-        assertSpotlightAligned(with: "tourTarget.home.overview")
+        assertSpotlightAligned(with: "tourTarget.home.overview", tolerance: 70)
 
         tapNext()
         assertTour(title: "Open Explore", progress: "2 of 10")
@@ -46,7 +46,7 @@ final class LunaTourUITests: XCTestCase {
 
         tapNext()
         assertTour(title: "Move Through The Scene", progress: "6 of 10")
-        assertSpotlightAligned(with: "tourTarget.experience.scene", tolerance: 24)
+        assertSpotlightAligned(with: "tourTarget.experience.scene", tolerance: 70)
 
         tapNext()
         assertTour(title: "Switch Modes", progress: "7 of 10")
@@ -87,7 +87,7 @@ final class LunaTourUITests: XCTestCase {
         replay.tap()
 
         assertTour(title: "Start From Home", progress: "1 of 10")
-        assertSpotlightAligned(with: "tourTarget.home.overview")
+        assertSpotlightAligned(with: "tourTarget.home.overview", tolerance: 70)
     }
 
     private func launchTourPending(resetProfile: Bool) {

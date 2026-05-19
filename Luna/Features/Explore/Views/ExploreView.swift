@@ -206,7 +206,7 @@ struct ExploreView: View {
     @ViewBuilder
     private var categorySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Categories")
+            SectionHeader(title: "Collections")
 
             LazyVStack(spacing: 10) {
                 ForEach(viewModel.exploreCollections) { collection in
