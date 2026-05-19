@@ -16,6 +16,7 @@
 		7A6B02B124A3176C00535EA4 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B024A3176B00535EA4 /* DesignSystem.swift */; };
 		7A6B02B424A317B100535EA4 /* LunaPersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */; };
 		7A6B02B724A317BC00535EA4 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B624A317BC00535EA4 /* HomeView.swift */; };
+		7A6B0B0224C1000000000000 /* HomeDailyContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B0B0124C1000000000000 /* HomeDailyContentProvider.swift */; };
 		7A6B02BA24A317C600535EA4 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B924A317C600535EA4 /* ExploreView.swift */; };
 		7A6B02BE24A317C600535EA4 /* ExperienceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BC24A317C600535EA4 /* ExperienceView.swift */; };
 		7A6B02C024A317C600535EA4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02BD24A317C600535EA4 /* SettingsView.swift */; };
@@ -60,6 +61,7 @@
 		7A6B091124B0000000000000 /* LunaImageOfTheDayWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B091024B0000000000000 /* LunaImageOfTheDayWidget.swift */; };
 		7A6B091424B0000000000000 /* LunaWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 7A6B091324B0000000000000 /* LunaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7A6B0A0224C0000000000000 /* ExperienceSceneEngineScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */; };
+		7A6B0B0424C1000000000000 /* HomeDailyContentProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B0B0324C1000000000000 /* HomeDailyContentProviderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -108,6 +110,7 @@
 		7A6B02B024A3176B00535EA4 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaPersistenceController.swift; sourceTree = "<group>"; };
 		7A6B02B624A317BC00535EA4 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		7A6B0B0124C1000000000000 /* HomeDailyContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDailyContentProvider.swift; sourceTree = "<group>"; };
 		7A6B02B924A317C600535EA4 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
 		7A6B02BC24A317C600535EA4 /* ExperienceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceView.swift; sourceTree = "<group>"; };
 		7A6B02BD24A317C600535EA4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -153,6 +156,7 @@
 		7A6B092A24B1000000000000 /* LunaWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LunaWidget.entitlements; sourceTree = "<group>"; };
 		7A6B091324B0000000000000 /* LunaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LunaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceSceneEngineScaleTests.swift; sourceTree = "<group>"; };
+		7A6B0B0324C1000000000000 /* HomeDailyContentProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDailyContentProviderTests.swift; sourceTree = "<group>"; };
 		7A6B0A0624C0000000000000 /* LunaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LunaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -219,6 +223,7 @@
 			isa = PBXGroup;
 			children = (
 				7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */,
+				7A6B0B0324C1000000000000 /* HomeDailyContentProviderTests.swift */,
 			);
 			path = LunaTests;
 			sourceTree = "<group>";
@@ -473,6 +478,7 @@
 			isa = PBXGroup;
 			children = (
 				7A6B02B624A317BC00535EA4 /* HomeView.swift */,
+				7A6B0B0124C1000000000000 /* HomeDailyContentProvider.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -818,6 +824,7 @@
 				7A6B031E24A5000000000000 /* LocalCelestialBodyRepository.swift in Sources */,
 				7A6B032024A5000000000000 /* RemoteCelestialBodyRepository.swift in Sources */,
 				7A6B02B724A317BC00535EA4 /* HomeView.swift in Sources */,
+				7A6B0B0224C1000000000000 /* HomeDailyContentProvider.swift in Sources */,
 				7A6B02BA24A317C600535EA4 /* ExploreView.swift in Sources */,
 				7A6B02BE24A317C600535EA4 /* ExperienceView.swift in Sources */,
 				7A6B02C024A317C600535EA4 /* SettingsView.swift in Sources */,
@@ -849,6 +856,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A6B0A0224C0000000000000 /* ExperienceSceneEngineScaleTests.swift in Sources */,
+				7A6B0B0424C1000000000000 /* HomeDailyContentProviderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
