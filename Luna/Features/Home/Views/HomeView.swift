@@ -2,7 +2,6 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject private var appState: LunaAppState
-    @State private var selectedPreviewBodyID: String?
 
     private let dailyContentProvider = HomeDailyContentProvider()
 
@@ -31,39 +30,6 @@ struct HomeView: View {
             .screenContentPadding()
         }
         .appBackground()
-        .background(hiddenPreviewNavigationLink)
-    }
-
-    private var isPreviewBodySelected: Binding<Bool> {
-        Binding(
-            get: { selectedPreviewBodyID != nil },
-            set: { isSelected in
-                if !isSelected {
-                    selectedPreviewBodyID = nil
-                }
-            }
-        )
-    }
-
-    @ViewBuilder
-    private var hiddenPreviewNavigationLink: some View {
-        if let selectedPreviewBody {
-            NavigationLink(isActive: isPreviewBodySelected) {
-                BodyDetailView(
-                    celestialBody: selectedPreviewBody,
-                    childBodies: appState.celestialBodies.filter { $0.parentBodyId == selectedPreviewBody.id }
-                )
-            } label: {
-                EmptyView()
-            }
-            .hidden()
-        }
-    }
-
-    private var selectedPreviewBody: CelestialBody? {
-        selectedPreviewBodyID.flatMap { bodyID in
-            appState.celestialBodies.first { $0.id == bodyID }
-        }
     }
 
     @ViewBuilder
@@ -71,7 +37,7 @@ struct HomeView: View {
         if !appState.celestialBodies.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline) {
-                    SectionHeader(title: "Solar System", subtitle: "A live preview of Luna's local catalog.")
+                    SectionHeader(title: "Solar System", subtitle: "An overhead view of Luna's local catalog.")
 
                     Button {
                         appState.selectedTab = .arExperience
@@ -86,31 +52,12 @@ struct HomeView: View {
                     .hapticTap()
                 }
 
-                if isRunningUnitTests {
-                    miniPreviewTestPlaceholder
-                } else {
-                    SolarSystemVisualSceneView(
-                        bodies: appState.celestialBodies,
-                        settings: miniPreviewSettings,
-                        simulationDate: Date(),
-                        onSelectBody: { body in
-                            selectedPreviewBodyID = body.id
-                        }
-                    )
-                    .frame(height: 240)
-                    .frame(maxWidth: .infinity)
-                }
+                HomeSolarSystemPreview(
+                    bodies: appState.celestialBodies,
+                    date: Date()
+                )
+                .frame(height: 240)
             }
-        }
-    }
-
-    private var miniPreviewTestPlaceholder: some View {
-        Card {
-            RowLabel(
-                title: "Solar System",
-                subtitle: "A live preview of Luna's local catalog.",
-                systemImage: "sun.max"
-            )
         }
     }
 
@@ -248,22 +195,163 @@ struct HomeView: View {
         }
     }
 
-    private var miniPreviewSettings: ExperienceSceneSettings {
-        ExperienceSceneSettings(
-            isAREnabled: false,
-            sceneScaleProfile: appState.experiencePreferences.sceneScaleProfile,
-            distanceScaleMode: appState.experiencePreferences.distanceScaleMode,
-            objectScaleMode: appState.experiencePreferences.objectScaleMode,
-            distanceCompression: appState.experiencePreferences.distanceCompression,
-            renderDetail: .balanced,
-            orbitPlaybackSpeed: appState.experiencePreferences.orbitPlaybackSpeed,
-            objectRotationSpeed: appState.experiencePreferences.objectRotationSpeed,
-            showLabels: true,
-            showOrbits: true
-        )
+}
+
+private struct HomeSolarSystemPreview: View {
+    let bodies: [CelestialBody]
+    let date: Date
+
+    private var solarSystemBodies: [CelestialBody] {
+        bodies
+            .filter { body in
+                body.type == .star
+                    || body.type == .planet
+                    || body.type == .dwarfPlanet
+                    || body.type == .asteroid
+            }
+            .sorted { $0.displayOrder < $1.displayOrder }
     }
 
-    private var isRunningUnitTests: Bool {
-        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            GeometryReader { proxy in
+                let size = min(proxy.size.width, proxy.size.height)
+                let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2)
+                let maxOrbitRadius = size * 0.42
+                let placements = planetPlacements(maxOrbitRadius: maxOrbitRadius)
+
+                ZStack {
+                    LinearGradient(
+                        colors: [
+                            Palette.spaceBlack,
+                            Palette.orbitBlue.opacity(0.36)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+
+                    ForEach(placements) { placement in
+                        Circle()
+                            .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                            .frame(width: placement.orbitRadius * 2, height: placement.orbitRadius * 2)
+                            .position(center)
+                    }
+
+                    ForEach(placements) { placement in
+                        HomeOrbitBodyDot(celestialBody: placement.body, size: placement.bodySize)
+                            .position(
+                                x: center.x + cos(placement.angle) * placement.orbitRadius,
+                                y: center.y + sin(placement.angle) * placement.orbitRadius
+                            )
+                    }
+
+                    if let sun = solarSystemBodies.first(where: { $0.type == .star }) {
+                        HomeOrbitBodyDot(celestialBody: sun, size: max(34, size * 0.16))
+                            .position(center)
+                    }
+                }
+            }
+
+            Text(date.formatted(.dateTime.year().month(.abbreviated).day()))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.90))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(.black.opacity(0.42), in: Capsule(style: .continuous))
+                .padding(12)
+        }
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Radii.card, style: .continuous)
+                .stroke(Color.primary.opacity(0.10), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Overhead solar system preview for \(date.formatted(.dateTime.year().month(.abbreviated).day()))")
     }
+
+    private func planetPlacements(maxOrbitRadius: CGFloat) -> [HomeOrbitPlacement] {
+        let orbitingBodies = solarSystemBodies.filter { $0.type != .star }
+        let maxDistance = orbitingBodies
+            .compactMap(\.averageDistanceFromSunKm)
+            .max() ?? 1
+
+        return orbitingBodies.enumerated().map { index, body in
+            let normalizedDistance = max(0.08, min((body.averageDistanceFromSunKm ?? 0) / maxDistance, 1))
+            let orbitRadius = maxOrbitRadius * CGFloat(pow(normalizedDistance, 0.34))
+            let angle = CGFloat(index) * 1.62 + CGFloat(dayOfYear) * 0.012
+            let bodySize = max(10, min(24, CGFloat(log10(max(body.radiusKm, 1))) * 4.2))
+
+            return HomeOrbitPlacement(
+                id: body.id,
+                body: body,
+                orbitRadius: orbitRadius,
+                angle: angle,
+                bodySize: bodySize
+            )
+        }
+    }
+
+    private var dayOfYear: Int {
+        Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
+    }
+}
+
+private struct HomeOrbitBodyDot: View {
+    let celestialBody: CelestialBody
+    let size: CGFloat
+
+    var bodyContent: some View {
+        Circle()
+            .fill(
+                RadialGradient(
+                    colors: colors,
+                    center: .topLeading,
+                    startRadius: 2,
+                    endRadius: size
+                )
+            )
+            .overlay {
+                Circle()
+                    .stroke(Color.white.opacity(0.24), lineWidth: max(1, size * 0.06))
+            }
+            .shadow(color: colors.last?.opacity(0.34) ?? .clear, radius: size * 0.34)
+            .frame(width: size, height: size)
+    }
+
+    var body: some View {
+        bodyContent
+            .accessibilityHidden(true)
+    }
+
+    private var colors: [Color] {
+        switch celestialBody.id {
+        case "sun":
+            return [Color(red: 1.0, green: 0.84, blue: 0.34), Color(red: 0.98, green: 0.36, blue: 0.14)]
+        case "mercury":
+            return [Color(red: 0.70, green: 0.68, blue: 0.62), Color(red: 0.35, green: 0.34, blue: 0.33)]
+        case "venus":
+            return [Color(red: 0.91, green: 0.74, blue: 0.45), Color(red: 0.67, green: 0.47, blue: 0.24)]
+        case "earth":
+            return [Color(red: 0.22, green: 0.56, blue: 0.88), Color(red: 0.18, green: 0.52, blue: 0.34)]
+        case "mars":
+            return [Color(red: 0.86, green: 0.42, blue: 0.22), Color(red: 0.45, green: 0.18, blue: 0.12)]
+        case "jupiter", "saturn":
+            return [Color(red: 0.83, green: 0.68, blue: 0.52), Color(red: 0.55, green: 0.34, blue: 0.22)]
+        case "uranus":
+            return [Color(red: 0.60, green: 0.86, blue: 0.88), Color(red: 0.32, green: 0.60, blue: 0.68)]
+        case "neptune":
+            return [Color(red: 0.28, green: 0.48, blue: 0.92), Color(red: 0.12, green: 0.22, blue: 0.58)]
+        default:
+            return [Palette.moonGrey, Palette.orbitBlue]
+        }
+    }
+}
+
+private struct HomeOrbitPlacement: Identifiable {
+    let id: String
+    let body: CelestialBody
+    let orbitRadius: CGFloat
+    let angle: CGFloat
+    let bodySize: CGFloat
 }

@@ -32,12 +32,19 @@ struct ExperienceSceneSettings: Equatable {
         min(max(value, minimumDistanceCompression), maximumDistanceCompression)
     }
 
-    init(isAREnabled: Bool, preferences: ExperiencePreferences) {
+    init(
+        isAREnabled: Bool,
+        preferences: ExperiencePreferences,
+        sceneScaleProfileOverride: SceneScaleProfile? = nil
+    ) {
+        let sceneScaleProfile = sceneScaleProfileOverride ?? preferences.sceneScaleProfile
+        let usesOverride = sceneScaleProfileOverride != nil
+
         self.init(
             isAREnabled: isAREnabled,
-            sceneScaleProfile: preferences.sceneScaleProfile,
-            distanceScaleMode: preferences.distanceScaleMode,
-            objectScaleMode: preferences.objectScaleMode,
+            sceneScaleProfile: sceneScaleProfile,
+            distanceScaleMode: usesOverride ? sceneScaleProfile.defaultDistanceScaleMode : preferences.distanceScaleMode,
+            objectScaleMode: usesOverride ? sceneScaleProfile.defaultObjectScaleMode : preferences.objectScaleMode,
             distanceCompression: preferences.distanceCompression,
             renderDetail: preferences.renderDetail,
             orbitPlaybackSpeed: preferences.orbitPlaybackSpeed,
