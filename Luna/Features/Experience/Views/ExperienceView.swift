@@ -28,7 +28,8 @@ struct ExperienceView: View {
         ZStack {
             sceneLayer
                 .ignoresSafeArea(edges: .bottom)
-
+                .guidedTourTarget(.experienceScene)
+            experienceSceneTourTapArea
             topBar
                 .padding(.horizontal, 16)
                 .padding(.top, 14)
@@ -73,6 +74,19 @@ struct ExperienceView: View {
 #endif
     }
 
+
+    @ViewBuilder
+    private var experienceSceneTourTapArea: some View {
+        if appState.guidedTourStep == .experienceScene {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    appState.advanceTour()
+                }
+                .ignoresSafeArea()
+        }
+    }
+
     @ViewBuilder
     private var sceneLayer: some View {
         if !isSceneReady {
@@ -92,6 +106,7 @@ struct ExperienceView: View {
     @ViewBuilder
     private func sceneContent(simulationDate: Date) -> some View {
 #if os(iOS)
+        
         if isAREnabled, canUseAR {
             LunaARSceneView(
                 bodies: appState.celestialBodies,
@@ -133,7 +148,7 @@ struct ExperienceView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text("Experience")
                     .font(.largeTitle.weight(.bold))
-
+                
                 Text(sceneSubtitle)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
@@ -145,15 +160,19 @@ struct ExperienceView: View {
                 RoundedRectangle(cornerRadius: Radii.card, style: .continuous)
                     .stroke(Color.primary.opacity(0.10), lineWidth: 1)
             }
-
+            
             Spacer(minLength: 8)
-
+            
             VStack(spacing: 10) {
                 modeToggle
-
+                
                 Button {
-                    Haptics.selection()
-                    isControlsPresented = true
+                    if appState.guidedTourStep == .experienceControls {
+                        appState.advanceTour()
+                    } else {
+                        Haptics.selection()
+                        isControlsPresented = true
+                    }
                 } label: {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 18, weight: .semibold))
@@ -166,9 +185,14 @@ struct ExperienceView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Show experience controls")
-
+                .guidedTourTarget(.experienceControls)
+                
                 Button {
-                    toggleOrbitPlayback()
+                    if appState.guidedTourStep == .experiencePlayback {
+                        appState.advanceTour()
+                    } else {
+                        toggleOrbitPlayback()
+                    }
                 } label: {
                     Image(systemName: isOrbitPlaybackEnabled ? "pause.fill" : "play.fill")
                         .font(.system(size: 18, weight: .semibold))
@@ -181,9 +205,11 @@ struct ExperienceView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isOrbitPlaybackEnabled ? "Pause orbits" : "Play orbits")
+                .guidedTourTarget(.experiencePlayback)
             }
         }
     }
+
 
     @ViewBuilder
     private var arPlacementReticle: some View {
@@ -215,7 +241,11 @@ struct ExperienceView: View {
 #if os(iOS)
         if isSceneReady, isAREnabled, canUseAR, !appState.celestialBodies.isEmpty {
             Button {
-                placeARScene()
+                if appState.guidedTourStep == .experiencePlayback {
+                    appState.advanceTour()
+                } else {
+                    placeARScene()
+                }
             } label: {
                 Label(arPlacementTitle, systemImage: "scope")
                     .font(.headline.weight(.semibold))
@@ -233,6 +263,7 @@ struct ExperienceView: View {
             .disabled(!arPlacementState.isReady)
             .opacity(arPlacementState.isReady ? 1 : 0.62)
             .accessibilityLabel(arPlacementAccessibilityLabel)
+            .guidedTourTarget(.experiencePlayback)
         }
 #endif
     }
@@ -240,6 +271,9 @@ struct ExperienceView: View {
     private var modeToggle: some View {
         HStack(spacing: 4) {
             Button {
+                if appState.guidedTourStep == .experienceMode {
+                    appState.advanceTour()
+                }
                 setSceneMode(isAR: true)
             } label: {
                 Image(systemName: "arkit")
@@ -256,6 +290,9 @@ struct ExperienceView: View {
             .accessibilityLabel(canUseAR ? "Use AR mode" : "AR unavailable")
 
             Button {
+                if appState.guidedTourStep == .experienceMode {
+                    appState.advanceTour()
+                }
                 setSceneMode(isAR: false)
             } label: {
                 Image(systemName: "cube.transparent")
@@ -277,6 +314,7 @@ struct ExperienceView: View {
             Capsule(style: .continuous)
                 .stroke(Color.primary.opacity(0.12), lineWidth: 1)
         }
+        .guidedTourTarget(.experienceModeToggle)
     }
 
     private var controlsSheetContent: some View {

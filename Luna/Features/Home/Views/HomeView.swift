@@ -10,12 +10,7 @@ struct HomeView: View {
 
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                PageHeader(
-                    title: "Luna",
-                    subtitle: "Explore planets, compare scale, and step into space with AR."
-                )
-
-                miniSolarSystemPreview
+                homeIntroSection
 
                 featuredBodySection(dailyContent.featuredBody)
 
@@ -30,6 +25,18 @@ struct HomeView: View {
             .screenContentPadding()
         }
         .appBackground()
+    }
+
+    private var homeIntroSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.section) {
+            PageHeader(
+                title: "Luna",
+                subtitle: "Explore planets, compare scale, and step into space with AR."
+            )
+
+            miniSolarSystemPreview
+        }
+        .guidedTourTarget(.homeOverview)
     }
 
     @ViewBuilder
@@ -142,7 +149,11 @@ struct HomeView: View {
 
             CardSection {
                 Button {
-                    appState.selectedTab = .solarSystem
+                    if appState.guidedTourStep == .homeExplore {
+                        appState.advanceTour()
+                    } else {
+                        appState.selectedTab = .solarSystem
+                    }
                 } label: {
                     CardRow {
                         RowLabel(
@@ -155,6 +166,7 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
                 .hapticTap()
+                .guidedTourTarget(.homeExploreAction)
 
                 CardDivider(leadingInset: 56)
 
@@ -172,6 +184,7 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
                 .hapticTap()
+                .guidedTourTarget(.homeExperienceAction)
             }
         }
     }

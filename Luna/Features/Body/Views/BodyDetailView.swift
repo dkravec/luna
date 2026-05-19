@@ -8,6 +8,8 @@ private typealias PlatformBodyImage = NSImage
 #endif
 
 struct BodyDetailView: View {
+    @EnvironmentObject private var appState: LunaAppState
+
     let celestialBody: CelestialBody
     let childBodies: [CelestialBody]
 
@@ -95,13 +97,25 @@ struct BodyDetailView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                NavigationLink {
-                    ObjectExperienceView(celestialBody: celestialBody)
-                } label: {
-                    Label("View in AR", systemImage: "arkit")
-                        .frame(maxWidth: .infinity)
+                if appState.guidedTourStep == .bodyDetailExperience {
+                    Button {
+                        appState.advanceTour()
+                    } label: {
+                        Label("View in AR", systemImage: "arkit")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .primaryActionButton()
+                    .guidedTourTarget(.bodyDetailExperience)
+                } else {
+                    NavigationLink {
+                        ObjectExperienceView(celestialBody: celestialBody)
+                    } label: {
+                        Label("View in AR", systemImage: "arkit")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .primaryActionButton()
+                    .guidedTourTarget(.bodyDetailExperience)
                 }
-                .primaryActionButton()
             }
         }
     }

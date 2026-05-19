@@ -39,6 +39,7 @@ final class LunaPersistenceController {
             attribute("id", type: .UUIDAttributeType, optional: false),
             attribute("displayName", type: .stringAttributeType, optional: true),
             attribute("hasCompletedOnboarding", type: .booleanAttributeType, optional: false, defaultValue: false),
+            attribute("hasCompletedFirstRunTour", type: .booleanAttributeType, optional: false, defaultValue: false),
             attribute("preferredScaleModeRaw", type: .stringAttributeType, optional: false, defaultValue: DistanceScaleMode.educational.rawValue),
             attribute("distanceCompression", type: .doubleAttributeType, optional: false, defaultValue: 30),
             attribute("planetSizeMultiplier", type: .doubleAttributeType, optional: false, defaultValue: 5),

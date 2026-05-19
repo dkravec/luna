@@ -36,6 +36,7 @@ private struct LunaNativeTabShell: View {
             }
         }
         .tabBarMinimizeIfAvailable()
+        .guidedTourOverlay(appState: appState)
         .onChange(of: appState.selectedTab) { _ in
             Haptics.selection()
         }
@@ -59,6 +60,7 @@ private struct LunaCustomTabShell: View {
             .padding(.bottom, 18)
             .frame(maxWidth: .infinity, alignment: .center)
         }
+        .guidedTourOverlay(appState: appState)
     }
 }
 
@@ -101,6 +103,7 @@ struct LunaSidebarShell: View {
                 appState.selectedTab.destination
             }
         }
+        .guidedTourOverlay(appState: appState)
     }
 }
 

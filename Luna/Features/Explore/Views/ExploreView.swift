@@ -3,6 +3,9 @@ import SwiftUI
 struct ExploreView: View {
     @EnvironmentObject private var appState: LunaAppState
     @StateObject private var viewModel = ExploreViewModel()
+    @State private var guidedTourBodyID: String?
+    @State private var selectedCollection: ExploreCollection?
+    @State private var selectedBodyID: String?
 
     var body: some View {
         ScrollView {
@@ -19,13 +22,22 @@ struct ExploreView: View {
                 if viewModel.isSearching {
                     filterSection
                 }
+                guidedTourBodySection
                 bodiesSection
             }
             .screenContentPadding()
         }
         .appBackground()
+        .background(hiddenNavigationLinks)
         .onAppear {
             viewModel.configure(repository: appState.celestialBodyRepository)
+            openRequestedGuidedTourBodyIfNeeded()
+        }
+        .onChange(of: appState.guidedTourBodyID) { _ in
+            openRequestedGuidedTourBodyIfNeeded()
+        }
+        .onChange(of: viewModel.loadState) { _ in
+            openRequestedGuidedTourBodyIfNeeded()
         }
     }
 
@@ -40,6 +52,117 @@ struct ExploreView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var hiddenNavigationLinks: some View {
+        hiddenGuidedTourNavigationLink
+        hiddenCollectionNavigationLink
+        hiddenBodyNavigationLink
+    }
+
+    @ViewBuilder
+    private var hiddenGuidedTourNavigationLink: some View {
+        NavigationLink(
+            destination: guidedTourDestination,
+            isActive: Binding(
+                get: { guidedTourBodyID != nil },
+                set: { isActive in
+                    if !isActive {
+                        guidedTourBodyID = nil
+                    }
+                }
+            )
+        ) {
+            EmptyView()
+        }
+        .hidden()
+    }
+
+    @ViewBuilder
+    private var hiddenCollectionNavigationLink: some View {
+        NavigationLink(
+            destination: selectedCollectionDestination,
+            isActive: Binding(
+                get: { selectedCollection != nil },
+                set: { isActive in
+                    if !isActive {
+                        selectedCollection = nil
+                    }
+                }
+            )
+        ) {
+            EmptyView()
+        }
+        .hidden()
+    }
+
+    @ViewBuilder
+    private var hiddenBodyNavigationLink: some View {
+        NavigationLink(
+            destination: selectedBodyDestination,
+            isActive: Binding(
+                get: { selectedBodyID != nil },
+                set: { isActive in
+                    if !isActive {
+                        selectedBodyID = nil
+                    }
+                }
+            )
+        ) {
+            EmptyView()
+        }
+        .hidden()
+    }
+
+    @ViewBuilder
+    private var guidedTourDestination: some View {
+        if let bodyID = guidedTourBodyID, let body = body(withID: bodyID) {
+            BodyDetailView(
+                celestialBody: body,
+                childBodies: viewModel.children(of: body)
+            )
+        } else {
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private var selectedCollectionDestination: some View {
+        if let selectedCollection {
+            CategoryExploreView(
+                collection: selectedCollection,
+                bodies: viewModel.bodies(in: selectedCollection),
+                childrenProvider: viewModel.children(of:)
+            )
+        } else {
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private var selectedBodyDestination: some View {
+        if let selectedBodyID, let body = body(withID: selectedBodyID) {
+            BodyDetailView(
+                celestialBody: body,
+                childBodies: viewModel.children(of: body)
+            )
+        } else {
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private var guidedTourBodySection: some View {
+        if appState.guidedTourStep == .exploreBody,
+           let body = appState.defaultBodyForGuidedTour() {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "Start Here", subtitle: "Open one body to see how Luna connects facts to the experience.")
+
+                bodyLink(for: body)
+                    .guidedTourTarget(.exploreBody)
             }
         }
     }
@@ -75,12 +198,13 @@ struct ExploreView: View {
 
             LazyVStack(spacing: 10) {
                 ForEach(viewModel.exploreCollections) { collection in
-                    NavigationLink {
-                        CategoryExploreView(
-                            collection: collection,
-                            bodies: viewModel.bodies(in: collection),
-                            childrenProvider: viewModel.children(of:)
-                        )
+                    Button {
+                        if appState.guidedTourStep == .exploreCategories,
+                           collection == viewModel.exploreCollections.first {
+                            appState.advanceTour()
+                        } else {
+                            selectedCollection = collection
+                        }
                     } label: {
                         CategoryCard(
                             collection: collection,
@@ -89,6 +213,7 @@ struct ExploreView: View {
                     }
                     .buttonStyle(.plain)
                     .hapticTap()
+                    .guidedTourTarget(.exploreCategory, when: collection == viewModel.exploreCollections.first)
                 }
             }
         }
@@ -109,6 +234,7 @@ struct ExploreView: View {
                 LazyVStack(spacing: 10) {
                     ForEach(viewModel.filteredBodies) { body in
                         bodyLink(for: body)
+                            .guidedTourTarget(.exploreBody, when: body.id == viewModel.filteredBodies.first?.id)
                     }
                 }
             }
@@ -116,16 +242,34 @@ struct ExploreView: View {
     }
 
     private func bodyLink(for body: CelestialBody) -> some View {
-        NavigationLink {
-            BodyDetailView(
-                celestialBody: body,
-                childBodies: viewModel.children(of: body)
-            )
+        Button {
+            if appState.guidedTourStep == .exploreBody {
+                appState.advanceTour()
+            } else {
+                selectedBodyID = body.id
+            }
         } label: {
             BodyCard(celestialBody: body)
         }
         .buttonStyle(.plain)
         .hapticTap()
+    }
+
+    private func openRequestedGuidedTourBodyIfNeeded() {
+        guard let bodyID = appState.guidedTourBodyID else { return }
+
+        let body = viewModel.bodies.first { $0.id == bodyID }
+            ?? appState.celestialBodies.first { $0.id == bodyID }
+            ?? appState.defaultBodyForGuidedTour()
+
+        if guidedTourBodyID != body?.id {
+            guidedTourBodyID = body?.id
+        }
+    }
+
+    private func body(withID bodyID: String) -> CelestialBody? {
+        viewModel.bodies.first { $0.id == bodyID }
+            ?? appState.celestialBodies.first { $0.id == bodyID }
     }
 
 }

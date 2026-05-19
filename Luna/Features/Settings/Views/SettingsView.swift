@@ -178,6 +178,23 @@ struct SettingsView: View {
                 CardDivider(leadingInset: 56)
 
                 Button {
+                    appState.restartTour()
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "Replay App Tour",
+                            subtitle: "Show the guided walkthrough again without changing preferences",
+                            systemImage: "sparkles",
+                            showsChevron: true
+                        )
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
+
+                CardDivider(leadingInset: 56)
+
+                Button {
                     Haptics.selection()
                     isShowingResetConfirmation = true
                 } label: {
