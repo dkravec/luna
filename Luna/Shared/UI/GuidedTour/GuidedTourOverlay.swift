@@ -1,24 +1,15 @@
 import SwiftUI
 
-enum GuidedTourTarget: Hashable {
-    case homeOverview
-    case homeExploreAction
-    case homeExperienceAction
-    case exploreCategory
-    case exploreBody
-    case bodyDetailExperience
-    case experienceScene
-    case experienceModeToggle
-    case experienceControls
-    case experiencePlayback
+private enum GuidedTourCoordinateSpace {
+    static let name = "GuidedTourCoordinateSpace"
 }
 
 private struct GuidedTourTargetPreferenceKey: PreferenceKey {
-    static var defaultValue: [GuidedTourTarget: Anchor<CGRect>] = [:]
+    static var defaultValue: [GuidedTourTarget: CGRect] = [:]
 
     static func reduce(
-        value: inout [GuidedTourTarget: Anchor<CGRect>],
-        nextValue: () -> [GuidedTourTarget: Anchor<CGRect>]
+        value: inout [GuidedTourTarget: CGRect],
+        nextValue: () -> [GuidedTourTarget: CGRect]
     ) {
         value.merge(nextValue(), uniquingKeysWith: { _, newValue in newValue })
     }
@@ -26,9 +17,17 @@ private struct GuidedTourTargetPreferenceKey: PreferenceKey {
 
 extension View {
     func guidedTourTarget(_ target: GuidedTourTarget) -> some View {
-        anchorPreference(key: GuidedTourTargetPreferenceKey.self, value: .bounds) { anchor in
-            [target: anchor]
-        }
+        accessibilityElement(children: .combine)
+            .accessibilityIdentifier(target.accessibilityIdentifier)
+            .background {
+                GeometryReader { proxy in
+                    Color.clear
+                        .preference(
+                            key: GuidedTourTargetPreferenceKey.self,
+                            value: [target: proxy.frame(in: .named(GuidedTourCoordinateSpace.name))]
+                        )
+                }
+            }
     }
 
     @ViewBuilder
@@ -41,83 +40,114 @@ extension View {
     }
 
     func guidedTourOverlay(appState: LunaAppState) -> some View {
-        coordinateSpace(name: "GuidedTourSpace")
-            .overlayPreferenceValue(GuidedTourTargetPreferenceKey.self) { preferences in
+        coordinateSpace(name: GuidedTourCoordinateSpace.name)
+            .overlayPreferenceValue(GuidedTourTargetPreferenceKey.self) { targetFrames in
                 GeometryReader { proxy in
                     if let step = appState.guidedTourStep {
-                        let targetFrame = preferences[step.target].map { proxy[$0] }
                         GuidedTourOverlayView(
                             step: step,
-                            targetFrame: targetFrame,
+                            targetFrame: targetFrames[step.target],
+                            containerSize: proxy.size,
                             safeAreaInsets: proxy.safeAreaInsets,
                             canUseAR: appState.canUseARForGuidedTour,
                             canGoBack: appState.canGoBackTour,
                             onNext: appState.advanceTour,
                             onBack: appState.goBackTour,
-                            onSkip: appState.skipTour
+                            onSkip: appState.skipTour,
+                            onTargetTap: {
+                                _ = appState.guidedTourTargetTapped(step.target)
+                            }
                         )
-                        .id(appState.guidedTourPresentationID)
+                        .id("\(appState.guidedTourPresentationID.uuidString)-\(step.id)")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .ignoresSafeArea()
+                        .allowsHitTesting(true)
                     }
+                }
+            }
+            .overlay {
+                if let step = appState.guidedTourStep {
+                    GuidedTourFloatingCalloutView(
+                        step: step,
+                        canUseAR: appState.canUseARForGuidedTour,
+                        canGoBack: appState.canGoBackTour,
+                        onNext: appState.advanceTour,
+                        onBack: appState.goBackTour,
+                        onSkip: appState.skipTour
+                    )
+                    .id("callout-\(appState.guidedTourPresentationID.uuidString)-\(step.id)")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(true)
+                    .zIndex(250)
                 }
             }
     }
 }
 
 private struct GuidedTourOverlayView: View {
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @State private var calloutSize: CGSize = CGSize(width: 320, height: 190)
-
     let step: GuidedTourStep
     let targetFrame: CGRect?
+    let containerSize: CGSize
     let safeAreaInsets: EdgeInsets
     let canUseAR: Bool
     let canGoBack: Bool
     let onNext: () -> Void
     let onBack: () -> Void
     let onSkip: () -> Void
+    let onTargetTap: () -> Void
 
     var body: some View {
-        GeometryReader { proxy in
-            let highlightedFrame = highlightFrame(in: proxy.size)
-            let cardWidth = min(proxy.size.width - 32, horizontalSizeClass == .regular ? 420 : 360)
+        let highlightedFrame = highlightFrame(in: containerSize)
 
-            ZStack {
-                GuidedTourDimShape(highlightFrame: highlightedFrame)
-                    .fill(Color.black.opacity(0.58), style: FillStyle(eoFill: true))
-                    .allowsHitTesting(false)
+        ZStack {
+            Color.clear
+                .frame(width: 1, height: 1)
+                .accessibilityLabel("Tour overlay")
+                .accessibilityIdentifier("tour.overlay")
+                .allowsHitTesting(false)
 
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color.white.opacity(0.95), lineWidth: 2)
-                    .background {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color.white.opacity(0.08))
-                    }
-                    .shadow(color: Color.black.opacity(0.32), radius: 18, x: 0, y: 8)
-                    .frame(width: highlightedFrame.width, height: highlightedFrame.height)
-                    .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
-                    .allowsHitTesting(false)
+            GuidedTourDimShape(highlightFrame: highlightedFrame)
+                .fill(Color.black.opacity(0.58), style: FillStyle(eoFill: true))
+                .accessibilityHidden(true)
+                .allowsHitTesting(false)
 
-                calloutCard
-                    .frame(width: cardWidth)
-                    .readGuidedTourCalloutSize()
-                    .contentShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
-                    .allowsHitTesting(true)
-                    .position(calloutPosition(cardSize: measuredCalloutSize(width: cardWidth), proxySize: proxy.size, targetFrame: highlightedFrame))
-            }
-            .animation(.spring(response: 0.35, dampingFraction: 0.86), value: step)
-            .animation(.spring(response: 0.35, dampingFraction: 0.86), value: targetFrame)
-            .onPreferenceChange(GuidedTourCalloutSizePreferenceKey.self) { size in
-                guard size != .zero else { return }
-                calloutSize = size
-            }
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.white.opacity(0.95), lineWidth: 2)
+                .background {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.white.opacity(0.08))
+                }
+                .shadow(color: Color.black.opacity(0.32), radius: 18, x: 0, y: 8)
+                .frame(width: highlightedFrame.width, height: highlightedFrame.height)
+                .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
+                .accessibilityIdentifier("tour.spotlight")
+                .accessibilityLabel("Tour spotlight")
+                .allowsHitTesting(false)
+
+            Color.white.opacity(0.001)
+                .frame(width: highlightedFrame.width, height: highlightedFrame.height)
+                .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onTargetTap)
+                .zIndex(1)
+
         }
+        .frame(width: containerSize.width, height: containerSize.height)
+        .contentShape(Rectangle())
+        .animation(.spring(response: 0.28, dampingFraction: 0.9), value: step)
+        .animation(.spring(response: 0.28, dampingFraction: 0.9), value: targetFrame)
+        .allowsHitTesting(true)
         .zIndex(200)
         .transition(.opacity)
     }
 
-    private var calloutCard: some View {
+    static func calloutCard(
+        step: GuidedTourStep,
+        canUseAR: Bool,
+        canGoBack: Bool,
+        onNext: @escaping () -> Void,
+        onBack: @escaping () -> Void,
+        onSkip: @escaping () -> Void
+    ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Text(step.progressText)
@@ -127,41 +157,50 @@ private struct GuidedTourOverlayView: View {
                 Spacer(minLength: 8)
 
                 if canGoBack {
-                    Button("Back") {
-                        onBack()
-                    }
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
+                    Text("Back")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 56, minHeight: 44)
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: onBack)
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityIdentifier("tour.back")
                 }
 
-                Button("End Tour") {
-                    onSkip()
-                }
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.secondary)
+                Text("End Tour")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 82, minHeight: 44)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onSkip)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityIdentifier("tour.end")
             }
 
             Text(step.title)
                 .font(.title3.weight(.bold))
                 .foregroundStyle(.primary)
+                .accessibilityIdentifier("tour.title")
 
             Text(step.message(canUseAR: canUseAR))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("tour.message")
 
-            Button(action: onNext) {
-                Text(step.primaryButtonTitle)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .foregroundStyle(.white)
-                    .background(Color.accentColor, in: Capsule(style: .continuous))
-                    .overlay {
-                        Capsule(style: .continuous)
-                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                    }
-            }
-            .buttonStyle(.plain)
+            Text(step.primaryButtonTitle)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .foregroundStyle(.white)
+                .background(Color.accentColor, in: Capsule(style: .continuous))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onNext)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("tour.next")
         }
         .padding(16)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
@@ -174,7 +213,8 @@ private struct GuidedTourOverlayView: View {
 
     private func highlightFrame(in size: CGSize) -> CGRect {
         if let targetFrame, !targetFrame.isEmpty {
-            let paddedFrame = targetFrame.insetBy(dx: -6, dy: -6)
+            let alignedFrame = targetFrame.offsetBy(dx: 0, dy: -safeAreaInsets.top)
+            let paddedFrame = alignedFrame.insetBy(dx: -6, dy: -6)
             let visibleBounds = CGRect(origin: .zero, size: size)
             let clippedFrame = paddedFrame.intersection(visibleBounds)
             if !clippedFrame.isNull, clippedFrame.width > 1, clippedFrame.height > 1 {
@@ -190,62 +230,37 @@ private struct GuidedTourOverlayView: View {
         )
     }
 
-    private func measuredCalloutSize(width: CGFloat) -> CGSize {
-        CGSize(width: width, height: max(140, calloutSize.height))
-    }
-
-    private func calloutPosition(cardSize: CGSize, proxySize: CGSize, targetFrame: CGRect) -> CGPoint {
-        let verticalGap: CGFloat = 18
-        let safeHorizontal = cardSize.width / 2 + 16
-        let safeTop = safeAreaInsets.top + 16
-        let safeBottom = proxySize.height - safeAreaInsets.bottom - 16
-        let verticalBias: CGFloat = 10
-        let x = min(max(targetFrame.midX, safeHorizontal), proxySize.width - safeHorizontal)
-
-        if targetFrame.height >= proxySize.height * 0.55 {
-            let centeredY = proxySize.height * 0.68
-            return CGPoint(
-                x: proxySize.width / 2,
-                y: min(max(centeredY + verticalBias, safeTop + cardSize.height / 2 + 12), safeBottom - cardSize.height / 2)
-            )
-        }
-
-        let proposedBelow = targetFrame.maxY + verticalGap + cardSize.height / 2
-        let proposedAbove = targetFrame.minY - verticalGap - cardSize.height / 2
-
-        if proposedBelow + cardSize.height / 2 <= safeBottom {
-            return CGPoint(x: x, y: min(proposedBelow + verticalBias, safeBottom - cardSize.height / 2))
-        }
-
-        if proposedAbove - cardSize.height / 2 >= safeTop {
-            return CGPoint(x: x, y: min(max(proposedAbove + verticalBias, safeTop + cardSize.height / 2), safeBottom - cardSize.height / 2))
-        }
-
-        return CGPoint(
-            x: proxySize.width / 2,
-            y: min(max(safeBottom - cardSize.height / 2 - 8, safeTop + cardSize.height / 2), safeBottom - cardSize.height / 2)
-        )
-    }
 }
 
-private struct GuidedTourCalloutSizePreferenceKey: PreferenceKey {
-    static var defaultValue: CGSize = .zero
+private struct GuidedTourFloatingCalloutView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
-        let next = nextValue()
-        if next != .zero {
-            value = next
-        }
-    }
-}
+    let step: GuidedTourStep
+    let canUseAR: Bool
+    let canGoBack: Bool
+    let onNext: () -> Void
+    let onBack: () -> Void
+    let onSkip: () -> Void
 
-private extension View {
-    func readGuidedTourCalloutSize() -> some View {
-        background {
-            GeometryReader { proxy in
-                Color.clear
-                    .preference(key: GuidedTourCalloutSizePreferenceKey.self, value: proxy.size)
+    var body: some View {
+        GeometryReader { proxy in
+            let cardWidth = min(proxy.size.width - 32, horizontalSizeClass == .regular ? 420 : 360)
+
+            VStack {
+                Spacer(minLength: 0)
+
+                GuidedTourOverlayView.calloutCard(
+                    step: step,
+                    canUseAR: canUseAR,
+                    canGoBack: canGoBack,
+                    onNext: onNext,
+                    onBack: onBack,
+                    onSkip: onSkip
+                )
+                .frame(width: cardWidth)
+                .padding(.bottom, proxy.safeAreaInsets.bottom + 24)
             }
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
     }
 }

@@ -15,6 +15,7 @@
 		7A6B02AE24A3176300535EA4 /* LunaTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02AD24A3176300535EA4 /* LunaTab.swift */; };
 		7A6B02B124A3176C00535EA4 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B024A3176B00535EA4 /* DesignSystem.swift */; };
 		7A6B02B224A3176C00535EA4 /* GuidedTourOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B224A3176B00535EA4 /* GuidedTourOverlay.swift */; };
+		7A6B110024D0000000000000 /* GuidedTourCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B110124D0000000000000 /* GuidedTourCoordinator.swift */; };
 		7A6B02B424A317B100535EA4 /* LunaPersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */; };
 		7A6B02B724A317BC00535EA4 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B02B624A317BC00535EA4 /* HomeView.swift */; };
 		7A6B0B0224C1000000000000 /* HomeDailyContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B0B0124C1000000000000 /* HomeDailyContentProvider.swift */; };
@@ -63,6 +64,8 @@
 		7A6B091424B0000000000000 /* LunaWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 7A6B091324B0000000000000 /* LunaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7A6B0A0224C0000000000000 /* ExperienceSceneEngineScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */; };
 		7A6B0B0424C1000000000000 /* HomeDailyContentProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B0B0324C1000000000000 /* HomeDailyContentProviderTests.swift */; };
+		7A6B110224D0000000000000 /* GuidedTourCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B110324D0000000000000 /* GuidedTourCoordinatorTests.swift */; };
+		7A6B120124D1000000000000 /* LunaTourUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B120024D1000000000000 /* LunaTourUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +77,13 @@
 			remoteInfo = LunaWidget;
 		};
 		7A6B0A0C24C0000000000000 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7A6B028324A3156800535EA4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7A6B028E24A3156B00535EA4;
+			remoteInfo = Luna;
+		};
+		7A6B120B24D1000000000000 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 7A6B028324A3156800535EA4 /* Project object */;
 			proxyType = 1;
@@ -110,6 +120,7 @@
 		7A6B02AD24A3176300535EA4 /* LunaTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaTab.swift; sourceTree = "<group>"; };
 		7A6B02B024A3176B00535EA4 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		7A6B02B224A3176B00535EA4 /* GuidedTourOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidedTourOverlay.swift; sourceTree = "<group>"; };
+		7A6B110124D0000000000000 /* GuidedTourCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidedTourCoordinator.swift; sourceTree = "<group>"; };
 		7A6B02B324A317B100535EA4 /* LunaPersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaPersistenceController.swift; sourceTree = "<group>"; };
 		7A6B02B624A317BC00535EA4 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		7A6B0B0124C1000000000000 /* HomeDailyContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDailyContentProvider.swift; sourceTree = "<group>"; };
@@ -159,7 +170,10 @@
 		7A6B091324B0000000000000 /* LunaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LunaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceSceneEngineScaleTests.swift; sourceTree = "<group>"; };
 		7A6B0B0324C1000000000000 /* HomeDailyContentProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDailyContentProviderTests.swift; sourceTree = "<group>"; };
+		7A6B110324D0000000000000 /* GuidedTourCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidedTourCoordinatorTests.swift; sourceTree = "<group>"; };
+		7A6B120024D1000000000000 /* LunaTourUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaTourUITests.swift; sourceTree = "<group>"; };
 		7A6B0A0624C0000000000000 /* LunaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LunaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A6B120224D1000000000000 /* LunaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LunaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -184,6 +198,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7A6B120624D1000000000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -193,6 +214,7 @@
 				7A6B028724A3156800535EA4 /* Luna */,
 				7A6B091524B0000000000000 /* LunaWidget */,
 				7A6B0A0024C0000000000000 /* LunaTests */,
+				7A6B120324D1000000000000 /* LunaUITests */,
 				7A6B029124A3156B00535EA4 /* iOS */,
 				7A6B029824A3156B00535EA4 /* macOS */,
 				7A6B029024A3156B00535EA4 /* Products */,
@@ -217,6 +239,7 @@
 				7A6B028F24A3156B00535EA4 /* Luna.app */,
 				7A6B091324B0000000000000 /* LunaWidget.appex */,
 				7A6B0A0624C0000000000000 /* LunaTests.xctest */,
+				7A6B120224D1000000000000 /* LunaUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -226,8 +249,17 @@
 			children = (
 				7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */,
 				7A6B0B0324C1000000000000 /* HomeDailyContentProviderTests.swift */,
+				7A6B110324D0000000000000 /* GuidedTourCoordinatorTests.swift */,
 			);
 			path = LunaTests;
+			sourceTree = "<group>";
+		};
+		7A6B120324D1000000000000 /* LunaUITests */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B120024D1000000000000 /* LunaTourUITests.swift */,
+			);
+			path = LunaUITests;
 			sourceTree = "<group>";
 		};
 		7A6B029124A3156B00535EA4 /* iOS */ = {
@@ -472,6 +504,7 @@
 		7A6B102924A6000000000000 /* GuidedTour */ = {
 			isa = PBXGroup;
 			children = (
+				7A6B110124D0000000000000 /* GuidedTourCoordinator.swift */,
 				7A6B02B224A3176B00535EA4 /* GuidedTourOverlay.swift */,
 			);
 			path = GuidedTour;
@@ -729,6 +762,24 @@
 			productReference = 7A6B0A0624C0000000000000 /* LunaTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		7A6B120424D1000000000000 /* LunaUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A6B120A24D1000000000000 /* Build configuration list for PBXNativeTarget "LunaUITests" */;
+			buildPhases = (
+				7A6B120524D1000000000000 /* Sources */,
+				7A6B120624D1000000000000 /* Frameworks */,
+				7A6B120724D1000000000000 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7A6B120C24D1000000000000 /* PBXTargetDependency */,
+			);
+			name = LunaUITests;
+			productName = LunaUITests;
+			productReference = 7A6B120224D1000000000000 /* LunaUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -746,6 +797,10 @@
 						CreatedOnToolsVersion = 26.0;
 					};
 					7A6B0A0524C0000000000000 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = 7A6B028E24A3156B00535EA4;
+					};
+					7A6B120424D1000000000000 = {
 						CreatedOnToolsVersion = 26.0;
 						TestTargetID = 7A6B028E24A3156B00535EA4;
 					};
@@ -767,6 +822,7 @@
 				7A6B028E24A3156B00535EA4 /* Luna */,
 				7A6B091A24B0000000000000 /* LunaWidget */,
 				7A6B0A0524C0000000000000 /* LunaTests */,
+				7A6B120424D1000000000000 /* LunaUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -803,6 +859,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7A6B120724D1000000000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -816,6 +879,7 @@
 				7A6B02AE24A3176300535EA4 /* LunaTab.swift in Sources */,
 				7A6B02B124A3176C00535EA4 /* DesignSystem.swift in Sources */,
 				7A6B02B224A3176C00535EA4 /* GuidedTourOverlay.swift in Sources */,
+				7A6B110024D0000000000000 /* GuidedTourCoordinator.swift in Sources */,
 				7A6B02B424A317B100535EA4 /* LunaPersistenceController.swift in Sources */,
 				7A6B080124AF000000000000 /* SceneBackgroundTexture.swift in Sources */,
 				7A6B090124B0000000000000 /* NASAImageOfTheDay.swift in Sources */,
@@ -869,6 +933,15 @@
 			files = (
 				7A6B0A0224C0000000000000 /* ExperienceSceneEngineScaleTests.swift in Sources */,
 				7A6B0B0424C1000000000000 /* HomeDailyContentProviderTests.swift in Sources */,
+				7A6B110224D0000000000000 /* GuidedTourCoordinatorTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A6B120524D1000000000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A6B120124D1000000000000 /* LunaTourUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -884,6 +957,11 @@
 			isa = PBXTargetDependency;
 			target = 7A6B028E24A3156B00535EA4 /* Luna */;
 			targetProxy = 7A6B0A0C24C0000000000000 /* PBXContainerItemProxy */;
+		};
+		7A6B120C24D1000000000000 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7A6B028E24A3156B00535EA4 /* Luna */;
+			targetProxy = 7A6B120B24D1000000000000 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1190,6 +1268,48 @@
 			};
 			name = Release;
 		};
+		7A6B120824D1000000000000 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.LunaUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Luna;
+			};
+			name = Debug;
+		};
+		7A6B120924D1000000000000 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.novapro.LunaUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Luna;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1225,6 +1345,15 @@
 			buildConfigurations = (
 				7A6B0A0A24C0000000000000 /* Debug */,
 				7A6B0A0B24C0000000000000 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7A6B120A24D1000000000000 /* Build configuration list for PBXNativeTarget "LunaUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A6B120824D1000000000000 /* Debug */,
+				7A6B120924D1000000000000 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

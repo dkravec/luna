@@ -53,6 +53,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
                 .hapticTap()
+                .accessibilityIdentifier("settings.replayTour")
 
                 CardDivider(leadingInset: 56)
 

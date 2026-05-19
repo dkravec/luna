@@ -99,7 +99,7 @@ struct BodyDetailView: View {
 
                 if appState.guidedTourStep == .bodyDetailExperience {
                     Button {
-                        appState.advanceTour()
+                        _ = appState.guidedTourTargetTapped(.bodyDetailExperience)
                     } label: {
                         Label("Open Experience", systemImage: "arkit")
                             .frame(maxWidth: .infinity)

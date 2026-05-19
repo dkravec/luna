@@ -77,7 +77,20 @@ struct ExperienceView: View {
 
     @ViewBuilder
     private var experienceSceneTourTapArea: some View {
-        EmptyView()
+        if appState.guidedTourStep == .experienceScene {
+            Color.white.opacity(0.001)
+                .contentShape(Rectangle())
+                .accessibilityHidden(true)
+                .onTapGesture {
+                    _ = appState.guidedTourTargetTapped(.experienceScene)
+                }
+                .gesture(
+                    DragGesture(minimumDistance: 12)
+                        .onEnded { _ in
+                            _ = appState.guidedTourTargetTapped(.experienceScene)
+                        }
+                )
+        }
     }
 
     @ViewBuilder
@@ -160,9 +173,7 @@ struct ExperienceView: View {
                 modeToggle
                 
                 Button {
-                    if appState.guidedTourStep == .experienceControls {
-                        appState.advanceTour()
-                    } else {
+                    if !appState.guidedTourTargetTapped(.experienceControls) {
                         Haptics.selection()
                         isControlsPresented = true
                     }
@@ -181,9 +192,7 @@ struct ExperienceView: View {
                 .guidedTourTarget(.experienceControls)
                 
                 Button {
-                    if appState.guidedTourStep == .experiencePlayback {
-                        appState.advanceTour()
-                    } else {
+                    if !appState.guidedTourTargetTapped(.experiencePlayback) {
                         toggleOrbitPlayback()
                     }
                 } label: {
@@ -234,9 +243,7 @@ struct ExperienceView: View {
 #if os(iOS)
         if isSceneReady, isAREnabled, canUseAR, !appState.celestialBodies.isEmpty {
             Button {
-                if appState.guidedTourStep == .experiencePlayback {
-                    appState.advanceTour()
-                } else {
+                if !appState.guidedTourTargetTapped(.experiencePlayback) {
                     placeARScene()
                 }
             } label: {
@@ -264,8 +271,8 @@ struct ExperienceView: View {
     private var modeToggle: some View {
         HStack(spacing: 4) {
             Button {
-                if appState.guidedTourStep == .experienceMode {
-                    appState.advanceTour()
+                if appState.guidedTourTargetTapped(.experienceModeToggle) {
+                    return
                 }
                 setSceneMode(isAR: true)
             } label: {
@@ -283,8 +290,8 @@ struct ExperienceView: View {
             .accessibilityLabel(canUseAR ? "Use AR mode" : "AR unavailable")
 
             Button {
-                if appState.guidedTourStep == .experienceMode {
-                    appState.advanceTour()
+                if appState.guidedTourTargetTapped(.experienceModeToggle) {
+                    return
                 }
                 setSceneMode(isAR: false)
             } label: {

@@ -56,11 +56,11 @@ struct HomeView: View {
                 title: "Luna",
                 subtitle: "Explore planets, compare scale, and step into space with AR."
             )
+            .guidedTourTarget(.homeOverview)
 
             miniSolarSystemPreview
         }
         .id(ScrollAnchor.overview)
-        .guidedTourTarget(.homeOverview)
     }
 
     @ViewBuilder
@@ -177,9 +177,7 @@ struct HomeView: View {
 
             CardSection {
                 Button {
-                    if appState.guidedTourStep == .homeExplore {
-                        appState.advanceTour()
-                    } else {
+                    if !appState.guidedTourTargetTapped(.homeExploreAction) {
                         appState.selectedTab = .solarSystem
                     }
                 } label: {

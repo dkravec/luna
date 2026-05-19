@@ -211,10 +211,7 @@ struct ExploreView: View {
             LazyVStack(spacing: 10) {
                 ForEach(viewModel.exploreCollections) { collection in
                     Button {
-                        if appState.guidedTourStep == .exploreCategories,
-                           collection == viewModel.exploreCollections.first {
-                            appState.advanceTour()
-                        } else {
+                        if collection != viewModel.exploreCollections.first || !appState.guidedTourTargetTapped(.exploreCategory) {
                             selectedCollection = collection
                         }
                     } label: {
@@ -256,9 +253,7 @@ struct ExploreView: View {
 
     private func bodyLink(for body: CelestialBody) -> some View {
         Button {
-            if appState.guidedTourStep == .exploreBody {
-                appState.advanceTour()
-            } else {
+            if !appState.guidedTourTargetTapped(.exploreBody) {
                 selectedBodyID = body.id
             }
         } label: {
