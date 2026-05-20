@@ -57,6 +57,10 @@ struct LunaARSceneView: UIViewRepresentable {
         )
     }
 
+    static func dismantleUIView(_ view: ARView, coordinator: Coordinator) {
+        coordinator.teardown(view)
+    }
+
     final class Coordinator: NSObject, ARCoachingOverlayViewDelegate {
         private var anchor: AnchorEntity?
         private var root: ModelEntity?
@@ -73,6 +77,7 @@ struct LunaARSceneView: UIViewRepresentable {
         private var onSelectBody: (CelestialBody) -> Void = { _ in }
         private static var textureCache: [String: TextureResource] = [:]
         private static var thumbnailTextureCache: [URL: TextureResource] = [:]
+        private static var modelEntityCache: [URL: Entity] = [:]
 
         func configureSession(for view: ARView) {
             guard ARWorldTrackingConfiguration.isSupported else { return }
@@ -122,6 +127,29 @@ struct LunaARSceneView: UIViewRepresentable {
             recognizer.name = "LunaARBodySelection"
             recognizer.cancelsTouchesInView = false
             view.addGestureRecognizer(recognizer)
+        }
+
+        func teardown(_ view: ARView) {
+            placementUpdateSubscription?.cancel()
+            placementUpdateSubscription = nil
+
+            installedGestures.forEach { view.removeGestureRecognizer($0) }
+            installedGestures.removeAll()
+
+            if let anchor {
+                view.scene.removeAnchor(anchor)
+            }
+            view.scene.anchors.removeAll()
+            view.session.pause()
+
+            anchor = nil
+            root = nil
+            structureKey = nil
+            bodyEntities.removeAll()
+            orbitEntities.removeAll()
+            bodyLookup.removeAll()
+            lastPlacementState = nil
+            Self.clearTransientAssetCaches()
         }
 
         func update(
@@ -403,18 +431,28 @@ struct LunaARSceneView: UIViewRepresentable {
         }
 
         private static func modelEntity(url: URL, scale: Float) -> Entity? {
-            let loadedEntity: Entity?
-            if let entity = try? Entity.load(contentsOf: url) {
-                loadedEntity = entity
-            } else if url.pathExtension.lowercased() == "glb" {
-                loadedEntity = ARGLBModelLoader.entity(url: url)
+            let prototype: Entity
+            if let cachedEntity = modelEntityCache[url] {
+                prototype = cachedEntity
             } else {
-                loadedEntity = nil
+                let loadedEntity: Entity?
+                if let entity = try? Entity.load(contentsOf: url) {
+                    loadedEntity = entity
+                } else if url.pathExtension.lowercased() == "glb" {
+                    loadedEntity = ARGLBModelLoader.entity(url: url)
+                } else {
+                    loadedEntity = nil
+                }
+
+                guard let loadedEntity else {
+                    return nil
+                }
+
+                modelEntityCache[url] = loadedEntity
+                prototype = loadedEntity
             }
 
-            guard let entity = loadedEntity else {
-                return nil
-            }
+            let entity = prototype.clone(recursive: true)
 
             let root = Entity()
             root.addChild(entity)
@@ -577,6 +615,11 @@ struct LunaARSceneView: UIViewRepresentable {
 
             thumbnailTextureCache[url] = texture
             return texture
+        }
+
+        private static func clearTransientAssetCaches() {
+            thumbnailTextureCache.removeAll()
+            modelEntityCache.removeAll()
         }
 
         private static func satelliteEntity(scale: Float) -> Entity {

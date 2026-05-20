@@ -14,7 +14,7 @@ struct LunaImageOfTheDayWidget: Widget {
             NASAImageWidgetView(entry: entry)
         }
         .configurationDisplayName("NASA Image")
-        .description("See NASA's astronomy image of the day from Luna.")
+        .description("See NASA's astronomy picture of the day.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .contentMarginsDisabled()
     }
@@ -34,7 +34,7 @@ struct NASAImageTimelineProvider: TimelineProvider {
         NASAImageEntry(
             date: Date(),
             title: "Astronomy Image",
-            subtitle: "NASA Image of the Day",
+            subtitle: "Astronomy Picture of the Day",
             imageData: nil
         )
     }
@@ -102,7 +102,7 @@ struct NASAImageTimelineProvider: TimelineProvider {
         return NASAImageEntry(
             date: NASAAPODSharedCache.dateFormatter.date(from: record.dateString) ?? Date(),
             title: record.title,
-            subtitle: record.mediaType == "image" ? "NASA Image of the Day" : "NASA Feature",
+            subtitle: record.mediaType == "image" ? "Astronomy Picture of the Day" : "NASA Feature",
             imageData: imageData
         )
     }
@@ -310,7 +310,7 @@ private struct NASAImagePayload: Decodable {
     }
 
     var subtitle: String {
-        mediaType == "image" ? "NASA Image of the Day" : "NASA Feature"
+        mediaType == "image" ? "Astronomy Picture of the Day" : "NASA Feature"
     }
 
     enum CodingKeys: String, CodingKey {

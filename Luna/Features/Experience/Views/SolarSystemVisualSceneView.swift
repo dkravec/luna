@@ -72,6 +72,10 @@ private struct VisualSceneContainer: UIViewRepresentable {
     func updateUIView(_ view: SCNView, context: Context) {
         configure(view)
     }
+
+    static func dismantleUIView(_ view: SCNView, coordinator: VisualSceneCameraCoordinator) {
+        coordinator.teardown(view)
+    }
 }
 #elseif os(macOS)
 private struct VisualSceneContainer: NSViewRepresentable {
@@ -92,6 +96,10 @@ private struct VisualSceneContainer: NSViewRepresentable {
     func updateNSView(_ view: SCNView, context: Context) {
         configure(view)
     }
+
+    static func dismantleNSView(_ view: SCNView, coordinator: VisualSceneCameraCoordinator) {
+        coordinator.teardown(view)
+    }
 }
 #endif
 
@@ -100,6 +108,8 @@ private extension VisualSceneContainer {
         let view = SCNView()
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = false
+        view.isPlaying = false
+        view.preferredFramesPerSecond = 30
         view.delegate = coordinator
         view.backgroundColor = platformColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
 #if os(iOS)
@@ -123,6 +133,7 @@ private extension VisualSceneContainer {
 }
 
 private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDelegate {
+    private let stateLock = NSLock()
     private var cameraLimit = SceneCameraLimit.default
     private var structureKey: String?
     private var activeFocusID: String?
@@ -135,6 +146,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     private var bodyLookup: [String: CelestialBody] = [:]
     private var focusState: CameraFocusState?
     private var lastOrbitThicknessKey: String?
+    private var pendingOrbitThicknessKey: String?
     var onSelectBody: (CelestialBody) -> Void = { _ in }
 
     func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
@@ -144,28 +156,57 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             return
         }
 
-        camera.orthographicScale = max(camera.orthographicScale, cameraLimit.minimumOrthographicScale)
-        camera.orthographicScale = min(camera.orthographicScale, cameraLimit.maximumOrthographicScale)
+        let state = lockedState()
 
-        let target = activeFocusID.flatMap { bodyNodes[$0]?.presentation.convertPosition(SCNVector3Zero, to: nil) } ?? cameraLimit.subjectCenter
+        camera.orthographicScale = max(camera.orthographicScale, state.cameraLimit.minimumOrthographicScale)
+        camera.orthographicScale = min(camera.orthographicScale, state.cameraLimit.maximumOrthographicScale)
+
+        let target = state.activeFocusID.flatMap { state.bodyNodes[$0]?.presentation.convertPosition(SCNVector3Zero, to: nil) } ?? state.cameraLimit.subjectCenter
         let offset = pointOfView.position - target
         let distance = offset.length
-        if distance > cameraLimit.maximumCameraDistance, distance > 0 {
-            pointOfView.position = target + offset.normalized * cameraLimit.maximumCameraDistance
+        if distance > state.cameraLimit.maximumCameraDistance, distance > 0 {
+            pointOfView.position = target + offset.normalized * state.cameraLimit.maximumCameraDistance
         }
 
         updateOrbitAndLabelScale(for: renderer)
     }
 
     func update(_ cameraLimit: SceneCameraLimit) {
+        stateLock.lock()
         self.cameraLimit = cameraLimit
+        stateLock.unlock()
+    }
+
+    func teardown(_ view: SCNView) {
+        view.delegate = nil
+        view.isPlaying = false
+        view.scene?.rootNode.childNodes.forEach { $0.removeFromParentNode() }
+        view.scene = nil
+
+        stateLock.lock()
+        snapshot = ExperienceSceneSnapshot(bodies: [], orbitPaths: [], bounds: .empty)
+        bodyNodes.removeAll()
+        bodyTiltNodes.removeAll()
+        bodySpinNodes.removeAll()
+        orbitNodes.removeAll()
+        labelNodes.removeAll()
+        bodyLookup.removeAll()
+        activeFocusID = nil
+        lastOrbitThicknessKey = nil
+        pendingOrbitThicknessKey = nil
+        stateLock.unlock()
+
+        focusState = nil
+        structureKey = nil
     }
 
     func apply(snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings, showsLabels: Bool, focusedBodyID: String?, to view: SCNView) {
         let nextStructureKey = Self.structureKey(for: snapshot, settings: settings, showsLabels: showsLabels)
         let nextCameraLimit = SceneCameraLimit(snapshot: snapshot, settings: settings)
+        stateLock.lock()
         bodyLookup = Dictionary(uniqueKeysWithValues: snapshot.bodies.map { ($0.id, $0.body) })
         self.snapshot = snapshot
+        stateLock.unlock()
 
         if view.scene == nil || structureKey != nextStructureKey {
             let scene = SolarSystemSceneFactory.scene(
@@ -178,7 +219,10 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             view.defaultCameraController.target = nextCameraLimit.subjectCenter
             captureNodes(from: scene)
             structureKey = nextStructureKey
+            stateLock.lock()
             lastOrbitThicknessKey = nil
+            pendingOrbitThicknessKey = nil
+            stateLock.unlock()
         } else {
             updateExistingNodes(with: snapshot, cameraScale: view.pointOfView?.camera?.orthographicScale ?? nextCameraLimit.preferredOrthographicScale)
         }
@@ -219,27 +263,35 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     }
 
     private func captureNodes(from scene: SCNScene) {
-        bodyNodes.removeAll()
-        bodyTiltNodes.removeAll()
-        bodySpinNodes.removeAll()
-        orbitNodes.removeAll()
-        labelNodes.removeAll()
+        var nextBodyNodes: [String: SCNNode] = [:]
+        var nextBodyTiltNodes: [String: SCNNode] = [:]
+        var nextBodySpinNodes: [String: SCNNode] = [:]
+        var nextOrbitNodes: [String: SCNNode] = [:]
+        var nextLabelNodes: [String: SCNNode] = [:]
 
         scene.rootNode.enumerateChildNodes { node, _ in
             guard let name = node.name else { return }
 
             if name.hasPrefix("body:") {
-                bodyNodes[String(name.dropFirst(5))] = node
+                nextBodyNodes[String(name.dropFirst(5))] = node
             } else if name.hasPrefix("bodyTilt:") {
-                bodyTiltNodes[String(name.dropFirst(9))] = node
+                nextBodyTiltNodes[String(name.dropFirst(9))] = node
             } else if name.hasPrefix("bodySpin:") {
-                bodySpinNodes[String(name.dropFirst(9))] = node
+                nextBodySpinNodes[String(name.dropFirst(9))] = node
             } else if name.hasPrefix("orbit:") {
-                orbitNodes[String(name.dropFirst(6))] = node
+                nextOrbitNodes[String(name.dropFirst(6))] = node
             } else if name.hasPrefix("label:") {
-                labelNodes[String(name.dropFirst(6))] = node
+                nextLabelNodes[String(name.dropFirst(6))] = node
             }
         }
+
+        stateLock.lock()
+        bodyNodes = nextBodyNodes
+        bodyTiltNodes = nextBodyTiltNodes
+        bodySpinNodes = nextBodySpinNodes
+        orbitNodes = nextOrbitNodes
+        labelNodes = nextLabelNodes
+        stateLock.unlock()
     }
 
 #if os(iOS)
@@ -376,7 +428,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             cameraOffset: nextOffset,
             orthographicScale: desiredScale
         )
+        stateLock.lock()
         activeFocusID = focusedBodyID
+        stateLock.unlock()
     }
 
     private func restoreCameraFocusIfNeeded(to view: SCNView) {
@@ -385,7 +439,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         }
 
         guard let pointOfView = view.pointOfView else {
+            stateLock.lock()
             activeFocusID = nil
+            stateLock.unlock()
             focusState = nil
             return
         }
@@ -400,7 +456,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
         view.defaultCameraController.target = restoreTarget
         focusState = nil
+        stateLock.lock()
         activeFocusID = nil
+        stateLock.unlock()
     }
 
     private func focusedOrthographicScale(for bodyID: String) -> Double {
@@ -412,24 +470,59 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         let viewportHeight = max(Double(renderer.currentViewport.height), 1)
         let orbitThicknessKey = "\(Int((cameraScale * 100).rounded())):\(Int(viewportHeight.rounded()))"
 
-        if orbitThicknessKey != lastOrbitThicknessKey {
-            for orbitPath in snapshot.orbitPaths {
-                guard let node = orbitNodes[orbitPath.id] else { continue }
+        let refresh: (orbitPaths: [ExperienceOrbitPath], orbitNodes: [String: SCNNode], labelNodes: [SCNNode])? = stateLock.withLock {
+            guard orbitThicknessKey != lastOrbitThicknessKey,
+                  orbitThicknessKey != pendingOrbitThicknessKey else {
+                return nil
+            }
+
+            pendingOrbitThicknessKey = orbitThicknessKey
+            return (snapshot.orbitPaths, orbitNodes, Array(labelNodes.values))
+        }
+
+        guard let refresh else { return }
+
+        let labelScale = SolarSystemSceneLabelScale.scaleVector(
+            for: cameraScale
+        )
+
+        DispatchQueue.main.async { [weak self] in
+            SCNTransaction.begin()
+            SCNTransaction.disableActions = true
+            for orbitPath in refresh.orbitPaths {
+                guard let node = refresh.orbitNodes[orbitPath.id] else { continue }
                 node.geometry = SolarSystemSceneFactory.orbitGeometry(
                     path: orbitPath,
                     cameraScale: cameraScale,
                     viewportHeight: viewportHeight
                 )
             }
-            lastOrbitThicknessKey = orbitThicknessKey
-        }
 
-        let labelScale = SolarSystemSceneLabelScale.scaleVector(
-            for: cameraScale
-        )
-        for node in labelNodes.values {
-            node.scale = labelScale
+            for node in refresh.labelNodes {
+                node.scale = labelScale
+            }
+            SCNTransaction.commit()
+
+            self?.stateLock.withLock {
+                self?.lastOrbitThicknessKey = orbitThicknessKey
+                self?.pendingOrbitThicknessKey = nil
+            }
         }
+    }
+
+    private func lockedState() -> (
+        cameraLimit: SceneCameraLimit,
+        activeFocusID: String?,
+        bodyNodes: [String: SCNNode]
+    ) {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+
+        return (
+            cameraLimit,
+            activeFocusID,
+            bodyNodes
+        )
     }
 
     private static func structureKey(for snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings, showsLabels: Bool) -> String {
@@ -444,6 +537,14 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             .joined(separator: "|")
 
         return "\(showsLabels)-\(settings.renderDetail.rawValue)-\(bodyKey)-\(orbitKey)"
+    }
+}
+
+private extension NSLock {
+    func withLock<T>(_ body: () -> T) -> T {
+        lock()
+        defer { unlock() }
+        return body()
     }
 }
 

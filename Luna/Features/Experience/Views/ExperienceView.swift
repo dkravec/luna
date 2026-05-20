@@ -607,7 +607,7 @@ struct ExperienceView: View {
     private func initializePreferredModeIfNeeded() {
         guard !hasInitializedMode else { return }
 
-        isAREnabled = false
+        isAREnabled = canUseAR && appState.experiencePreferences.prefersARMode
         hasInitializedMode = true
     }
 

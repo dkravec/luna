@@ -122,16 +122,27 @@ extension CelestialBody {
 }
 
 enum BundledThumbnailImageLoader {
+    private static let imageCache = NSCache<NSURL, BundledThumbnailImage>()
+
     static func image(named thumbnailName: String?) -> BundledThumbnailImage? {
         guard let url = SceneObjectAssetResolver.thumbnailURL(named: thumbnailName) else {
             return nil
         }
 
+        if let cachedImage = imageCache.object(forKey: url as NSURL) {
+            return cachedImage
+        }
+
+        let image: BundledThumbnailImage?
 #if os(iOS)
-        return BundledThumbnailImage(contentsOfFile: url.path)
+        image = BundledThumbnailImage(contentsOfFile: url.path)
 #elseif os(macOS)
-        return BundledThumbnailImage(contentsOf: url)
+        image = BundledThumbnailImage(contentsOf: url)
 #endif
+        if let image {
+            imageCache.setObject(image, forKey: url as NSURL)
+        }
+        return image
     }
 }
 

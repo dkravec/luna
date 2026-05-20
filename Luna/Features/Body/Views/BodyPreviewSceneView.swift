@@ -40,6 +40,11 @@ private struct BodyPreviewSceneContainer: UIViewRepresentable {
     func updateUIView(_ view: SCNView, context: Context) {
         configure(view)
     }
+
+    static func dismantleUIView(_ view: SCNView, coordinator: BodyPreviewCameraCoordinator) {
+        coordinator.detach()
+        tearDown(view)
+    }
 }
 #elseif os(macOS)
 private struct BodyPreviewSceneContainer: NSViewRepresentable {
@@ -55,6 +60,11 @@ private struct BodyPreviewSceneContainer: NSViewRepresentable {
 
     func updateNSView(_ view: SCNView, context: Context) {
         configure(view)
+    }
+
+    static func dismantleNSView(_ view: SCNView, coordinator: BodyPreviewCameraCoordinator) {
+        coordinator.detach()
+        tearDown(view)
     }
 }
 #endif
@@ -85,6 +95,13 @@ private extension BodyPreviewSceneContainer {
         }
 
         coordinator?.update(subjectRadius: BodyPreviewSceneFactory.subjectRadius(for: celestialBody))
+    }
+
+    static func tearDown(_ view: SCNView) {
+        view.delegate = nil
+        view.isPlaying = false
+        view.scene?.rootNode.childNodes.forEach { $0.removeFromParentNode() }
+        view.scene = nil
     }
 }
 
@@ -153,6 +170,16 @@ private final class BodyPreviewCameraCoordinator: NSObject, SCNSceneRendererDele
         rotationAngle = 0
         lastUpdateTime = nil
         lastInteractionTime = -5
+        lastCameraPosition = nil
+        lastCameraEulerAngles = nil
+    }
+
+    func detach() {
+        body = nil
+        tiltNode = nil
+        spinNode = nil
+        currentBodyID = nil
+        lastUpdateTime = nil
         lastCameraPosition = nil
         lastCameraEulerAngles = nil
     }
