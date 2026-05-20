@@ -37,13 +37,18 @@ struct ExploreView: View {
             .background(hiddenNavigationLinks)
             .onAppear {
                 viewModel.configure(repository: appState.celestialBodyRepository)
+                openRequestedGuidedTourCollectionIfNeeded()
                 openRequestedGuidedTourBodyIfNeeded()
                 scrollForGuidedTourStep(appState.guidedTourStep, proxy: proxy)
+            }
+            .onChange(of: appState.guidedTourCollectionID) { _ in
+                openRequestedGuidedTourCollectionIfNeeded()
             }
             .onChange(of: appState.guidedTourBodyID) { _ in
                 openRequestedGuidedTourBodyIfNeeded()
             }
             .onChange(of: viewModel.loadState) { _ in
+                openRequestedGuidedTourCollectionIfNeeded()
                 openRequestedGuidedTourBodyIfNeeded()
             }
             .onChange(of: appState.guidedTourStep) { step in
@@ -79,7 +84,7 @@ struct ExploreView: View {
         NavigationLink(
             destination: guidedTourDestination,
             isActive: Binding(
-                get: { guidedTourBodyID != nil },
+                get: { guidedTourBodyID != nil && selectedCollection == nil },
                 set: { isActive in
                     if !isActive {
                         guidedTourBodyID = nil
@@ -169,6 +174,7 @@ struct ExploreView: View {
     @ViewBuilder
     private var guidedTourBodySection: some View {
         if appState.guidedTourStep == .exploreBody,
+           appState.guidedTourCollectionID == nil,
            let body = appState.defaultBodyForGuidedTour() {
             VStack(alignment: .leading, spacing: 8) {
                 SectionHeader(title: "Start Here", subtitle: "Open one body to see how Luna connects facts to the experience.")
@@ -261,6 +267,22 @@ struct ExploreView: View {
         }
         .buttonStyle(.plain)
         .hapticTap()
+    }
+
+    private func openRequestedGuidedTourCollectionIfNeeded() {
+        guard let collectionID = appState.guidedTourCollectionID,
+              let collection = ExploreCollection(rawValue: collectionID),
+              viewModel.exploreCollections.contains(collection)
+        else {
+            if appState.guidedTourCollectionID == nil {
+                selectedCollection = nil
+            }
+            return
+        }
+
+        if selectedCollection != collection {
+            selectedCollection = collection
+        }
     }
 
     private func openRequestedGuidedTourBodyIfNeeded() {
@@ -365,7 +387,11 @@ private struct CategoryExploreView: View {
             }
             .background(hiddenBodyNavigationLink)
             .onAppear {
+                openRequestedGuidedTourBodyIfNeeded()
                 scrollForGuidedTourStep(appState.guidedTourStep, proxy: proxy)
+            }
+            .onChange(of: appState.guidedTourBodyID) { _ in
+                openRequestedGuidedTourBodyIfNeeded()
             }
             .onChange(of: appState.guidedTourStep) { step in
                 scrollForGuidedTourStep(step, proxy: proxy)
@@ -399,6 +425,17 @@ private struct CategoryExploreView: View {
             BodyDetailView(celestialBody: body, childBodies: childrenProvider(body))
         } else {
             EmptyView()
+        }
+    }
+
+    private func openRequestedGuidedTourBodyIfNeeded() {
+        guard let bodyID = appState.guidedTourBodyID else {
+            selectedBodyID = nil
+            return
+        }
+
+        if selectedBodyID != bodyID, bodies.contains(where: { $0.id == bodyID }) {
+            selectedBodyID = bodyID
         }
     }
 

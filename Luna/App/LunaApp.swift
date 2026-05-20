@@ -25,6 +25,7 @@ final class LunaAppState: ObservableObject {
 
     @Published var selectedTab: LunaTab = .home
     @Published private(set) var guidedTourStep: GuidedTourStep?
+    @Published private(set) var guidedTourCollectionID: String?
     @Published private(set) var guidedTourBodyID: String?
     @Published private(set) var guidedTourPresentationID = UUID()
     @Published private(set) var guidedTourDismissalID: UUID?
@@ -263,6 +264,10 @@ final class LunaAppState: ObservableObject {
         defaultGuidedTourBody
     }
 
+    func defaultCollectionForGuidedTour() -> ExploreCollection? {
+        defaultGuidedTourBody?.exploreCollection ?? .solarSystem
+    }
+
     func resetOnboarding() {
         do {
             guidedTour.cancel()
@@ -359,6 +364,9 @@ final class LunaAppState: ObservableObject {
         guidedTour.routeHandler = { [weak self] route in
             self?.handleGuidedTourRoute(route)
         }
+        guidedTour.defaultCollectionIDProvider = { [weak self] in
+            self?.defaultCollectionForGuidedTour()?.id
+        }
         guidedTour.defaultBodyIDProvider = { [weak self] in
             self?.defaultGuidedTourBody?.id
         }
@@ -373,6 +381,7 @@ final class LunaAppState: ObservableObject {
 
     private func syncGuidedTourState() {
         guidedTourStep = guidedTour.currentStep
+        guidedTourCollectionID = guidedTour.pendingCollectionID
         guidedTourBodyID = guidedTour.pendingBodyID
         guidedTourPresentationID = guidedTour.presentationID
         guidedTourDismissalID = guidedTour.dismissalID

@@ -5,6 +5,7 @@ final class GuidedTourCoordinatorTests: XCTestCase {
     func testForwardAndBackSequenceRoutesThroughExpectedSteps() {
         let coordinator = GuidedTourCoordinator()
         var routes: [GuidedTourRoute] = []
+        coordinator.defaultCollectionIDProvider = { "solarSystem" }
         coordinator.defaultBodyIDProvider = { "earth" }
         coordinator.routeHandler = { routes.append($0) }
 
@@ -24,16 +25,21 @@ final class GuidedTourCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.next())
         waitForTransitionUnlock()
         XCTAssertEqual(coordinator.currentStep, .exploreBody)
+        XCTAssertEqual(coordinator.pendingCollectionID, "solarSystem")
+        XCTAssertNil(coordinator.pendingBodyID)
+        XCTAssertEqual(routes.last, .explore)
 
         XCTAssertTrue(coordinator.next())
         waitForTransitionUnlock()
         XCTAssertEqual(coordinator.currentStep, .bodyDetailExperience)
+        XCTAssertEqual(coordinator.pendingCollectionID, "solarSystem")
         XCTAssertEqual(coordinator.pendingBodyID, "earth")
         XCTAssertEqual(routes.last, .bodyDetail("earth"))
 
         XCTAssertTrue(coordinator.back())
         waitForTransitionUnlock()
         XCTAssertEqual(coordinator.currentStep, .exploreBody)
+        XCTAssertEqual(coordinator.pendingCollectionID, "solarSystem")
         XCTAssertNil(coordinator.pendingBodyID)
         XCTAssertEqual(routes.last, .explore)
     }
@@ -66,6 +72,7 @@ final class GuidedTourCoordinatorTests: XCTestCase {
         coordinator.skip()
 
         XCTAssertNil(coordinator.currentStep)
+        XCTAssertNil(coordinator.pendingCollectionID)
         XCTAssertNil(coordinator.pendingBodyID)
         XCTAssertEqual(completionCount, 1)
     }
