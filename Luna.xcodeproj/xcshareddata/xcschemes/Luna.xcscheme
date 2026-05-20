@@ -40,16 +40,6 @@
                ReferencedContainer = "container:Luna.xcodeproj">
             </BuildableReference>
          </TestableReference>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "7A6B120424D1000000000000"
-               BuildableName = "LunaUITests.xctest"
-               BlueprintName = "LunaUITests"
-               ReferencedContainer = "container:Luna.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

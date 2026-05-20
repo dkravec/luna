@@ -482,6 +482,101 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertNil(BundledThumbnailImageLoader.image(named: "missing-spacecraft.png"))
     }
 
+    func testSceneObjectAssetResolverPrefersModelThenThumbnailThenFallback() throws {
+        let modelBody = Self.makeBody(
+            id: "apollo_lunar_module",
+            name: "Apollo Lunar Module",
+            type: .spacecraft,
+            radiusKm: 0.004,
+            thumbnailName: "apollo_lunar_module.png",
+            modelName: "apollo_lunar_module.glb",
+            parentBodyId: nil,
+            displayOrder: 1
+        )
+        let thumbnailBody = Self.makeBody(
+            id: "thumbnail_only",
+            name: "Thumbnail Only",
+            type: .spacecraft,
+            radiusKm: 0.004,
+            thumbnailName: "apollo_lunar_module.png",
+            modelName: nil,
+            parentBodyId: nil,
+            displayOrder: 2
+        )
+        let fallbackBody = Self.makeBody(
+            id: "fallback_only",
+            name: "Fallback Only",
+            type: .spacecraft,
+            radiusKm: 0.004,
+            parentBodyId: nil,
+            displayOrder: 3
+        )
+
+        guard case .model(let modelURL) = SceneObjectAssetResolver.resolve(for: modelBody) else {
+            return XCTFail("Expected model asset")
+        }
+        XCTAssertEqual(modelURL.lastPathComponent, "apollo_lunar_module.glb")
+
+        guard case .thumbnail(let thumbnailURL) = SceneObjectAssetResolver.resolve(for: thumbnailBody) else {
+            return XCTFail("Expected thumbnail asset")
+        }
+        XCTAssertEqual(thumbnailURL.lastPathComponent, "apollo_lunar_module.png")
+
+        XCTAssertEqual(SceneObjectAssetResolver.resolve(for: fallbackBody), .fallback)
+    }
+
+    func testSceneObjectAssetResolverFindsExistingModelDirectories() throws {
+        let nasaModel = Self.makeBody(
+            id: "saturn_v",
+            name: "Saturn V",
+            type: .rocket,
+            radiusKm: 0.055,
+            modelName: "saturn_v.glb",
+            parentBodyId: nil,
+            displayOrder: 1
+        )
+        let satelliteModel = Self.makeBody(
+            id: "terra",
+            name: "Terra",
+            type: .satellite,
+            radiusKm: 0.0034,
+            modelName: "terra.glb",
+            parentBodyId: nil,
+            displayOrder: 2
+        )
+        let moonModel = Self.makeBody(
+            id: "moon",
+            name: "Moon",
+            type: .moon,
+            radiusKm: 1_737.4,
+            modelName: "moon_small.glb",
+            parentBodyId: "earth",
+            displayOrder: 3
+        )
+
+        XCTAssertEqual(SceneObjectAssetResolver.modelURL(for: nasaModel)?.lastPathComponent, "saturn_v.glb")
+        XCTAssertEqual(SceneObjectAssetResolver.modelURL(for: satelliteModel)?.lastPathComponent, "terra.glb")
+        XCTAssertEqual(SceneObjectAssetResolver.modelURL(for: moonModel)?.lastPathComponent, "moon_small.glb")
+    }
+
+    func testBundledLoadersUseSharedResolverURLs() throws {
+        let modelBody = Self.makeBody(
+            id: "iss",
+            name: "ISS",
+            type: .station,
+            radiusKm: 0.055,
+            thumbnailName: "iss.png",
+            modelName: "iss.glb",
+            parentBodyId: nil,
+            displayOrder: 1
+        )
+
+        XCTAssertNotNil(SceneObjectAssetResolver.modelURL(for: modelBody))
+        XCTAssertNotNil(SceneObjectAssetResolver.thumbnailURL(for: modelBody))
+        XCTAssertNotNil(BundledSceneModelLoader.node(named: modelBody.modelName))
+        XCTAssertNotNil(BundledThumbnailImageLoader.image(named: modelBody.thumbnailName))
+    }
+
     func testBundledPlanetTexturesUseSceneKitSafeRGBImages() throws {
         let bodies = try LocalCelestialBodyRepository(bundle: .main).fetchBodies()
         let texturedBodies = bodies.filter { $0.textureName != nil }
@@ -770,6 +865,8 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         averageDistanceFromSunKm: Double? = nil,
         averageDistanceFromEarthKm: Double? = nil,
         orbit: CelestialOrbit? = nil,
+        thumbnailName: String? = nil,
+        modelName: String? = nil,
         parentBodyId: String? = "sun",
         displayOrder: Int
     ) -> CelestialBody {
@@ -788,9 +885,9 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
             axialTiltDegrees: nil,
             gravity: nil,
             imageName: nil,
-            thumbnailName: nil,
+            thumbnailName: thumbnailName,
             textureName: nil,
-            modelName: nil,
+            modelName: modelName,
             orbit: orbit,
             parentBodyId: parentBodyId,
             displayOrder: displayOrder,

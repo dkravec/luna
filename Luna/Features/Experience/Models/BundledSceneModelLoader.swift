@@ -11,38 +11,76 @@ private typealias SceneScalar = CGFloat
 typealias BundledThumbnailImage = NSImage
 #endif
 
-enum BundledThumbnailImageLoader {
+enum SceneObjectAsset: Equatable {
+    case model(URL)
+    case thumbnail(URL)
+    case fallback
+}
+
+enum SceneObjectAssetResolver {
     private final class BundleToken {}
+
+    private static let modelSubdirectories = [
+        "NASA",
+        "Satellites",
+        "Moons"
+    ]
 
     private static let thumbnailSubdirectories = [
         "Thumbnails/NASA",
         "NASA"
     ]
 
-    static func image(named thumbnailName: String?) -> BundledThumbnailImage? {
-        guard let thumbnailName, !thumbnailName.isEmpty else { return nil }
-        let resourceName = (thumbnailName as NSString).deletingPathExtension
-        let resourceExtension = (thumbnailName as NSString).pathExtension.isEmpty
-            ? "png"
-            : (thumbnailName as NSString).pathExtension
-
-        guard let url = imageURL(
-            resourceName: resourceName,
-            resourceExtension: resourceExtension
-        ) else {
-            return nil
+    static func resolve(for body: CelestialBody) -> SceneObjectAsset {
+        if let modelURL = modelURL(for: body) {
+            return .model(modelURL)
         }
 
-#if os(iOS)
-        return BundledThumbnailImage(contentsOfFile: url.path)
-#elseif os(macOS)
-        return BundledThumbnailImage(contentsOf: url)
-#endif
+        if let thumbnailURL = thumbnailURL(for: body) {
+            return .thumbnail(thumbnailURL)
+        }
+
+        return .fallback
     }
 
-    private static func imageURL(resourceName: String, resourceExtension: String) -> URL? {
+    static func modelURL(for body: CelestialBody) -> URL? {
+        modelURL(named: body.modelName)
+    }
+
+    static func thumbnailURL(for body: CelestialBody) -> URL? {
+        thumbnailURL(named: body.thumbnailName)
+    }
+
+    static func modelURL(named modelName: String?) -> URL? {
+        resourceURL(
+            named: modelName,
+            defaultExtension: "glb",
+            subdirectories: modelSubdirectories
+        )
+    }
+
+    static func thumbnailURL(named thumbnailName: String?) -> URL? {
+        resourceURL(
+            named: thumbnailName,
+            defaultExtension: "png",
+            subdirectories: thumbnailSubdirectories
+        )
+    }
+
+    private static func resourceURL(
+        named name: String?,
+        defaultExtension: String,
+        subdirectories: [String]
+    ) -> URL? {
+        guard let name, !name.isEmpty else { return nil }
+
+        let resourceName = (name as NSString).deletingPathExtension
+        let resourceExtension = (name as NSString).pathExtension.isEmpty
+            ? defaultExtension
+            : (name as NSString).pathExtension
+
         for bundle in candidateBundles {
-            for subdirectory in thumbnailSubdirectories {
+            for subdirectory in subdirectories {
                 if let url = bundle.url(
                     forResource: resourceName,
                     withExtension: resourceExtension,
@@ -72,28 +110,37 @@ enum BundledThumbnailImageLoader {
     }
 }
 
-enum BundledSceneModelLoader {
-    private final class BundleToken {}
+extension CelestialBody {
+    var usesObjectAssetResolver: Bool {
+        switch type {
+        case .satellite, .rocket, .spacecraft, .station, .astronaut:
+            return true
+        case .star, .planet, .moon, .asteroid, .dwarfPlanet:
+            return false
+        }
+    }
+}
 
-    private static let modelSubdirectories = [
-        "NASA",
-        "Satellites",
-        "Moons"
-    ]
-
-    static func node(named modelName: String?) -> SCNNode? {
-        guard let modelName, !modelName.isEmpty else { return nil }
-        let resourceName = (modelName as NSString).deletingPathExtension
-        let resourceExtension = (modelName as NSString).pathExtension.isEmpty
-            ? "glb"
-            : (modelName as NSString).pathExtension
-
-        guard let url = modelURL(
-            resourceName: resourceName,
-            resourceExtension: resourceExtension
-        ) else {
+enum BundledThumbnailImageLoader {
+    static func image(named thumbnailName: String?) -> BundledThumbnailImage? {
+        guard let url = SceneObjectAssetResolver.thumbnailURL(named: thumbnailName) else {
             return nil
         }
+
+#if os(iOS)
+        return BundledThumbnailImage(contentsOfFile: url.path)
+#elseif os(macOS)
+        return BundledThumbnailImage(contentsOf: url)
+#endif
+    }
+}
+
+enum BundledSceneModelLoader {
+    static func node(named modelName: String?) -> SCNNode? {
+        guard let url = SceneObjectAssetResolver.modelURL(named: modelName) else {
+            return nil
+        }
+        let resourceExtension = url.pathExtension.isEmpty ? "glb" : url.pathExtension
 
         let loadedNode: SCNNode?
         if let scene = try? SCNScene(url: url) {
@@ -143,37 +190,6 @@ enum BundledSceneModelLoader {
         let rawAxis = max(Float(size.x), max(Float(size.y), Float(size.z)))
         let rootScale = max(abs(Float(node.scale.x)), max(abs(Float(node.scale.y)), abs(Float(node.scale.z))))
         return rawAxis * rootScale
-    }
-
-    private static func modelURL(resourceName: String, resourceExtension: String) -> URL? {
-        for bundle in candidateBundles {
-            for subdirectory in modelSubdirectories {
-                if let url = bundle.url(
-                    forResource: resourceName,
-                    withExtension: resourceExtension,
-                    subdirectory: subdirectory
-                ) {
-                    return url
-                }
-            }
-
-            if let url = bundle.url(forResource: resourceName, withExtension: resourceExtension) {
-                return url
-            }
-        }
-
-        return nil
-    }
-
-    private static var candidateBundles: [Bundle] {
-        let bundles = [
-            Bundle.main,
-            Bundle(for: BundleToken.self)
-        ] + Bundle.allBundles + Bundle.allFrameworks
-        return bundles.reduce(into: []) { result, bundle in
-            guard !result.contains(bundle) else { return }
-            result.append(bundle)
-        }
     }
 
     private static func normalize(_ node: SCNNode) {

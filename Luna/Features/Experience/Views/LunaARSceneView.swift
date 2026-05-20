@@ -72,6 +72,7 @@ struct LunaARSceneView: UIViewRepresentable {
         private var bodyLookup: [String: CelestialBody] = [:]
         private var onSelectBody: (CelestialBody) -> Void = { _ in }
         private static var textureCache: [String: TextureResource] = [:]
+        private static var thumbnailTextureCache: [URL: TextureResource] = [:]
 
         func configureSession(for view: ARView) {
             guard ARWorldTrackingConfiguration.isSupported else { return }
@@ -236,7 +237,8 @@ struct LunaARSceneView: UIViewRepresentable {
                         placement.position.z * 0.095
                     ),
                     rotationAngleRadians: placement.rotationAngleRadians,
-                    axialTiltRadians: placement.axialTiltRadians
+                    axialTiltRadians: placement.axialTiltRadians,
+                    asset: Self.resolvedAsset(for: placement, in: snapshot)
                 )
             }
 
@@ -266,7 +268,8 @@ struct LunaARSceneView: UIViewRepresentable {
                         placement.position.z * 0.095
                     ),
                     rotationAngleRadians: placement.rotationAngleRadians,
-                    axialTiltRadians: placement.axialTiltRadians
+                    axialTiltRadians: placement.axialTiltRadians,
+                    asset: Self.resolvedAsset(for: placement, in: snapshot)
                 )
             }
             let bounds = ARPlacementBounds(placements: arPlacements)
@@ -363,6 +366,33 @@ struct LunaARSceneView: UIViewRepresentable {
         }
 
         private static func entity(for placement: ARBodyPlacement) -> Entity {
+            switch placement.asset {
+            case .model(let url):
+                if let modelEntity = modelEntity(url: url, scale: placement.displayRadius) {
+                    return modelEntity
+                }
+                if let thumbnailURL = SceneObjectAssetResolver.thumbnailURL(for: placement.body),
+                   let thumbnailEntity = thumbnailEntity(url: thumbnailURL, scale: placement.displayRadius) {
+                    return thumbnailEntity
+                }
+                return fallbackEntity(for: placement)
+            case .thumbnail(let url):
+                return thumbnailEntity(url: url, scale: placement.displayRadius) ?? fallbackEntity(for: placement)
+            case .fallback:
+                return fallbackEntity(for: placement)
+            }
+        }
+
+        private static func resolvedAsset(for placement: ExperienceSceneBody, in snapshot: ExperienceSceneSnapshot) -> SceneObjectAsset {
+            let isObjectSnapshot = snapshot.bodies.count == 1 && snapshot.orbitPaths.isEmpty
+            guard isObjectSnapshot || placement.body.usesObjectAssetResolver else {
+                return .fallback
+            }
+
+            return SceneObjectAssetResolver.resolve(for: placement.body)
+        }
+
+        private static func fallbackEntity(for placement: ARBodyPlacement) -> Entity {
             if placement.body.type == .satellite {
                 return satelliteEntity(scale: placement.displayRadius)
             }
@@ -370,6 +400,40 @@ struct LunaARSceneView: UIViewRepresentable {
             let mesh = MeshResource.generateSphere(radius: placement.displayRadius)
             let material = material(for: placement.body)
             return ModelEntity(mesh: mesh, materials: [material])
+        }
+
+        private static func modelEntity(url: URL, scale: Float) -> Entity? {
+            let loadedEntity: Entity?
+            if let entity = try? Entity.load(contentsOf: url) {
+                loadedEntity = entity
+            } else if url.pathExtension.lowercased() == "glb" {
+                loadedEntity = ARGLBModelLoader.entity(url: url)
+            } else {
+                loadedEntity = nil
+            }
+
+            guard let entity = loadedEntity else {
+                return nil
+            }
+
+            let root = Entity()
+            root.addChild(entity)
+            root.scale = SIMD3<Float>(repeating: max(0.025, scale))
+            return root
+        }
+
+        private static func thumbnailEntity(url: URL, scale: Float) -> Entity? {
+            guard let texture = thumbnailTexture(url: url) else {
+                return nil
+            }
+
+            let width = max(0.12, scale * 3.2)
+            let height = width * 0.72
+            let mesh = MeshResource.generateBox(size: SIMD3<Float>(width, height, 0.006), cornerRadius: 0.004)
+            var material = UnlitMaterial(color: .white)
+            material.color = .init(tint: .white, texture: .init(texture))
+            let entity = ModelEntity(mesh: mesh, materials: [material])
+            return entity
         }
 
         private static func rotationOrientation(for placement: ARBodyPlacement) -> simd_quatf {
@@ -457,7 +521,7 @@ struct LunaARSceneView: UIViewRepresentable {
             let bodyKey = snapshot.bodies
                 .map { body in
                     let radius = Int((body.displayRadius * 1_000).rounded())
-                    return "\(body.id):\(body.body.type.rawValue):\(radius):\(body.body.textureName ?? ""):\(body.body.modelName ?? "")"
+                    return "\(body.id):\(body.body.type.rawValue):\(radius):\(body.body.textureName ?? ""):\(body.body.modelName ?? ""):\(body.body.thumbnailName ?? "")"
                 }
                 .joined(separator: "|")
             let orbitKey = settings.showOrbits
@@ -499,6 +563,19 @@ struct LunaARSceneView: UIViewRepresentable {
             }
 
             textureCache[textureName] = texture
+            return texture
+        }
+
+        private static func thumbnailTexture(url: URL) -> TextureResource? {
+            if let cachedTexture = thumbnailTextureCache[url] {
+                return cachedTexture
+            }
+
+            guard let texture = try? TextureResource.load(contentsOf: url) else {
+                return nil
+            }
+
+            thumbnailTextureCache[url] = texture
             return texture
         }
 
@@ -552,6 +629,7 @@ private struct ARBodyPlacement {
     let position: SIMD3<Float>
     let rotationAngleRadians: Float
     let axialTiltRadians: Float
+    let asset: SceneObjectAsset
 }
 
 private struct ARRenderTree {
@@ -632,6 +710,299 @@ private struct ARPlacementBounds {
             max(0.35, maxY - minY + 0.2),
             max(0.35, maxZ - minZ + 0.2)
         )
+    }
+}
+
+private enum ARGLBModelLoader {
+    static func entity(url: URL) -> Entity? {
+        guard let data = try? Data(contentsOf: url),
+              data.count >= 20,
+              data.arUInt32(at: 0) == 0x4654_6C67 else {
+            return nil
+        }
+
+        var offset = 12
+        var jsonData: Data?
+        var binaryData: Data?
+
+        while offset + 8 <= data.count {
+            let chunkLength = Int(data.arUInt32(at: offset))
+            let chunkType = data.arUInt32(at: offset + 4)
+            let chunkStart = offset + 8
+            let chunkEnd = min(chunkStart + chunkLength, data.count)
+            guard chunkStart <= data.count, chunkEnd <= data.count else { return nil }
+
+            let chunk = data.subdata(in: chunkStart..<chunkEnd)
+            if chunkType == 0x4E4F_534A {
+                jsonData = chunk
+            } else if chunkType == 0x004E_4942 {
+                binaryData = chunk
+            }
+            offset = chunkEnd
+        }
+
+        guard let jsonData,
+              let binaryData,
+              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            return nil
+        }
+
+        let context = ARGLBContext(json: json, binaryData: binaryData)
+        return context.rootEntity()
+    }
+}
+
+private struct ARGLBContext {
+    let json: [String: Any]
+    let binaryData: Data
+
+    var accessors: [[String: Any]] { json["accessors"] as? [[String: Any]] ?? [] }
+    var bufferViews: [[String: Any]] { json["bufferViews"] as? [[String: Any]] ?? [] }
+    var meshes: [[String: Any]] { json["meshes"] as? [[String: Any]] ?? [] }
+    var nodes: [[String: Any]] { json["nodes"] as? [[String: Any]] ?? [] }
+    var scenes: [[String: Any]] { json["scenes"] as? [[String: Any]] ?? [] }
+    var materials: [[String: Any]] { json["materials"] as? [[String: Any]] ?? [] }
+
+    func rootEntity() -> Entity? {
+        let sceneIndex = json["scene"] as? Int ?? 0
+        let sceneNodes = scenes[safe: sceneIndex]?["nodes"] as? [Int] ?? Array(nodes.indices)
+        var primitives: [ARGLBPrimitive] = []
+
+        for nodeIndex in sceneNodes {
+            collectPrimitives(nodeIndex: nodeIndex, parentTransform: matrix_identity_float4x4, into: &primitives)
+        }
+
+        guard !primitives.isEmpty else { return nil }
+
+        let allVertices = primitives.flatMap(\.vertices)
+        guard let first = allVertices.first else { return nil }
+        let minPoint = allVertices.reduce(first) { SIMD3<Float>(min($0.x, $1.x), min($0.y, $1.y), min($0.z, $1.z)) }
+        let maxPoint = allVertices.reduce(first) { SIMD3<Float>(max($0.x, $1.x), max($0.y, $1.y), max($0.z, $1.z)) }
+        let center = (minPoint + maxPoint) / 2
+        let size = maxPoint - minPoint
+        let longestAxis = max(size.x, max(size.y, size.z))
+        guard longestAxis.isFinite, longestAxis > 0 else { return nil }
+        let normalizeScale = Float(1) / longestAxis
+
+        let root = Entity()
+        for primitive in primitives {
+            let normalizedVertices = primitive.vertices.map { ($0 - center) * normalizeScale }
+            guard let mesh = mesh(vertices: normalizedVertices, normals: primitive.normals, indices: primitive.indices) else {
+                continue
+            }
+            let entity = ModelEntity(mesh: mesh, materials: [primitive.material])
+            root.addChild(entity)
+        }
+
+        return root.children.isEmpty ? nil : root
+    }
+
+    private func collectPrimitives(nodeIndex: Int, parentTransform: simd_float4x4, into primitives: inout [ARGLBPrimitive]) {
+        guard let nodeJSON = nodes[safe: nodeIndex] else { return }
+        let nodeTransform = parentTransform * transform(for: nodeJSON)
+
+        if let meshIndex = nodeJSON["mesh"] as? Int,
+           let mesh = meshes[safe: meshIndex],
+           let meshPrimitives = mesh["primitives"] as? [[String: Any]] {
+            for primitiveJSON in meshPrimitives {
+                if let primitive = primitive(primitiveJSON, transform: nodeTransform) {
+                    primitives.append(primitive)
+                }
+            }
+        }
+
+        for childIndex in nodeJSON["children"] as? [Int] ?? [] {
+            collectPrimitives(nodeIndex: childIndex, parentTransform: nodeTransform, into: &primitives)
+        }
+    }
+
+    private func primitive(_ primitiveJSON: [String: Any], transform: simd_float4x4) -> ARGLBPrimitive? {
+        guard let attributes = primitiveJSON["attributes"] as? [String: Int],
+              let positionAccessor = attributes["POSITION"],
+              let sourceVertices = vectors(accessorIndex: positionAccessor, dimensions: 3) else {
+            return nil
+        }
+
+        let vertices = sourceVertices.map { point -> SIMD3<Float> in
+            let transformed = transform * SIMD4<Float>(point.x, point.y, point.z, 1)
+            return SIMD3<Float>(transformed.x, transformed.y, transformed.z)
+        }
+        let normals = attributes["NORMAL"].flatMap { vectors(accessorIndex: $0, dimensions: 3) }
+        let indices = (primitiveJSON["indices"] as? Int).flatMap(indices(accessorIndex:))
+            ?? vertices.indices.map(UInt32.init)
+        return ARGLBPrimitive(
+            vertices: vertices,
+            normals: normals?.count == vertices.count ? normals : nil,
+            indices: indices,
+            material: material(index: primitiveJSON["material"] as? Int)
+        )
+    }
+
+    private func mesh(vertices: [SIMD3<Float>], normals: [SIMD3<Float>]?, indices: [UInt32]) -> MeshResource? {
+        guard vertices.count >= 3, indices.count >= 3 else { return nil }
+        var descriptor = MeshDescriptor(name: "glbPrimitive")
+        descriptor.positions = MeshBuffers.Positions(vertices)
+        if let normals, normals.count == vertices.count {
+            descriptor.normals = MeshBuffers.Normals(normals)
+        }
+        descriptor.primitives = .triangles(indices)
+        return try? MeshResource.generate(from: [descriptor])
+    }
+
+    private func vectors(accessorIndex: Int, dimensions: Int) -> [SIMD3<Float>]? {
+        guard let accessor = accessors[safe: accessorIndex],
+              accessor["componentType"] as? Int == 5126,
+              let count = accessor["count"] as? Int,
+              let bufferViewIndex = accessor["bufferView"] as? Int,
+              let bufferView = bufferViews[safe: bufferViewIndex] else {
+            return nil
+        }
+
+        let accessorOffset = accessor["byteOffset"] as? Int ?? 0
+        let viewOffset = bufferView["byteOffset"] as? Int ?? 0
+        let stride = bufferView["byteStride"] as? Int ?? dimensions * 4
+        let start = viewOffset + accessorOffset
+
+        var result: [SIMD3<Float>] = []
+        result.reserveCapacity(count)
+
+        for index in 0..<count {
+            let offset = start + index * stride
+            guard offset + dimensions * 4 <= binaryData.count else { return nil }
+
+            let x = binaryData.arFloat32(at: offset)
+            let y = dimensions > 1 ? binaryData.arFloat32(at: offset + 4) : 0
+            let z = dimensions > 2 ? binaryData.arFloat32(at: offset + 8) : 0
+            result.append(SIMD3<Float>(x, y, z))
+        }
+
+        return result
+    }
+
+    private func indices(accessorIndex: Int) -> [UInt32]? {
+        guard let accessor = accessors[safe: accessorIndex],
+              let count = accessor["count"] as? Int,
+              let componentType = accessor["componentType"] as? Int,
+              let bufferViewIndex = accessor["bufferView"] as? Int,
+              let bufferView = bufferViews[safe: bufferViewIndex] else {
+            return nil
+        }
+
+        let componentSize: Int
+        switch componentType {
+        case 5121:
+            componentSize = 1
+        case 5123:
+            componentSize = 2
+        case 5125:
+            componentSize = 4
+        default:
+            return nil
+        }
+
+        let accessorOffset = accessor["byteOffset"] as? Int ?? 0
+        let viewOffset = bufferView["byteOffset"] as? Int ?? 0
+        let stride = bufferView["byteStride"] as? Int ?? componentSize
+        let start = viewOffset + accessorOffset
+
+        var result: [UInt32] = []
+        result.reserveCapacity(count)
+
+        for index in 0..<count {
+            let offset = start + index * stride
+            guard offset + componentSize <= binaryData.count else { return nil }
+
+            switch componentType {
+            case 5121:
+                result.append(UInt32(binaryData[offset]))
+            case 5123:
+                result.append(UInt32(binaryData.arUInt16(at: offset)))
+            case 5125:
+                result.append(binaryData.arUInt32(at: offset))
+            default:
+                return nil
+            }
+        }
+
+        return result
+    }
+
+    private func transform(for nodeJSON: [String: Any]) -> simd_float4x4 {
+        if let matrix = nodeJSON["matrix"] as? [Double], matrix.count == 16 {
+            return simd_float4x4(
+                SIMD4<Float>(Float(matrix[0]), Float(matrix[1]), Float(matrix[2]), Float(matrix[3])),
+                SIMD4<Float>(Float(matrix[4]), Float(matrix[5]), Float(matrix[6]), Float(matrix[7])),
+                SIMD4<Float>(Float(matrix[8]), Float(matrix[9]), Float(matrix[10]), Float(matrix[11])),
+                SIMD4<Float>(Float(matrix[12]), Float(matrix[13]), Float(matrix[14]), Float(matrix[15]))
+            )
+        }
+
+        var transform = matrix_identity_float4x4
+        if let scale = nodeJSON["scale"] as? [Double], scale.count >= 3 {
+            transform = transform * simd_float4x4(diagonal: SIMD4<Float>(Float(scale[0]), Float(scale[1]), Float(scale[2]), 1))
+        }
+        if let rotation = nodeJSON["rotation"] as? [Double], rotation.count >= 4 {
+            transform = transform * simd_float4x4(simd_quatf(
+                ix: Float(rotation[0]),
+                iy: Float(rotation[1]),
+                iz: Float(rotation[2]),
+                r: Float(rotation[3])
+            ))
+        }
+        if let translation = nodeJSON["translation"] as? [Double], translation.count >= 3 {
+            var translationMatrix = matrix_identity_float4x4
+            translationMatrix.columns.3 = SIMD4<Float>(Float(translation[0]), Float(translation[1]), Float(translation[2]), 1)
+            transform = translationMatrix * transform
+        }
+        return transform
+    }
+
+    private func material(index: Int?) -> SimpleMaterial {
+        var color = UIColor(white: 0.84, alpha: 1)
+        if let index,
+           let materialJSON = materials[safe: index],
+           let pbr = materialJSON["pbrMetallicRoughness"] as? [String: Any],
+           let baseColor = pbr["baseColorFactor"] as? [Double],
+           baseColor.count >= 3 {
+            color = UIColor(
+                red: CGFloat(baseColor[0]),
+                green: CGFloat(baseColor[1]),
+                blue: CGFloat(baseColor[2]),
+                alpha: CGFloat(baseColor[safe: 3] ?? 1)
+            )
+        }
+        return SimpleMaterial(color: color, roughness: 0.72, isMetallic: false)
+    }
+}
+
+private struct ARGLBPrimitive {
+    let vertices: [SIMD3<Float>]
+    let normals: [SIMD3<Float>]?
+    let indices: [UInt32]
+    let material: SimpleMaterial
+}
+
+private extension Data {
+    func arUInt16(at offset: Int) -> UInt16 {
+        subdata(in: offset..<(offset + 2)).withUnsafeBytes {
+            UInt16(littleEndian: $0.load(as: UInt16.self))
+        }
+    }
+
+    func arUInt32(at offset: Int) -> UInt32 {
+        subdata(in: offset..<(offset + 4)).withUnsafeBytes {
+            UInt32(littleEndian: $0.load(as: UInt32.self))
+        }
+    }
+
+    func arFloat32(at offset: Int) -> Float {
+        Float(bitPattern: arUInt32(at: offset))
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }
 

@@ -436,7 +436,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         let bodyKey = snapshot.bodies
             .map { body in
                 let radius = Int((body.displayRadius * 1_000).rounded())
-                return "\(body.id):\(body.body.type.rawValue):\(radius):\(body.body.textureName ?? ""):\(body.body.modelName ?? "")"
+                return "\(body.id):\(body.body.type.rawValue):\(radius):\(body.body.textureName ?? ""):\(body.body.modelName ?? ""):\(body.body.thumbnailName ?? "")"
             }
             .joined(separator: "|")
         let orbitKey = snapshot.orbitPaths
@@ -511,25 +511,18 @@ private enum SolarSystemSceneFactory {
         let visualNode: SCNNode
 
         let modelTargetAxis = bundledModelTargetAxis(for: placement, isObjectSnapshot: isObjectSnapshot)
-        if usesBundledModel(for: placement.body),
-           let modelNode = BundledSceneModelLoader.fittedNode(
-            named: placement.body.modelName,
-            targetLongestAxis: modelTargetAxis
-        ) {
-            visualNode = modelNode
-        } else if placement.body.type == .satellite {
-            visualNode = satelliteNode()
-            let satelliteScale = max(0.22, placement.displayRadius * 5.5)
-            visualNode.scale = SCNVector3(
-                satelliteScale,
-                satelliteScale,
-                satelliteScale
-            )
-        } else {
-            let sphere = SCNSphere(radius: CGFloat(max(placement.displayRadius, 0.0001)))
-            sphere.segmentCount = placement.body.type == .star ? renderDetail.starSegmentCount : renderDetail.planetSegmentCount
-            sphere.firstMaterial = material(for: placement.body)
-            visualNode = SCNNode(geometry: sphere)
+        switch resolvedAsset(for: placement.body, isObjectSnapshot: isObjectSnapshot) {
+        case .model:
+            if let modelNode = BundledSceneModelLoader.fittedNode(
+                named: placement.body.modelName,
+                targetLongestAxis: modelTargetAxis
+            ) {
+                visualNode = modelNode
+            } else {
+                visualNode = fallbackNode(for: placement, renderDetail: renderDetail)
+            }
+        case .thumbnail, .fallback:
+            visualNode = fallbackNode(for: placement, renderDetail: renderDetail)
         }
 
         visualNode.name = "bodyVisual:\(placement.id)"
@@ -543,6 +536,24 @@ private enum SolarSystemSceneFactory {
         return root
     }
 
+    private static func fallbackNode(for placement: ExperienceSceneBody, renderDetail: SceneRenderDetail) -> SCNNode {
+        if placement.body.type == .satellite {
+            let visualNode = satelliteNode()
+            let satelliteScale = max(0.22, placement.displayRadius * 5.5)
+            visualNode.scale = SCNVector3(
+                satelliteScale,
+                satelliteScale,
+                satelliteScale
+            )
+            return visualNode
+        } else {
+            let sphere = SCNSphere(radius: CGFloat(max(placement.displayRadius, 0.0001)))
+            sphere.segmentCount = placement.body.type == .star ? renderDetail.starSegmentCount : renderDetail.planetSegmentCount
+            sphere.firstMaterial = material(for: placement.body)
+            return SCNNode(geometry: sphere)
+        }
+    }
+
     private static func bundledModelTargetAxis(for placement: ExperienceSceneBody, isObjectSnapshot: Bool) -> Float {
         if isObjectSnapshot {
             return max(1.24, placement.displayRadius * 10.5)
@@ -551,13 +562,12 @@ private enum SolarSystemSceneFactory {
         return max(0.82, placement.displayRadius * 7.2)
     }
 
-    private static func usesBundledModel(for body: CelestialBody) -> Bool {
-        switch body.type {
-        case .satellite, .rocket, .spacecraft, .station, .astronaut:
-            return true
-        case .star, .planet, .moon, .asteroid, .dwarfPlanet:
-            return false
+    private static func resolvedAsset(for body: CelestialBody, isObjectSnapshot: Bool) -> SceneObjectAsset {
+        guard isObjectSnapshot || body.usesObjectAssetResolver else {
+            return .fallback
         }
+
+        return SceneObjectAssetResolver.resolve(for: body)
     }
 
     private static func interactionNode(for placement: ExperienceSceneBody) -> SCNNode {
