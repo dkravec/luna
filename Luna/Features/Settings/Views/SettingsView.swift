@@ -8,21 +8,34 @@ struct SettingsView: View {
 
     private let imageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding = NASAImageOfTheDayRepository()
 
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 12) {
-                PageHeader(
-                    title: "Settings",
-                    subtitle: "Tune Luna's experience, appearance, and app details."
-                )
+    private enum ScrollAnchor {
+        static let replayTour = "settings.replayTour"
+    }
 
-                generalSection
-                experienceSection
-                dailyFactSection
-                profileSection
-                storageSection
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    PageHeader(
+                        title: "Settings",
+                        subtitle: "Tune Luna's experience, appearance, and app details."
+                    )
+
+                    generalSection
+                    appIconSection
+                    experienceSection
+                    dailyFactSection
+                    profileSection
+                    storageSection
+                }
+                .screenContentPadding()
             }
-            .screenContentPadding()
+            .onAppear {
+                scrollForGuidedTourStep(appState.guidedTourStep, proxy: proxy)
+            }
+            .onChange(of: appState.guidedTourStep) { step in
+                scrollForGuidedTourStep(step, proxy: proxy)
+            }
         }
         .appBackground()
     }
@@ -48,6 +61,7 @@ struct SettingsView: View {
                 .hapticTap()
                 .accessibilityIdentifier("settings.replayTour")
                 .guidedTourTarget(.settingsReplayTour, when: appState.guidedTourStep == .finish)
+                .id(ScrollAnchor.replayTour)
 
                 CardDivider(leadingInset: 56)
                 
@@ -288,52 +302,54 @@ struct SettingsView: View {
 
                 CardDivider(leadingInset: 56)
 
-                CardRow {
-                    Toggle(
-                        isOn: Binding(
-                            get: { appState.userProfile.hapticsEnabled },
-                            set: { setHapticsEnabled($0) }
-                        )
-                    ) {
-                        RowLabel(
-                            title: "Haptics",
-                            subtitle: "Use press feedback across Luna",
-                            systemImage: "hand.tap"
-                        )
-                    }
-                }
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    HStack(spacing: 12) {
-                        RowLabel(
-                            title: "Haptic Strength",
-                            subtitle: "Choose how firm button presses feel",
-                            systemImage: "waveform.path.ecg"
-                        )
-
-                        Spacer(minLength: 12)
-
-                        Picker(
-                            "Haptic Strength",
-                            selection: Binding(
-                                get: { appState.userProfile.hapticIntensity },
-                                set: { setHapticIntensity($0) }
+                if Haptics.isSupported {
+                    CardRow {
+                        Toggle(
+                            isOn: Binding(
+                                get: { appState.userProfile.hapticsEnabled },
+                                set: { setHapticsEnabled($0) }
                             )
                         ) {
-                            ForEach(HapticIntensity.allCases) { intensity in
-                                Text(intensity.title).tag(intensity)
-                            }
+                            RowLabel(
+                                title: "Haptics",
+                                subtitle: "Use press feedback across Luna",
+                                systemImage: "hand.tap"
+                            )
                         }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                        .disabled(!appState.userProfile.hapticsEnabled)
                     }
-                    .opacity(appState.userProfile.hapticsEnabled ? 1 : 0.55)
-                }
 
-                CardDivider(leadingInset: 56)
+                    CardDivider(leadingInset: 56)
+
+                    CardRow {
+                        HStack(spacing: 12) {
+                            RowLabel(
+                                title: "Haptic Strength",
+                                subtitle: "Choose how firm button presses feel",
+                                systemImage: "waveform.path.ecg"
+                            )
+
+                            Spacer(minLength: 12)
+
+                            Picker(
+                                "Haptic Strength",
+                                selection: Binding(
+                                    get: { appState.userProfile.hapticIntensity },
+                                    set: { setHapticIntensity($0) }
+                                )
+                            ) {
+                                ForEach(HapticIntensity.allCases) { intensity in
+                                    Text(intensity.title).tag(intensity)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                            .disabled(!appState.userProfile.hapticsEnabled)
+                        }
+                        .opacity(appState.userProfile.hapticsEnabled ? 1 : 0.55)
+                    }
+
+                    CardDivider(leadingInset: 56)
+                }
 
                 NavigationLink {
                     AboutView()
@@ -344,6 +360,34 @@ struct SettingsView: View {
                             title: "About",
                             subtitle: "Version, build, and project details",
                             systemImage: "info.circle",
+                            showsChevron: true
+                        )
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
+            }
+        }
+    }
+
+    private var appIconSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "App Icon")
+
+            CardSection {
+                NavigationLink {
+                    AppIconSettingsView(
+                        selectedChoice: appState.selectedAppIconChoice,
+                        onSelect: appState.setAppIconChoice
+                    )
+                    .appBackground()
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "App Icon",
+                            subtitle: "Choose Luna's Home Screen icon",
+                            systemImage: "app.badge",
+                            value: appState.selectedAppIconChoice.title,
                             showsChevron: true
                         )
                     }
@@ -392,6 +436,16 @@ struct SettingsView: View {
         } catch {
             apodCacheStatusMessage = "Could not clear NASA image cache"
             Haptics.selection()
+        }
+    }
+
+    private func scrollForGuidedTourStep(_ step: GuidedTourStep?, proxy: ScrollViewProxy) {
+        guard step == .finish else { return }
+
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                proxy.scrollTo(ScrollAnchor.replayTour, anchor: .center)
+            }
         }
     }
 

@@ -265,9 +265,12 @@ private struct GuidedTourFloatingCalloutView: View {
     var body: some View {
         GeometryReader { proxy in
             let cardWidth = min(proxy.size.width - 32, horizontalSizeClass == .regular ? 420 : 360)
+            let usesTopPlacement = step == .homeExplore
 
             VStack {
-                Spacer(minLength: 0)
+                if !usesTopPlacement {
+                    Spacer(minLength: 0)
+                }
 
                 GuidedTourOverlayView.calloutCard(
                     step: step,
@@ -278,7 +281,12 @@ private struct GuidedTourFloatingCalloutView: View {
                     onSkip: onSkip
                 )
                 .frame(width: cardWidth)
-                .padding(.bottom, proxy.safeAreaInsets.bottom + 24)
+                .padding(.top, usesTopPlacement ? proxy.safeAreaInsets.top + 18 : 0)
+                .padding(.bottom, usesTopPlacement ? 0 : proxy.safeAreaInsets.bottom + 24)
+
+                if usesTopPlacement {
+                    Spacer(minLength: 0)
+                }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }

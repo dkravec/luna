@@ -4,6 +4,16 @@ import SwiftUI
 import ARKit
 #endif
 
+enum LunaDebug {
+    static var isEnabled: Bool {
+#if DEBUG
+        true
+#else
+        false
+#endif
+    }
+}
+
 struct ExperienceView: View {
     private static let playbackTimer = Timer
         .publish(every: 1.0 / 24.0, on: .main, in: .common)
@@ -437,7 +447,7 @@ struct ExperienceView: View {
                 }
 
 #if os(iOS)
-                if isAREnabled, canUseAR {
+                if LunaDebug.isEnabled, isAREnabled, canUseAR {
                     CardDivider(leadingInset: 56)
 
                     CardRow {

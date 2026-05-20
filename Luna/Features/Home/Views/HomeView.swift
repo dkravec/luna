@@ -1,4 +1,5 @@
 import SwiftUI
+import simd
 
 #if os(iOS)
 import UIKit
@@ -29,9 +30,7 @@ struct HomeView: View {
 
                     NASAImageOfTheDayView()
 
-                    featuredBodySection(dailyContent.featuredBody)
-
-                    factOfTheDaySection(dailyContent.dailyFact, featuredBody: dailyContent.featuredBody)
+                    dailyContentSection(dailyContent)
 
 //                    overviewSection
                     
@@ -52,11 +51,27 @@ struct HomeView: View {
     @ViewBuilder
     private var homeIntroSection: some View {
         VStack(alignment: .leading, spacing: Spacing.section) {
-            PageHeader(
-                title: "Luna",
-                subtitle: "Explore planets, compare scale, and step into space with AR."
-            )
-            .guidedTourTarget(.homeOverview)
+            HStack(alignment: .top, spacing: 12) {
+                PageHeader(
+                    title: "Luna",
+                    subtitle: "Explore planets, compare scale, and step into space with AR."
+                )
+                .guidedTourTarget(.homeOverview)
+
+                Spacer(minLength: 8)
+
+                Button {
+                    appState.selectedTab = .settings
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.headline.weight(.semibold))
+                        .frame(width: 42, height: 42)
+                        .background(Color.primary.opacity(0.08), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Open Settings")
+                .hapticTap()
+            }
 
             miniSolarSystemPreview
         }
@@ -68,7 +83,7 @@ struct HomeView: View {
         if !appState.celestialBodies.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline) {
-                    SectionHeader(title: "Solar System", subtitle: "An overhead view of Luna's local catalog.")
+                    SectionHeader(title: "Solar System")
 
                     Button {
                         appState.selectedTab = .arExperience
@@ -88,6 +103,77 @@ struct HomeView: View {
                     date: Date()
                 )
                 .frame(height: 240)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func dailyContentSection(_ content: HomeDailyContent) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Today In Luna")
+
+            if let body = content.featuredBody {
+                NavigationLink {
+                    BodyDetailView(
+                        celestialBody: body,
+                        childBodies: appState.celestialBodies.filter { $0.parentBodyId == body.id }
+                    )
+                } label: {
+                    Card {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(alignment: .top, spacing: 14) {
+                                BodyCardVisual(celestialBody: body, size: 82)
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack(spacing: 8) {
+                                        Text(body.name)
+                                            .font(.title3.weight(.bold))
+                                            .foregroundStyle(.primary)
+
+                                        Text(body.type.title)
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.primary.opacity(0.06), in: Capsule(style: .continuous))
+                                    }
+
+                                    Text(body.summary.isEmpty ? body.subtitle : body.summary)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(3)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+
+                                Spacer(minLength: 0)
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            Text(content.dailyFact.message)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("home.dailyFact")
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
+            } else {
+                Card {
+                    HStack(alignment: .top, spacing: 12) {
+                        IconBadge(systemImage: content.dailyFact.systemImage)
+
+                        Text(content.dailyFact.message)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .accessibilityElement(children: .combine)
             }
         }
     }
@@ -189,10 +275,10 @@ struct HomeView: View {
                             showsChevron: true
                         )
                     }
+                    .guidedTourTarget(.homeExploreAction)
                 }
                 .buttonStyle(.plain)
                 .hapticTap()
-                .guidedTourTarget(.homeExploreAction)
                 .id(ScrollAnchor.exploreAction)
 
                 CardDivider(leadingInset: 56)
@@ -276,6 +362,7 @@ private struct HomeSolarSystemPreview: View {
             .filter { body in
                 body.type == .star
                     || body.type == .planet
+                    || body.type == .moon
                     || body.type == .dwarfPlanet
                     || body.type == .asteroid
             }
@@ -365,19 +452,21 @@ private struct HomeSolarSystemPreviewLayout {
 
     init(snapshot: ExperienceSceneSnapshot, size: CGSize) {
         let bounds = snapshot.bounds
-        let margin = max(min(size.width, size.height) * 0.10, 18)
+        let margin = max(min(size.width, size.height) * 0.08, 14)
         let availableWidth = max(size.width - margin * 2, 1)
         let availableHeight = max(size.height - margin * 2, 1)
+        let projectedBounds = Self.projectedBounds(for: snapshot, bounds: bounds)
         let scale = min(
-            availableWidth / CGFloat(max(bounds.size.x, 0.001)),
-            availableHeight / CGFloat(max(bounds.size.z, 0.001))
+            availableWidth / CGFloat(max(projectedBounds.width, 0.001)),
+            availableHeight / CGFloat(max(projectedBounds.height, 0.001))
         )
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
 
         func project(_ point: SIMD3<Float>) -> CGPoint {
-            CGPoint(
-                x: center.x + CGFloat(point.x - bounds.center.x) * scale,
-                y: center.y + CGFloat(point.z - bounds.center.z) * scale
+            let projectedPoint = Self.expandedProjection(point, bounds: bounds, projectedBounds: projectedBounds)
+            return CGPoint(
+                x: center.x + CGFloat(projectedPoint.x - projectedBounds.midX) * scale,
+                y: center.y + CGFloat(projectedPoint.y - projectedBounds.midY) * scale
             )
         }
 
@@ -405,7 +494,75 @@ private struct HomeSolarSystemPreviewLayout {
             return max(10, min(16, canvasSize * 0.6))
         }
 
+        if body.body.type == .moon {
+            return max(5, min(8, canvasSize * 0.035))
+        }
+
         let sourceSize = CGFloat(log10(max(body.body.radiusKm, 1))) * 4.2
-        return max(10, min(16, sourceSize))
+        return max(7, min(14, sourceSize))
+    }
+
+    private static func projectedY(_ point: SIMD3<Float>) -> Float {
+        point.z * tiltCosine - point.y * tiltSine
+    }
+
+    private static func rawProjection(_ point: SIMD3<Float>, bounds: ExperienceSceneBounds) -> SIMD2<Float> {
+        SIMD2<Float>(
+            point.x - bounds.center.x,
+            projectedY(point) - projectedY(bounds.center)
+        )
+    }
+
+    private static func expandedProjection(
+        _ point: SIMD3<Float>,
+        bounds: ExperienceSceneBounds,
+        projectedBounds: ProjectedBounds
+    ) -> SIMD2<Float> {
+        let rawPoint = rawProjection(point, bounds: bounds)
+        let radius = max(length(rawPoint), 0.000_001)
+        let normalizedRadius = min(max(radius / projectedBounds.rawRadius, 0), 1)
+        let expandedRadius = pow(normalizedRadius, 0.72) * projectedBounds.rawRadius
+        return rawPoint * (expandedRadius / radius)
+    }
+
+    private static func projectedBounds(for snapshot: ExperienceSceneSnapshot, bounds: ExperienceSceneBounds) -> ProjectedBounds {
+        let points = snapshot.bodies.map(\.position) + snapshot.orbitPaths.flatMap(\.points)
+        let rawPoints = points.map { rawProjection($0, bounds: bounds) }
+        let rawRadius = max(rawPoints.map(length).max() ?? 0.001, 0.001)
+        let expandedPoints = rawPoints.map { point -> SIMD2<Float> in
+            let radius = max(length(point), 0.000_001)
+            let normalizedRadius = min(max(radius / rawRadius, 0), 1)
+            let expandedRadius = pow(normalizedRadius, 0.72) * rawRadius
+            return point * (expandedRadius / radius)
+        }
+
+        guard
+            let minX = expandedPoints.map(\.x).min(),
+            let maxX = expandedPoints.map(\.x).max(),
+            let minY = expandedPoints.map(\.y).min(),
+            let maxY = expandedPoints.map(\.y).max()
+        else {
+            return ProjectedBounds(midX: 0, midY: 0, width: 1, height: 1, rawRadius: rawRadius)
+        }
+
+        return ProjectedBounds(
+            midX: (minX + maxX) / 2,
+            midY: (minY + maxY) / 2,
+            width: max(maxX - minX, 0.001),
+            height: max(maxY - minY, 0.001),
+            rawRadius: rawRadius
+        )
+    }
+
+    private static let tiltAngle = Double.pi * 0.32
+    private static let tiltCosine = Float(cos(tiltAngle))
+    private static let tiltSine = Float(sin(tiltAngle))
+
+    private struct ProjectedBounds {
+        let midX: Float
+        let midY: Float
+        let width: Float
+        let height: Float
+        let rawRadius: Float
     }
 }

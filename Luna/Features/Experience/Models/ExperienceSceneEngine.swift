@@ -268,7 +268,7 @@ enum ExperienceSceneEngine {
             case .star:
                 return 0.34
             case .moon, .dwarfPlanet, .asteroid:
-                return 0.18
+                return body.type == .moon ? 0.07 : 0.18
             case .satellite:
                 return 0.09
             case .rocket, .spacecraft, .station, .astronaut:
@@ -284,7 +284,7 @@ enum ExperienceSceneEngine {
                 return 0.08
             case .moon:
                 let normalized = Float(max(body.radiusKm, 1) / 69_911)
-                return min(0.16, max(0.13, 0.11 + pow(normalized, 0.42) * 0.34))
+                return min(0.075, max(0.035, 0.025 + pow(normalized, 0.42) * 0.16))
             default:
                 let normalized = Float(max(body.radiusKm, 1) / 69_911)
                 return min(0.42, max(0.13, 0.11 + pow(normalized, 0.42) * 0.34))
@@ -457,6 +457,11 @@ enum ExperienceSceneEngine {
                 }
 
                 let baseRadius = baseChildOrbitRadius(for: body, settings: settings)
+                guard settings.distanceScaleMode != .trueScale,
+                      settings.objectScaleMode != .trueScale else {
+                    return (body.id, baseRadius)
+                }
+
                 let parentRadius = displayRadii[parentId] ?? 0
                 let bodyRadius = displayRadii[body.id] ?? 0
                 let minimumRadius = parentRadius + bodyRadius + childOrbitClearanceMargin(for: settings)

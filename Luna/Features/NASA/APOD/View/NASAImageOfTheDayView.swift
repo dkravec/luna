@@ -167,13 +167,16 @@ private struct NASAImageOfTheDayDetailView: View {
     @Environment(\.openURL) private var openURL
 
     let item: NASAImageOfTheDay
+    let showsHistory: Bool
     private let imageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding
 
     init(
         item: NASAImageOfTheDay,
+        showsHistory: Bool = true,
         imageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding = NASAImageOfTheDayRepository()
     ) {
         self.item = item
+        self.showsHistory = showsHistory
         self.imageOfTheDayRepository = imageOfTheDayRepository
     }
 
@@ -219,10 +222,12 @@ private struct NASAImageOfTheDayDetailView: View {
                     .primaryActionButton()
                 }
 
-                NASAImageOfTheDayHistorySection(
-                    currentItem: item,
-                    imageOfTheDayRepository: imageOfTheDayRepository
-                )
+                if showsHistory {
+                    NASAImageOfTheDayHistorySection(
+                        currentItem: item,
+                        imageOfTheDayRepository: imageOfTheDayRepository
+                    )
+                }
             }
             .screenContentPadding()
         }
@@ -272,25 +277,35 @@ private struct NASAImageOfTheDayHistorySection: View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "History")
 
-            if history.isEmpty {
-                Card {
-                    Text("Saved APOD entries will appear here after Luna has cached more days.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            } else {
+            if !history.isEmpty {
                 CardSection {
                     ForEach(Array(history.enumerated()), id: \.element.id) { index, item in
                         NavigationLink {
-                            NASAImageOfTheDayDetailView(item: item, imageOfTheDayRepository: imageOfTheDayRepository)
+                            NASAImageOfTheDayDetailView(
+                                item: item,
+                                showsHistory: false,
+                                imageOfTheDayRepository: imageOfTheDayRepository
+                            )
                         } label: {
                             CardRow {
-                                RowLabel(
-                                    title: item.title,
-                                    subtitle: item.date.formatted(date: .abbreviated, time: .omitted),
-                                    systemImage: item.isImage ? "photo" : "play.rectangle",
-                                    showsChevron: true
-                                )
+                                HStack(alignment: .center, spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(item.title)
+                                            .font(.headline)
+                                            .foregroundStyle(.primary)
+                                            .fixedSize(horizontal: false, vertical: true)
+
+                                        Text(item.date.formatted(date: .abbreviated, time: .omitted))
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Spacer(minLength: 8)
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                         .buttonStyle(.plain)
@@ -306,6 +321,9 @@ private struct NASAImageOfTheDayHistorySection: View {
             history = ((try? imageOfTheDayRepository.savedHistory(limit: 12)) ?? [])
                 .filter { $0.date != currentItem.date }
         }
+        .opacity(history.isEmpty ? 0 : 1)
+        .frame(height: history.isEmpty ? 0 : nil)
+        .accessibilityHidden(history.isEmpty)
     }
 }
 

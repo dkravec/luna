@@ -35,6 +35,14 @@ final class LunaAppState: ObservableObject {
     @Published private(set) var celestialBodies: [CelestialBody] = []
     @Published private(set) var lastRepositoryError: String?
 
+    var selectedAppIconChoice: AppIconChoice {
+#if os(iOS)
+        AppIconChoice(iconName: UIApplication.shared.alternateIconName)
+#else
+        .current
+#endif
+    }
+
     init(
         userProfileRepository: UserProfileRepository = CoreDataUserProfileRepository(),
         experiencePreferencesRepository: ExperiencePreferencesRepository = CoreDataExperiencePreferencesRepository(),
@@ -203,6 +211,19 @@ final class LunaAppState: ObservableObject {
     func refreshDailyFact() {
         Haptics.selection()
         dailyFactOffset += 1
+    }
+
+    func setAppIconChoice(_ choice: AppIconChoice) {
+#if os(iOS)
+        guard UIApplication.shared.supportsAlternateIcons else { return }
+        UIApplication.shared.setAlternateIconName(choice.alternateIconName) { [weak self] error in
+            if let error {
+                DispatchQueue.main.async {
+                    self?.lastRepositoryError = error.localizedDescription
+                }
+            }
+        }
+#endif
     }
 
     func advanceTour() {
