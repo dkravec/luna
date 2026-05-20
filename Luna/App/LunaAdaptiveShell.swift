@@ -20,6 +20,7 @@ struct LunaAdaptiveShell: View {
     }
 }
 
+#if !os(macOS)
 private struct LunaNativeTabShell: View {
     @EnvironmentObject private var appState: LunaAppState
 
@@ -36,6 +37,7 @@ private struct LunaNativeTabShell: View {
             }
         }
         .tabBarMinimizeIfAvailable()
+        .guidedTourOverlay(appState: appState)
         .onChange(of: appState.selectedTab) { _ in
             Haptics.selection()
         }
@@ -47,8 +49,17 @@ private struct LunaCustomTabShell: View {
     @State private var isTabBarExpanded = true
 
     var body: some View {
-        NavigationStack {
-            appState.selectedTab.destination
+        TabView(selection: $appState.selectedTab) {
+            ForEach(LunaTab.allCases) { tab in
+                NavigationStack {
+                    tab.destination
+                }
+                .tabItem {
+                    Label(tab.title, systemImage: tab.systemImage)
+                }
+                .tag(tab)
+                .toolbar(.hidden, for: .tabBar)
+            }
         }
         .lunaCustomTabBarBottomReserve()
         .overlay(alignment: .bottom) {
@@ -59,8 +70,10 @@ private struct LunaCustomTabShell: View {
             .padding(.bottom, 18)
             .frame(maxWidth: .infinity, alignment: .center)
         }
+        .guidedTourOverlay(appState: appState)
     }
 }
+#endif
 
 struct LunaSidebarShell: View {
     @EnvironmentObject private var appState: LunaAppState
@@ -101,6 +114,7 @@ struct LunaSidebarShell: View {
                 appState.selectedTab.destination
             }
         }
+        .guidedTourOverlay(appState: appState)
     }
 }
 

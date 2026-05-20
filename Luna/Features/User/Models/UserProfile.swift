@@ -4,6 +4,7 @@ struct UserProfile: Identifiable, Equatable {
     var id: UUID
     var displayName: String?
     var hasCompletedOnboarding: Bool
+    var hasCompletedFirstRunTour: Bool
     var appearancePreference: AppAppearancePreference
     var hapticsEnabled: Bool
     var hapticIntensity: HapticIntensity
@@ -12,6 +13,7 @@ struct UserProfile: Identifiable, Equatable {
         id: UUID(),
         displayName: nil,
         hasCompletedOnboarding: false,
+        hasCompletedFirstRunTour: false,
         appearancePreference: .system,
         hapticsEnabled: true,
         hapticIntensity: .heavy

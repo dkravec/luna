@@ -8,6 +8,8 @@ private typealias PlatformBodyImage = NSImage
 #endif
 
 struct BodyDetailView: View {
+    @EnvironmentObject private var appState: LunaAppState
+
     let celestialBody: CelestialBody
     let childBodies: [CelestialBody]
 
@@ -95,13 +97,25 @@ struct BodyDetailView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                NavigationLink {
-                    ObjectExperienceView(celestialBody: celestialBody)
-                } label: {
-                    Label("View in AR", systemImage: "arkit")
-                        .frame(maxWidth: .infinity)
+                if appState.guidedTourStep == .bodyDetailExperience {
+                    Button {
+                        _ = appState.guidedTourTargetTapped(.bodyDetailExperience)
+                    } label: {
+                        Label("Open Experience", systemImage: "arkit")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .primaryActionButton()
+                    .guidedTourTarget(.bodyDetailExperience)
+                } else {
+                    NavigationLink {
+                        ObjectExperienceView(celestialBody: celestialBody)
+                    } label: {
+                        Label("Open Experience", systemImage: "arkit")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .primaryActionButton()
+                    .guidedTourTarget(.bodyDetailExperience)
                 }
-                .primaryActionButton()
             }
         }
     }
@@ -454,6 +468,14 @@ private extension CelestialBodyType {
             return "moon"
         case .satellite:
             return "dot.radiowaves.left.and.right"
+        case .rocket:
+            return "airplane.departure"
+        case .spacecraft:
+            return "sparkles"
+        case .station:
+            return "rectangle.connected.to.line.below"
+        case .astronaut:
+            return "person"
         case .asteroid:
             return "seal"
         case .dwarfPlanet:

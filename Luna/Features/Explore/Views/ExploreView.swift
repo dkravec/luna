@@ -3,47 +3,58 @@ import SwiftUI
 struct ExploreView: View {
     @EnvironmentObject private var appState: LunaAppState
     @StateObject private var viewModel = ExploreViewModel()
+    @State private var guidedTourBodyID: String?
+    @State private var selectedCollection: ExploreCollection?
+    @State private var selectedBodyID: String?
 
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                PageHeader(
-                    title: "Explore",
-                    subtitle: "Browse worlds, compare facts, and open details from Luna's space library."
-                )
-
-                regionSection
-                filterSection
-                bodiesSection
-            }
-            .screenContentPadding()
-        }
-        .appBackground()
-        .onAppear {
-            viewModel.configure(repository: appState.celestialBodyRepository)
-        }
+    private enum ScrollAnchor {
+        static let categorySection = "explore.categories"
+        static let guidedBodySection = "explore.guidedBody"
     }
 
-    private var regionSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Region")
-
-            CardSection {
-                CardRow {
-                    RowLabel(
-                        title: "Solar System",
-                        subtitle: "The Sun, planets, Earth's Moon, and selected satellites",
-                        systemImage: "sun.max",
-                        value: "Active"
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                    PageHeader(
+                        title: "Explore",
+                        subtitle: "Browse worlds, spacecraft, and NASA models from Luna's space library."
                     )
+
+                    SearchCard(
+                        placeholder: "Search Explore",
+                        text: $viewModel.searchText
+                    )
+                    if viewModel.isSearching {
+                        filterSection
+                    }
+                    guidedTourBodySection
+                    bodiesSection
                 }
+                .screenContentPadding()
+            }
+            .appBackground()
+            .background(hiddenNavigationLinks)
+            .onAppear {
+                viewModel.configure(repository: appState.celestialBodyRepository)
+                openRequestedGuidedTourBodyIfNeeded()
+                scrollForGuidedTourStep(appState.guidedTourStep, proxy: proxy)
+            }
+            .onChange(of: appState.guidedTourBodyID) { _ in
+                openRequestedGuidedTourBodyIfNeeded()
+            }
+            .onChange(of: viewModel.loadState) { _ in
+                openRequestedGuidedTourBodyIfNeeded()
+            }
+            .onChange(of: appState.guidedTourStep) { step in
+                scrollForGuidedTourStep(step, proxy: proxy)
             }
         }
     }
 
     private var filterSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Filter", subtitle: "\(viewModel.bodyCountText) bodies shown")
+            SectionHeader(title: "Filter", subtitle: "\(viewModel.bodyCountText) items shown")
 
             Card {
                 Picker("Body Type", selection: $viewModel.selectedFilter) {
@@ -57,50 +68,385 @@ struct ExploreView: View {
     }
 
     @ViewBuilder
-    private var bodiesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Bodies")
+    private var hiddenNavigationLinks: some View {
+        hiddenGuidedTourNavigationLink
+        hiddenCollectionNavigationLink
+        hiddenBodyNavigationLink
+    }
 
-            switch viewModel.loadState {
-            case .idle:
-                EmptyStateView(
-                    title: "Loading Bodies",
-                    systemImage: "circle.grid.cross",
-                    message: "Luna is reading the local solar system library."
-                )
-            case .failed(let message):
-                EmptyStateView(
-                    title: "Unable To Load",
-                    systemImage: "exclamationmark.triangle",
-                    message: message
-                )
-            case .loaded:
-                if viewModel.filteredBodies.isEmpty {
-                    EmptyStateView(
-                        title: "No Bodies",
-                        systemImage: "line.3.horizontal.decrease",
-                        message: "Try a different filter."
-                    )
-                } else {
-                    LazyVStack(spacing: 10) {
-                        ForEach(viewModel.filteredBodies) { body in
-                            NavigationLink {
-                                BodyDetailView(
-                                    celestialBody: body,
-                                    childBodies: viewModel.children(of: body)
-                                )
-                            } label: {
-                                BodyCard(celestialBody: body)
-                            }
-                            .buttonStyle(.plain)
-                            .hapticTap()
+    @ViewBuilder
+    private var hiddenGuidedTourNavigationLink: some View {
+        NavigationLink(
+            destination: guidedTourDestination,
+            isActive: Binding(
+                get: { guidedTourBodyID != nil },
+                set: { isActive in
+                    if !isActive {
+                        guidedTourBodyID = nil
+                    }
+                }
+            )
+        ) {
+            EmptyView()
+        }
+        .hidden()
+    }
+
+    @ViewBuilder
+    private var hiddenCollectionNavigationLink: some View {
+        NavigationLink(
+            destination: selectedCollectionDestination,
+            isActive: Binding(
+                get: { selectedCollection != nil },
+                set: { isActive in
+                    if !isActive {
+                        selectedCollection = nil
+                    }
+                }
+            )
+        ) {
+            EmptyView()
+        }
+        .hidden()
+    }
+
+    @ViewBuilder
+    private var hiddenBodyNavigationLink: some View {
+        NavigationLink(
+            destination: selectedBodyDestination,
+            isActive: Binding(
+                get: { selectedBodyID != nil },
+                set: { isActive in
+                    if !isActive {
+                        selectedBodyID = nil
+                    }
+                }
+            )
+        ) {
+            EmptyView()
+        }
+        .hidden()
+    }
+
+    @ViewBuilder
+    private var guidedTourDestination: some View {
+        if let bodyID = guidedTourBodyID, let body = body(withID: bodyID) {
+            BodyDetailView(
+                celestialBody: body,
+                childBodies: viewModel.children(of: body)
+            )
+        } else {
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private var selectedCollectionDestination: some View {
+        if let selectedCollection {
+            CategoryExploreView(
+                collection: selectedCollection,
+                bodies: viewModel.bodies(in: selectedCollection),
+                childrenProvider: viewModel.children(of:)
+            )
+        } else {
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private var selectedBodyDestination: some View {
+        if let selectedBodyID, let body = body(withID: selectedBodyID) {
+            BodyDetailView(
+                celestialBody: body,
+                childBodies: viewModel.children(of: body)
+            )
+        } else {
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private var guidedTourBodySection: some View {
+        if appState.guidedTourStep == .exploreBody,
+           let body = appState.defaultBodyForGuidedTour() {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "Start Here", subtitle: "Open one body to see how Luna connects facts to the experience.")
+
+                bodyLink(for: body)
+                    .guidedTourTarget(.exploreBody)
+            }
+            .id(ScrollAnchor.guidedBodySection)
+        }
+    }
+
+    @ViewBuilder
+    private var bodiesSection: some View {
+        switch viewModel.loadState {
+        case .idle:
+            EmptyStateView(
+                title: "Loading Explore",
+                systemImage: "circle.grid.cross",
+                message: "Luna is reading the local space library."
+            )
+        case .failed(let message):
+            EmptyStateView(
+                title: "Unable To Load",
+                systemImage: "exclamationmark.triangle",
+                message: message
+            )
+        case .loaded:
+            if viewModel.isSearching {
+                searchResultsSection
+            } else {
+                categorySection
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var categorySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Collections")
+
+            LazyVStack(spacing: 10) {
+                ForEach(viewModel.exploreCollections) { collection in
+                    Button {
+                        if collection != viewModel.exploreCollections.first || !appState.guidedTourTargetTapped(.exploreCategory) {
+                            selectedCollection = collection
                         }
+                    } label: {
+                        CategoryCard(
+                            collection: collection,
+                            itemCount: viewModel.bodyCount(in: collection)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .hapticTap()
+                    .guidedTourTarget(.exploreCategory, when: collection == viewModel.exploreCollections.first)
+                }
+            }
+        }
+        .id(ScrollAnchor.categorySection)
+    }
+
+    @ViewBuilder
+    private var searchResultsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Results")
+
+            if viewModel.filteredBodies.isEmpty {
+                EmptyStateView(
+                    title: "No Results",
+                    systemImage: "line.3.horizontal.decrease",
+                    message: "Try another search or filter."
+                )
+            } else {
+                LazyVStack(spacing: 10) {
+                    ForEach(viewModel.filteredBodies) { body in
+                        bodyLink(for: body)
+                            .guidedTourTarget(.exploreBody, when: body.id == viewModel.filteredBodies.first?.id)
                     }
                 }
             }
         }
     }
 
+    private func bodyLink(for body: CelestialBody) -> some View {
+        Button {
+            if !appState.guidedTourTargetTapped(.exploreBody) {
+                selectedBodyID = body.id
+            }
+        } label: {
+            BodyCard(celestialBody: body)
+        }
+        .buttonStyle(.plain)
+        .hapticTap()
+    }
+
+    private func openRequestedGuidedTourBodyIfNeeded() {
+        guard let bodyID = appState.guidedTourBodyID else {
+            guidedTourBodyID = nil
+            return
+        }
+
+        let body = viewModel.bodies.first { $0.id == bodyID }
+            ?? appState.celestialBodies.first { $0.id == bodyID }
+            ?? appState.defaultBodyForGuidedTour()
+
+        if guidedTourBodyID != body?.id {
+            guidedTourBodyID = body?.id
+        }
+    }
+
+    private func body(withID bodyID: String) -> CelestialBody? {
+        viewModel.bodies.first { $0.id == bodyID }
+            ?? appState.celestialBodies.first { $0.id == bodyID }
+    }
+
+    private func scrollForGuidedTourStep(_ step: GuidedTourStep?, proxy: ScrollViewProxy) {
+        guard let step else { return }
+
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                switch step {
+                case .exploreCategories:
+                    proxy.scrollTo(ScrollAnchor.categorySection, anchor: .top)
+                case .exploreBody:
+                    proxy.scrollTo(ScrollAnchor.guidedBodySection, anchor: .center)
+                default:
+                    break
+                }
+            }
+        }
+    }
+
+}
+
+private struct CategoryExploreView: View {
+    let collection: ExploreCollection
+    let bodies: [CelestialBody]
+    let childrenProvider: (CelestialBody) -> [CelestialBody]
+
+    @State private var searchText = ""
+
+    private var filteredBodies: [CelestialBody] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return bodies }
+
+        return bodies.filter {
+            $0.searchTokens(includeCollectionTokens: false)
+                .contains { $0.localizedCaseInsensitiveContains(query) }
+        }
+    }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                PageHeader(title: collection.title, subtitle: collection.subtitle)
+
+                SearchCard(
+                    placeholder: "Search \(collection.title)",
+                    text: $searchText
+                )
+
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionHeader(title: "Models", subtitle: "\(filteredBodies.count) items shown")
+
+                    if filteredBodies.isEmpty {
+                        EmptyStateView(
+                            title: "No Results",
+                            systemImage: "line.3.horizontal.decrease",
+                            message: "Try another search in \(collection.title)."
+                        )
+                    } else {
+                        LazyVStack(spacing: 10) {
+                            ForEach(filteredBodies) { body in
+                                NavigationLink {
+                                    BodyDetailView(
+                                        celestialBody: body,
+                                        childBodies: childrenProvider(body)
+                                    )
+                                } label: {
+                                    BodyCard(celestialBody: body)
+                                }
+                                .buttonStyle(.plain)
+                                .hapticTap()
+                            }
+                        }
+                    }
+                }
+            }
+            .screenContentPadding()
+        }
+        .appBackground()
+        .navigationTitle(collection.title)
+    }
+}
+
+private struct SearchCard: View {
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Search")
+
+            Card {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 24)
+
+                    TextField(placeholder, text: $text)
+                        .textFieldStyle(.plain)
+                        .autocorrectionDisabled()
+#if os(iOS)
+                        .textInputAutocapitalization(.never)
+#endif
+                        .submitLabel(.search)
+
+                    if !text.isEmpty {
+                        Button {
+                            text = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28, height: 28)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Clear search")
+                        .hapticTap()
+                    }
+                }
+                .accessibilityElement(children: .contain)
+            }
+        }
+    }
+}
+
+private struct CategoryCard: View {
+    let collection: ExploreCollection
+    let itemCount: Int
+
+    var body: some View {
+        Card {
+            HStack(spacing: 14) {
+                Image(systemName: collection.systemImage)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 44, height: 44)
+                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: Radii.rowIcon, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(collection.title)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+
+                    Text(collection.subtitle)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                HStack(spacing: 8) {
+                    Text("\(itemCount)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(collection.title), \(itemCount) items")
+    }
 }
 
 private struct BodyCard: View {
@@ -109,13 +455,15 @@ private struct BodyCard: View {
     var bodyContent: some View {
         Card {
             HStack(alignment: .center, spacing: 14) {
-                BodyVisual(celestialBody: celestialBody, size: 86)
+                BodyCardVisual(celestialBody: celestialBody, size: 86)
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(celestialBody.name)
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(.primary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Text(celestialBody.type.title)
                             .font(.subheadline.weight(.semibold))
@@ -124,6 +472,7 @@ private struct BodyCard: View {
                             .padding(.vertical, 4)
                             .background(Color.primary.opacity(0.06), in: Capsule(style: .continuous))
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                     Text(celestialBody.summary)
                         .font(.body)

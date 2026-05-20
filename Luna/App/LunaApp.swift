@@ -1,4 +1,8 @@
 import SwiftUI
+#if os(iOS)
+import ARKit
+import UIKit
+#endif
 
 @main
 struct LunaApp: App {
@@ -17,9 +21,15 @@ final class LunaAppState: ObservableObject {
     let userProfileRepository: UserProfileRepository
     let experiencePreferencesRepository: ExperiencePreferencesRepository
     let celestialBodyRepository: CelestialBodyRepository
+    let guidedTour: GuidedTourCoordinator
 
     @Published var selectedTab: LunaTab = .home
+    @Published private(set) var guidedTourStep: GuidedTourStep?
+    @Published private(set) var guidedTourBodyID: String?
+    @Published private(set) var guidedTourPresentationID = UUID()
+    @Published private(set) var guidedTourDismissalID: UUID?
     @Published var appearancePreference: AppAppearancePreference = .system
+    @Published var dailyFactOffset: Int = 0
     @Published private(set) var userProfile: UserProfile
     @Published private(set) var experiencePreferences: ExperiencePreferences
     @Published private(set) var celestialBodies: [CelestialBody] = []
@@ -28,11 +38,13 @@ final class LunaAppState: ObservableObject {
     init(
         userProfileRepository: UserProfileRepository = CoreDataUserProfileRepository(),
         experiencePreferencesRepository: ExperiencePreferencesRepository = CoreDataExperiencePreferencesRepository(),
-        celestialBodyRepository: CelestialBodyRepository = LocalCelestialBodyRepository()
+        celestialBodyRepository: CelestialBodyRepository = LocalCelestialBodyRepository(),
+        guidedTour: GuidedTourCoordinator = GuidedTourCoordinator()
     ) {
         self.userProfileRepository = userProfileRepository
         self.experiencePreferencesRepository = experiencePreferencesRepository
         self.celestialBodyRepository = celestialBodyRepository
+        self.guidedTour = guidedTour
 
         do {
             let profile = try userProfileRepository.fetchOrCreateProfile()
@@ -55,7 +67,25 @@ final class LunaAppState: ObservableObject {
             lastRepositoryError = error.localizedDescription
         }
 
+        configureGuidedTour()
         loadCelestialBodies()
+        configureForUITestingIfNeeded()
+
+        if userProfile.hasCompletedOnboarding && !userProfile.hasCompletedFirstRunTour {
+            startFirstRunTour()
+        }
+    }
+
+    var isGuidedTourActive: Bool {
+        guidedTour.isActive
+    }
+
+    var canUseARForGuidedTour: Bool {
+#if os(iOS)
+        ARWorldTrackingConfiguration.isSupported
+#else
+        false
+#endif
     }
 
     func setAppearancePreference(_ preference: AppAppearancePreference) {
@@ -70,18 +100,35 @@ final class LunaAppState: ObservableObject {
         saveExperiencePreferences()
     }
 
+    func setSceneScaleProfile(_ profile: SceneScaleProfile) {
+        experiencePreferences.sceneScaleProfile = profile
+        if profile != .custom {
+            experiencePreferences.distanceScaleMode = profile.defaultDistanceScaleMode
+            experiencePreferences.objectScaleMode = profile.defaultObjectScaleMode
+        }
+        saveExperiencePreferences()
+    }
+
     func setDistanceScaleMode(_ scaleMode: DistanceScaleMode) {
+        experiencePreferences.sceneScaleProfile = .custom
         experiencePreferences.distanceScaleMode = scaleMode
         saveExperiencePreferences()
     }
 
     func setDistanceCompression(_ distanceCompression: Double) {
-        experiencePreferences.distanceCompression = distanceCompression
+        experiencePreferences.sceneScaleProfile = .custom
+        experiencePreferences.distanceCompression = ExperienceSceneSettings.clampedDistanceCompression(distanceCompression)
         saveExperiencePreferences()
     }
 
     func setObjectScaleMode(_ objectScaleMode: ObjectScaleMode) {
+        experiencePreferences.sceneScaleProfile = .custom
         experiencePreferences.objectScaleMode = objectScaleMode
+        saveExperiencePreferences()
+    }
+
+    func setRenderDetail(_ renderDetail: SceneRenderDetail) {
+        experiencePreferences.renderDetail = renderDetail
         saveExperiencePreferences()
     }
 
@@ -120,24 +167,84 @@ final class LunaAppState: ObservableObject {
     func completeOnboarding(
         displayName: String?,
         prefersARMode: Bool,
+        sceneScaleProfile: SceneScaleProfile,
         distanceScaleMode: DistanceScaleMode,
         objectScaleMode: ObjectScaleMode,
         distanceCompression: Double
     ) {
         userProfile.displayName = displayName
         userProfile.hasCompletedOnboarding = true
+        userProfile.hasCompletedFirstRunTour = false
         experiencePreferences.prefersARMode = prefersARMode
-        experiencePreferences.distanceScaleMode = distanceScaleMode
-        experiencePreferences.objectScaleMode = objectScaleMode
-        experiencePreferences.distanceCompression = distanceCompression
+        experiencePreferences.sceneScaleProfile = sceneScaleProfile
+        experiencePreferences.distanceScaleMode = sceneScaleProfile == .custom
+            ? distanceScaleMode
+            : sceneScaleProfile.defaultDistanceScaleMode
+        experiencePreferences.objectScaleMode = sceneScaleProfile == .custom
+            ? objectScaleMode
+            : sceneScaleProfile.defaultObjectScaleMode
+        experiencePreferences.distanceCompression = ExperienceSceneSettings.clampedDistanceCompression(distanceCompression)
 
         saveUserProfile()
         saveExperiencePreferences()
-        selectedTab = prefersARMode ? .arExperience : .solarSystem
+        selectedTab = .home
+        startFirstRunTour()
+    }
+
+    func startFirstRunTour() {
+        guidedTour.start()
+    }
+
+    func restartTour() {
+        Haptics.selection()
+        startFirstRunTour()
+    }
+
+    func refreshDailyFact() {
+        Haptics.selection()
+        dailyFactOffset += 1
+    }
+
+    func advanceTour() {
+        if guidedTour.next() {
+            Haptics.selection()
+        }
+    }
+
+    func goBackTour() {
+        if guidedTour.back() {
+            Haptics.selection()
+        }
+    }
+
+    func guidedTourTargetTapped(_ target: GuidedTourTarget) -> Bool {
+        let didAdvance = guidedTour.targetTapped(target)
+        if didAdvance {
+            Haptics.selection()
+        }
+        return didAdvance
+    }
+
+    func skipTour() {
+        Haptics.selection()
+        guidedTour.skip()
+    }
+
+    func finishTour() {
+        guidedTour.finish()
+    }
+
+    var canGoBackTour: Bool {
+        guidedTour.canGoBack
+    }
+
+    func defaultBodyForGuidedTour() -> CelestialBody? {
+        defaultGuidedTourBody
     }
 
     func resetOnboarding() {
         do {
+            guidedTour.cancel()
             userProfile = try userProfileRepository.resetOnboarding()
             selectedTab = .home
             lastRepositoryError = nil
@@ -148,6 +255,7 @@ final class LunaAppState: ObservableObject {
 
     func resetUserProfile() {
         do {
+            guidedTour.cancel()
             userProfile = try userProfileRepository.resetProfile()
             experiencePreferences = try experiencePreferencesRepository.resetPreferences()
             appearancePreference = userProfile.appearancePreference
@@ -169,6 +277,45 @@ final class LunaAppState: ObservableObject {
         }
     }
 
+    private func configureForUITestingIfNeeded() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains("-uiTesting") else { return }
+
+#if os(iOS)
+        if arguments.contains("-disableAnimations") {
+            UIView.setAnimationsEnabled(false)
+        }
+#endif
+
+        do {
+            if arguments.contains("-resetProfile") {
+                userProfile = try userProfileRepository.resetProfile()
+                experiencePreferences = try experiencePreferencesRepository.resetPreferences()
+                appearancePreference = userProfile.appearancePreference
+                selectedTab = .home
+                guidedTour.cancel()
+            }
+
+            if arguments.contains("-completeOnboarding") {
+                userProfile.displayName = "UITest"
+                userProfile.hasCompletedOnboarding = true
+                userProfile.hasCompletedFirstRunTour = !arguments.contains("-firstRunTourPending")
+                experiencePreferences.prefersARMode = false
+                saveUserProfile()
+                saveExperiencePreferences()
+            }
+
+            if arguments.contains("-firstRunTourPending") {
+                userProfile.hasCompletedFirstRunTour = false
+                saveUserProfile()
+            }
+
+            lastRepositoryError = nil
+        } catch {
+            lastRepositoryError = error.localizedDescription
+        }
+    }
+
     private func saveUserProfile() {
         do {
             try userProfileRepository.save(userProfile)
@@ -185,5 +332,54 @@ final class LunaAppState: ObservableObject {
         } catch {
             lastRepositoryError = error.localizedDescription
         }
+    }
+
+    private func configureGuidedTour() {
+        guidedTour.routeHandler = { [weak self] route in
+            self?.handleGuidedTourRoute(route)
+        }
+        guidedTour.defaultBodyIDProvider = { [weak self] in
+            self?.defaultGuidedTourBody?.id
+        }
+        guidedTour.completionHandler = { [weak self] in
+            self?.completeGuidedTourPersistence()
+        }
+        guidedTour.stateDidChange = { [weak self] in
+            self?.syncGuidedTourState()
+        }
+        syncGuidedTourState()
+    }
+
+    private func syncGuidedTourState() {
+        guidedTourStep = guidedTour.currentStep
+        guidedTourBodyID = guidedTour.pendingBodyID
+        guidedTourPresentationID = guidedTour.presentationID
+        guidedTourDismissalID = guidedTour.dismissalID
+    }
+
+    private func handleGuidedTourRoute(_ route: GuidedTourRoute) {
+        switch route {
+        case .home:
+            selectedTab = .home
+        case .explore:
+            selectedTab = .solarSystem
+        case .bodyDetail:
+            selectedTab = .solarSystem
+        case .experience:
+            selectedTab = .arExperience
+        case .settings:
+            selectedTab = .settings
+        }
+    }
+
+    private func completeGuidedTourPersistence() {
+        userProfile.hasCompletedFirstRunTour = true
+        saveUserProfile()
+    }
+
+    private var defaultGuidedTourBody: CelestialBody? {
+        celestialBodies.first { $0.id == "earth" }
+            ?? celestialBodies.first { $0.type == .planet }
+            ?? celestialBodies.sorted { $0.displayOrder < $1.displayOrder }.first
     }
 }

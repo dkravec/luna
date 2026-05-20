@@ -4,10 +4,13 @@ struct LunaRootView: View {
     @EnvironmentObject private var appState: LunaAppState
 
     var body: some View {
-        if appState.userProfile.hasCompletedOnboarding {
-            LunaAdaptiveShell()
-        } else {
-            OnboardingFlowView()
+        Group {
+            if appState.userProfile.hasCompletedOnboarding {
+                LunaAdaptiveShell()
+            } else {
+                OnboardingFlowView()
+            }
         }
+        .id(appState.userProfile.hasCompletedOnboarding)
     }
 }

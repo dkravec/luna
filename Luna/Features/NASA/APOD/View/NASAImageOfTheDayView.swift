@@ -16,7 +16,7 @@ struct NASAImageOfTheDayView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "NASA Image of the Day")
+            SectionHeader(title: "Astronomy Picture of the Day")
 
             switch imageOfTheDayState {
             case .loading:
@@ -113,7 +113,7 @@ private struct NASAImageOfTheDayCard: View {
         .background(CardBackground())
         .clipShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(item.title). NASA image of the day. Opens details.")
+        .accessibilityLabel("\(item.title). Astronomy Picture of the Day. Opens details.")
     }
 
     @ViewBuilder
@@ -336,7 +336,7 @@ private struct NASAImageOfTheDayUnavailableCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 RowLabel(
                     title: "Image unavailable",
-                    subtitle: "NASA's image of the day could not be loaded.",
+                    subtitle: "Astronomy picture of the day could not be loaded.",
                     systemImage: "exclamationmark.triangle"
                 )
 

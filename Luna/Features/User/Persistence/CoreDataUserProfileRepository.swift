@@ -62,6 +62,7 @@ extension UserProfile {
             id: managedObject.id ?? UUID(),
             displayName: managedObject.displayName,
             hasCompletedOnboarding: managedObject.hasCompletedOnboarding,
+            hasCompletedFirstRunTour: managedObject.hasCompletedFirstRunTour,
             appearancePreference: appearance,
             hapticsEnabled: managedObject.hapticsEnabled,
             hapticIntensity: hapticIntensity
@@ -74,6 +75,7 @@ final class UserProfileRecord: NSManagedObject {
     @NSManaged var id: UUID?
     @NSManaged var displayName: String?
     @NSManaged var hasCompletedOnboarding: Bool
+    @NSManaged var hasCompletedFirstRunTour: Bool
     @NSManaged var preferredScaleModeRaw: String?
     @NSManaged var distanceCompression: Double
     @NSManaged var planetSizeMultiplier: Double
@@ -95,6 +97,7 @@ extension UserProfileRecord {
         id = profile.id
         displayName = profile.displayName
         hasCompletedOnboarding = profile.hasCompletedOnboarding
+        hasCompletedFirstRunTour = profile.hasCompletedFirstRunTour
         appearancePreferenceRaw = profile.appearancePreference.rawValue
         hapticsEnabled = profile.hapticsEnabled
         hapticIntensityRaw = profile.hapticIntensity.rawValue

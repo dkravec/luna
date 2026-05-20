@@ -50,6 +50,7 @@ struct OnboardingFlowView: View {
             ViewingModeStepView(prefersARMode: $viewModel.prefersARMode)
         case .scaleMode:
             ScaleModeStepView(
+                sceneScaleProfile: profileBinding,
                 distanceScaleMode: $viewModel.distanceScaleMode,
                 objectScaleMode: $viewModel.objectScaleMode,
                 distanceCompression: $viewModel.distanceCompression
@@ -83,6 +84,7 @@ struct OnboardingFlowView: View {
             appState.completeOnboarding(
                 displayName: viewModel.trimmedDisplayName,
                 prefersARMode: viewModel.prefersARMode,
+                sceneScaleProfile: viewModel.sceneScaleProfile,
                 distanceScaleMode: viewModel.distanceScaleMode,
                 objectScaleMode: viewModel.objectScaleMode,
                 distanceCompression: viewModel.distanceCompression
@@ -90,6 +92,19 @@ struct OnboardingFlowView: View {
         } else {
             viewModel.advance()
         }
+    }
+
+    private var profileBinding: Binding<SceneScaleProfile> {
+        Binding(
+            get: { viewModel.sceneScaleProfile },
+            set: { profile in
+                viewModel.sceneScaleProfile = profile
+                if profile != .custom {
+                    viewModel.distanceScaleMode = profile.defaultDistanceScaleMode
+                    viewModel.objectScaleMode = profile.defaultObjectScaleMode
+                }
+            }
+        )
     }
 }
 
@@ -192,6 +207,7 @@ private struct ProfileStepView: View {
 }
 
 private struct ScaleModeStepView: View {
+    @Binding var sceneScaleProfile: SceneScaleProfile
     @Binding var distanceScaleMode: DistanceScaleMode
     @Binding var objectScaleMode: ObjectScaleMode
     @Binding var distanceCompression: Double
@@ -199,16 +215,20 @@ private struct ScaleModeStepView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.section) {
             PageHeader(
-                title: "Choose Scaling",
-                subtitle: "Pick how Luna should balance accurate scale with readable space views."
+                title: "Choose Scale Profile",
+                subtitle: "Pick a profile now. You can open custom controls later if you want fine tuning."
             )
 
-            DistanceScaleOptionsView(
-                distanceScaleMode: $distanceScaleMode,
-                distanceCompression: $distanceCompression
-            )
+            SceneScaleProfileOptionsView(sceneScaleProfile: $sceneScaleProfile)
 
-            ObjectScaleOptionsView(objectScaleMode: $objectScaleMode)
+            if sceneScaleProfile == .custom {
+                DistanceScaleOptionsView(
+                    distanceScaleMode: $distanceScaleMode,
+                    distanceCompression: $distanceCompression
+                )
+
+                ObjectScaleOptionsView(objectScaleMode: $objectScaleMode)
+            }
         }
     }
 }
@@ -280,28 +300,37 @@ struct DistanceScaleOptionsView: View {
     }
 
     private func compressionSection(_ distanceCompression: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let clampedCompression = Binding<Double>(
+            get: {
+                ExperienceSceneSettings.clampedDistanceCompression(distanceCompression.wrappedValue)
+            },
+            set: {
+                distanceCompression.wrappedValue = ExperienceSceneSettings.clampedDistanceCompression($0)
+            }
+        )
+
+        return VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Compression")
 
             Card {
                 VStack(alignment: .leading, spacing: 12) {
                     RowLabel(
                         title: "Distance Compression",
-                        subtitle: "Brings faraway bodies closer for viewing. This is a viewing aid, not accurate distance.",
+                        subtitle: "Uses real distance ratios divided by this value, scaled for readable viewing.",
                         systemImage: "arrow.left.and.right",
-                        value: "\(Int(distanceCompression.wrappedValue.rounded()))x"
+                        value: "\(Int(clampedCompression.wrappedValue.rounded()))x"
                     )
 
                     Slider(
-                        value: distanceCompression,
-                        in: 5...100,
-                        step: 5
+                        value: clampedCompression,
+                        in: ExperienceSceneSettings.minimumDistanceCompression...ExperienceSceneSettings.maximumDistanceCompression,
+                        step: 1
                     ) {
                         Text("Distance Compression")
                     } minimumValueLabel: {
-                        Text("5x")
+                        Text("\(Int(ExperienceSceneSettings.minimumDistanceCompression))x")
                     } maximumValueLabel: {
-                        Text("100x")
+                        Text("\(Int(ExperienceSceneSettings.maximumDistanceCompression))x")
                     }
                 }
             }
@@ -314,21 +343,62 @@ struct DistanceScaleOptionsView: View {
                 mode: .educational,
                 subtitle: "Keeps distances equally spaced and readable.",
                 systemImage: "graduationcap",
-                value: "Recommended"
+                value: "Custom"
             ),
             ScaleOption(
                 mode: .compressed,
-                subtitle: "Preserves distance order while pulling worlds closer.",
+                subtitle: "Uses real distances divided by a selected compression value.",
                 systemImage: "arrow.left.and.right",
-                value: "Compressed"
+                value: "Recommended"
             ),
             ScaleOption(
                 mode: .trueScale,
-                subtitle: "Uses the closest practical accurate distance mapping.",
+                subtitle: "Uses real distance ratios; objects may be very far apart.",
                 systemImage: "exclamationmark.triangle",
                 value: "Huge"
             )
         ]
+    }
+}
+
+struct SceneScaleProfileOptionsView: View {
+    @Binding var sceneScaleProfile: SceneScaleProfile
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Scale Profile")
+
+            CardSection {
+                ForEach(Array(SceneScaleProfile.allCases.enumerated()), id: \.element.id) { index, profile in
+                    SelectionRow(
+                        title: profile.title,
+                        subtitle: profile.subtitle,
+                        systemImage: systemImage(for: profile),
+                        value: profile == .scaledRecommended ? "Default" : nil,
+                        isSelected: sceneScaleProfile == profile
+                    ) {
+                        sceneScaleProfile = profile
+                    }
+
+                    if index < SceneScaleProfile.allCases.count - 1 {
+                        CardDivider(leadingInset: 56)
+                    }
+                }
+            }
+        }
+    }
+
+    private func systemImage(for profile: SceneScaleProfile) -> String {
+        switch profile {
+        case .scaledRecommended:
+            return "sparkles"
+        case .uniform:
+            return "circle.grid.2x2"
+        case .trueSize:
+            return "ruler"
+        case .custom:
+            return "slider.horizontal.3"
+        }
     }
 }
 

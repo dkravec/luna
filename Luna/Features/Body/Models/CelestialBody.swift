@@ -15,6 +15,7 @@ struct CelestialBody: Codable, Identifiable, Equatable {
     let axialTiltDegrees: Double?
     let gravity: Double?
     let imageName: String?
+    let thumbnailName: String?
     let textureName: String?
     let modelName: String?
     let orbit: CelestialOrbit?
@@ -24,12 +25,37 @@ struct CelestialBody: Codable, Identifiable, Equatable {
 }
 
 struct CelestialOrbit: Codable, Equatable {
+    static let j2000JulianDay = 2_451_545.0
+
     let semiMajorAxisKm: Double
     let eccentricity: Double
     let inclinationDegrees: Double
     let longitudeOfAscendingNodeDegrees: Double
     let argumentOfPeriapsisDegrees: Double
     let meanAnomalyAtEpochDegrees: Double
+    let epochJulianDay: Double?
+
+    var effectiveEpochJulianDay: Double {
+        epochJulianDay ?? Self.j2000JulianDay
+    }
+
+    init(
+        semiMajorAxisKm: Double,
+        eccentricity: Double,
+        inclinationDegrees: Double,
+        longitudeOfAscendingNodeDegrees: Double,
+        argumentOfPeriapsisDegrees: Double,
+        meanAnomalyAtEpochDegrees: Double,
+        epochJulianDay: Double? = nil
+    ) {
+        self.semiMajorAxisKm = semiMajorAxisKm
+        self.eccentricity = eccentricity
+        self.inclinationDegrees = inclinationDegrees
+        self.longitudeOfAscendingNodeDegrees = longitudeOfAscendingNodeDegrees
+        self.argumentOfPeriapsisDegrees = argumentOfPeriapsisDegrees
+        self.meanAnomalyAtEpochDegrees = meanAnomalyAtEpochDegrees
+        self.epochJulianDay = epochJulianDay
+    }
 }
 
 enum CelestialBodyType: String, Codable, CaseIterable, Identifiable {
@@ -37,6 +63,10 @@ enum CelestialBodyType: String, Codable, CaseIterable, Identifiable {
     case planet
     case moon
     case satellite
+    case rocket
+    case spacecraft
+    case station
+    case astronaut
     case asteroid
     case dwarfPlanet
 
@@ -52,6 +82,14 @@ enum CelestialBodyType: String, Codable, CaseIterable, Identifiable {
             return "Moon"
         case .satellite:
             return "Satellite"
+        case .rocket:
+            return "Rocket"
+        case .spacecraft:
+            return "Spacecraft"
+        case .station:
+            return "Station"
+        case .astronaut:
+            return "Astronaut"
         case .asteroid:
             return "Asteroid"
         case .dwarfPlanet:

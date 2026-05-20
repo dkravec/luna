@@ -41,8 +41,10 @@ final class CoreDataExperiencePreferencesRepository: ExperiencePreferencesReposi
 
         var preferences = ExperiencePreferences.defaults
         preferences.prefersARMode = profile.prefersARMode
-        preferences.distanceScaleMode = .fromLegacyRawValue(profile.preferredScaleModeRaw)
+        let distanceMode = DistanceScaleMode.fromLegacyRawValue(profile.preferredScaleModeRaw)
+        preferences.distanceScaleMode = distanceMode == .educational ? .compressed : distanceMode
         preferences.objectScaleMode = .fromLegacyMultiplier(profile.planetSizeMultiplier)
+        preferences.sceneScaleProfile = .custom
         preferences.distanceCompression = profile.distanceCompression
         preferences.showLabels = profile.showLabels
         preferences.showOrbits = profile.showOrbits
@@ -69,17 +71,21 @@ final class CoreDataExperiencePreferencesRepository: ExperiencePreferencesReposi
 
 extension ExperiencePreferences {
     init(managedObject: ExperiencePreferencesRecord) {
-        let distanceMode = DistanceScaleMode(rawValue: managedObject.distanceScaleModeRaw ?? "") ?? .educational
+        let profile = SceneScaleProfile(rawValue: managedObject.sceneScaleProfileRaw ?? "") ?? .scaledRecommended
+        let distanceMode = DistanceScaleMode(rawValue: managedObject.distanceScaleModeRaw ?? "") ?? profile.defaultDistanceScaleMode
         let objectMode = ObjectScaleMode(rawValue: managedObject.objectScaleModeRaw ?? "") ?? .relative
+        let renderDetail = SceneRenderDetail(rawValue: managedObject.renderDetailRaw ?? "") ?? .balanced
         let playbackSpeed = OrbitPlaybackSpeed(rawValue: managedObject.orbitPlaybackSpeedRaw ?? "") ?? .standard
         let rotationSpeed = ObjectRotationSpeed(rawValue: managedObject.objectRotationSpeedRaw ?? "") ?? .slow
 
         self.init(
             id: managedObject.id ?? UUID(),
             prefersARMode: managedObject.prefersARMode,
+            sceneScaleProfile: profile,
             distanceScaleMode: distanceMode,
             objectScaleMode: objectMode,
             distanceCompression: managedObject.distanceCompression,
+            renderDetail: renderDetail,
             orbitPlaybackSpeed: playbackSpeed,
             objectRotationSpeed: rotationSpeed,
             showLabels: managedObject.showLabels,
@@ -92,9 +98,11 @@ extension ExperiencePreferences {
 final class ExperiencePreferencesRecord: NSManagedObject {
     @NSManaged var id: UUID?
     @NSManaged var prefersARMode: Bool
+    @NSManaged var sceneScaleProfileRaw: String?
     @NSManaged var distanceScaleModeRaw: String?
     @NSManaged var objectScaleModeRaw: String?
     @NSManaged var distanceCompression: Double
+    @NSManaged var renderDetailRaw: String?
     @NSManaged var orbitPlaybackSpeedRaw: String?
     @NSManaged var objectRotationSpeedRaw: String?
     @NSManaged var showLabels: Bool
@@ -110,9 +118,11 @@ extension ExperiencePreferencesRecord {
     func apply(_ preferences: ExperiencePreferences) {
         id = preferences.id
         prefersARMode = preferences.prefersARMode
+        sceneScaleProfileRaw = preferences.sceneScaleProfile.rawValue
         distanceScaleModeRaw = preferences.distanceScaleMode.rawValue
         objectScaleModeRaw = preferences.objectScaleMode.rawValue
         distanceCompression = preferences.distanceCompression
+        renderDetailRaw = preferences.renderDetail.rawValue
         orbitPlaybackSpeedRaw = preferences.orbitPlaybackSpeed.rawValue
         objectRotationSpeedRaw = preferences.objectRotationSpeed.rawValue
         showLabels = preferences.showLabels

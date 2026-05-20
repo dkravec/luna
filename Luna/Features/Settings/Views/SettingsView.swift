@@ -18,6 +18,7 @@ struct SettingsView: View {
 
                 generalSection
                 experienceSection
+                dailyFactSection
                 profileSection
                 storageSection
             }
@@ -31,6 +32,25 @@ struct SettingsView: View {
             SectionHeader(title: "Experience")
 
             CardSection {
+                Button {
+                    appState.restartTour()
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "Replay App Tour",
+                            subtitle: "Show the guided walkthrough again without changing preferences",
+                            systemImage: "sparkles",
+                            showsChevron: true
+                        )
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
+                .accessibilityIdentifier("settings.replayTour")
+                .guidedTourTarget(.settingsReplayTour, when: appState.guidedTourStep == .finish)
+
+                CardDivider(leadingInset: 56)
+                
                 NavigationLink {
                     SettingsViewingModeView(
                         prefersARMode: Binding(
@@ -118,6 +138,29 @@ struct SettingsView: View {
                         )
                     }
                 }
+            }
+        }
+    }
+
+    private var dailyFactSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Daily Fact")
+
+            CardSection {
+                Button {
+                    appState.refreshDailyFact()
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "Refresh Daily Fact",
+                            subtitle: "Get a different fact and featured body",
+                            systemImage: "arrow.clockwise",
+                            showsChevron: true
+                        )
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
             }
         }
     }

@@ -19,7 +19,8 @@ final class OnboardingViewModel: ObservableObject {
     @Published var step: Step = .welcome
     @Published var displayName = ""
     @Published var prefersARMode = true
-    @Published var distanceScaleMode: DistanceScaleMode = .educational
+    @Published var sceneScaleProfile: SceneScaleProfile = .scaledRecommended
+    @Published var distanceScaleMode: DistanceScaleMode = .compressed
     @Published var objectScaleMode: ObjectScaleMode = .relative
     @Published var distanceCompression: Double = 30
 
