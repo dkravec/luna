@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		6581301E2FB966EB009C58AA /* Luna.icon in Resources */ = {isa = PBXBuildFile; fileRef = 6581301C2FB966EB009C58AA /* Luna.icon */; };
+		6581301F2FB9C7E4009C58AA /* Luna.icon Preview Source in Resources */ = {isa = PBXBuildFile; fileRef = 658130202FB9C7E4009C58AA /* Luna.icon Preview Source */; };
+		658130212FB9D1A0009C58AA /* AppIconSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 658130222FB9D1A0009C58AA /* AppIconSettingsView.swift */; };
 		7A6B029B24A3156B00535EA4 /* LunaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028824A3156800535EA4 /* LunaApp.swift */; };
 		7A6B029D24A3156B00535EA4 /* LunaRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B028924A3156800535EA4 /* LunaRootView.swift */; };
 		7A6B029F24A3156B00535EA4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B028A24A3156B00535EA4 /* Assets.xcassets */; };
@@ -108,6 +110,8 @@
 
 /* Begin PBXFileReference section */
 		6581301C2FB966EB009C58AA /* Luna.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Luna.icon; sourceTree = "<group>"; };
+		658130202FB9C7E4009C58AA /* Luna.icon Preview Source */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "Luna.icon Preview Source"; path = Luna.icon; sourceTree = "<group>"; };
+		658130222FB9D1A0009C58AA /* AppIconSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconSettingsView.swift; sourceTree = "<group>"; };
 		7A6B028824A3156800535EA4 /* LunaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaApp.swift; sourceTree = "<group>"; };
 		7A6B028924A3156800535EA4 /* LunaRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaRootView.swift; sourceTree = "<group>"; };
 		7A6B028A24A3156B00535EA4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -494,6 +498,7 @@
 				7A6B041724AB000000000000 /* Thumbnails */,
 				7A6B041624AB000000000000 /* AssetNotes */,
 				6581301C2FB966EB009C58AA /* Luna.icon */,
+				658130202FB9C7E4009C58AA /* Luna.icon Preview Source */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -667,6 +672,7 @@
 		7A6B103124A6000000000000 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				658130222FB9D1A0009C58AA /* AppIconSettingsView.swift */,
 				7A6B02BD24A317C600535EA4 /* SettingsView.swift */,
 			);
 			path = Views;
@@ -833,6 +839,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6581301E2FB966EB009C58AA /* Luna.icon in Resources */,
+				6581301F2FB9C7E4009C58AA /* Luna.icon Preview Source in Resources */,
 				7A6B029F24A3156B00535EA4 /* Assets.xcassets in Resources */,
 				7A6B040424AB000000000000 /* Moons in Resources */,
 				7A6B040624AB000000000000 /* NASA in Resources */,
@@ -903,6 +910,7 @@
 				7A6B0B0224C1000000000000 /* HomeDailyContentProvider.swift in Sources */,
 				7A6B02BA24A317C600535EA4 /* ExploreView.swift in Sources */,
 				7A6B02BE24A317C600535EA4 /* ExperienceView.swift in Sources */,
+				658130212FB9D1A0009C58AA /* AppIconSettingsView.swift in Sources */,
 				7A6B02C024A317C600535EA4 /* SettingsView.swift in Sources */,
 				7A6B033224A7000000000000 /* OnboardingViewModel.swift in Sources */,
 				7A6B033424A7000000000000 /* OnboardingFlowView.swift in Sources */,

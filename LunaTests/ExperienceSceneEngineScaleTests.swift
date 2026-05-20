@@ -163,6 +163,24 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         )
     }
 
+    func testMoonClearsEarthInCompressedReadableModes() throws {
+        for objectMode in [ObjectScaleMode.uniform, .relative] {
+            let snapshot = ExperienceSceneEngine.snapshot(
+                for: Self.bodies,
+                settings: settings(distance: .compressed, object: objectMode)
+            )
+
+            let earth = try body("earth", in: snapshot)
+            let moon = try body("moon", in: snapshot)
+
+            XCTAssertGreaterThan(
+                length(moon.position - earth.position),
+                earth.displayRadius + moon.displayRadius + 0.01,
+                "Compressed \(objectMode.title) mode should shrink and separate the Moon instead of hiding it inside Earth"
+            )
+        }
+    }
+
     func testMoonUsesEarthRelativeOrbitInsteadOfSunDistance() throws {
         for distanceMode in [DistanceScaleMode.compressed, .trueScale] {
             let snapshot = ExperienceSceneEngine.snapshot(

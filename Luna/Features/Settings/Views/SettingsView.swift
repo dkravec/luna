@@ -1,54 +1,4 @@
 import SwiftUI
-#if os(iOS)
-import UIKit
-#endif
-
-enum AppIconChoice: String, CaseIterable, Identifiable {
-    case current
-    case legacy2019
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .current:
-            return "Current"
-        case .legacy2019:
-            return "2019"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .current:
-            return "The default Luna app icon"
-        case .legacy2019:
-            return "The classic Luna icon from the existing resource set"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .current:
-            return "app"
-        case .legacy2019:
-            return "clock.arrow.circlepath"
-        }
-    }
-
-    var alternateIconName: String? {
-        switch self {
-        case .current:
-            return nil
-        case .legacy2019:
-            return "LunaLegacy"
-        }
-    }
-
-    init(iconName: String?) {
-        self = Self.allCases.first { $0.alternateIconName == iconName } ?? .current
-    }
-}
 
 struct SettingsView: View {
     @EnvironmentObject private var appState: LunaAppState
@@ -58,22 +8,34 @@ struct SettingsView: View {
 
     private let imageOfTheDayRepository: NASAImageOfTheDayRepositoryProviding = NASAImageOfTheDayRepository()
 
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 12) {
-                PageHeader(
-                    title: "Settings",
-                    subtitle: "Tune Luna's experience, appearance, and app details."
-                )
+    private enum ScrollAnchor {
+        static let replayTour = "settings.replayTour"
+    }
 
-                generalSection
-                appIconSection
-                experienceSection
-                dailyFactSection
-                profileSection
-                storageSection
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    PageHeader(
+                        title: "Settings",
+                        subtitle: "Tune Luna's experience, appearance, and app details."
+                    )
+
+                    generalSection
+                    appIconSection
+                    experienceSection
+                    dailyFactSection
+                    profileSection
+                    storageSection
+                }
+                .screenContentPadding()
             }
-            .screenContentPadding()
+            .onAppear {
+                scrollForGuidedTourStep(appState.guidedTourStep, proxy: proxy)
+            }
+            .onChange(of: appState.guidedTourStep) { step in
+                scrollForGuidedTourStep(step, proxy: proxy)
+            }
         }
         .appBackground()
     }
@@ -99,6 +61,7 @@ struct SettingsView: View {
                 .hapticTap()
                 .accessibilityIdentifier("settings.replayTour")
                 .guidedTourTarget(.settingsReplayTour, when: appState.guidedTourStep == .finish)
+                .id(ScrollAnchor.replayTour)
 
                 CardDivider(leadingInset: 56)
                 
@@ -476,6 +439,16 @@ struct SettingsView: View {
         }
     }
 
+    private func scrollForGuidedTourStep(_ step: GuidedTourStep?, proxy: ScrollViewProxy) {
+        guard step == .finish else { return }
+
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                proxy.scrollTo(ScrollAnchor.replayTour, anchor: .center)
+            }
+        }
+    }
+
     private var currentViewModeTitle: String {
         appState.experiencePreferences.prefersARMode ? "AR First" : "Visual First"
     }
@@ -540,62 +513,6 @@ private struct SettingsScaleModeView: View {
             .screenContentPadding()
         }
         .navigationTitle("Scaling")
-    }
-}
-
-private struct AppIconSettingsView: View {
-    let selectedChoice: AppIconChoice
-    let onSelect: (AppIconChoice) -> Void
-
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                PageHeader(
-                    title: "Choose App Icon",
-                    subtitle: appIconSupportSubtitle
-                )
-
-                CardSection {
-                    ForEach(Array(AppIconChoice.allCases.enumerated()), id: \.element.id) { index, choice in
-                        Button {
-                            onSelect(choice)
-                            Haptics.selection()
-                        } label: {
-                            CardRow {
-                                RowLabel(
-                                    title: choice.title,
-                                    subtitle: choice.subtitle,
-                                    systemImage: choice.systemImage,
-                                    value: choice == selectedChoice ? "Selected" : nil
-                                )
-                            }
-                        }
-                        .buttonStyle(.plain)
-#if os(iOS)
-                        .disabled(!UIApplication.shared.supportsAlternateIcons)
-#else
-                        .disabled(choice != .current)
-#endif
-
-                        if index < AppIconChoice.allCases.count - 1 {
-                            CardDivider(leadingInset: 56)
-                        }
-                    }
-                }
-            }
-            .screenContentPadding()
-        }
-        .navigationTitle("App Icon")
-    }
-
-    private var appIconSupportSubtitle: String {
-#if os(iOS)
-        UIApplication.shared.supportsAlternateIcons
-            ? "Pick the icon Luna uses on your Home Screen."
-            : "Alternate icons are unavailable on this device."
-#else
-        "macOS uses the bundled app icon."
-#endif
     }
 }
 
