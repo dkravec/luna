@@ -37,19 +37,6 @@ struct SolarSystemVisualSceneView: View {
         )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
-            .overlay(alignment: .bottomLeading) {
-                sceneCaption
-            }
-    }
-
-    private var sceneCaption: some View {
-        Text("\(settings.sceneScaleProfile.title) · \(simulationDate.formatted(.dateTime.year().month(.abbreviated).day()))")
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.white.opacity(0.90))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(.black.opacity(0.42), in: Capsule(style: .continuous))
-            .padding(12)
     }
 }
 
@@ -224,14 +211,18 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             pendingOrbitThicknessKey = nil
             stateLock.unlock()
         } else {
-            updateExistingNodes(with: snapshot, cameraScale: view.pointOfView?.camera?.orthographicScale ?? nextCameraLimit.preferredOrthographicScale)
+            updateExistingNodes(
+                with: snapshot,
+                cameraScale: view.pointOfView?.camera?.orthographicScale ?? nextCameraLimit.preferredOrthographicScale,
+                cameraPosition: view.pointOfView?.presentation.position
+            )
         }
 
         update(nextCameraLimit)
         applyCameraFocus(focusedBodyID, cameraLimit: nextCameraLimit, to: view)
     }
 
-    private func updateExistingNodes(with snapshot: ExperienceSceneSnapshot, cameraScale: Double) {
+    private func updateExistingNodes(with snapshot: ExperienceSceneSnapshot, cameraScale: Double, cameraPosition: SCNVector3?) {
         SCNTransaction.begin()
         SCNTransaction.disableActions = true
 
@@ -255,7 +246,8 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             orbitNodes[orbitPath.id]?.geometry = SolarSystemSceneFactory.orbitGeometry(
                 path: orbitPath,
                 cameraScale: cameraScale,
-                viewportHeight: 800
+                viewportHeight: 800,
+                cameraPosition: cameraPosition
             )
         }
 
@@ -408,8 +400,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         }
 
         let focusChanged = activeFocusID != focusedBodyID
-        let previousTarget = focusState?.target ?? view.defaultCameraController.target
-        let currentOffset = pointOfView.position - previousTarget
+        let currentOffset = focusChanged
+            ? SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot)
+            : pointOfView.position - focusCenter
         let minimumDistance = max(Float(focusedOrthographicScale(for: focusedBodyID) * 1.25), 2.2)
         let nextOffset = currentOffset.length < minimumDistance ? currentOffset.normalizedOrDefault * minimumDistance : currentOffset
         let desiredScale = focusChanged
@@ -447,7 +440,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         }
 
         let restoreTarget = cameraLimit.subjectCenter
-        let offset = focusState?.cameraOffset ?? (pointOfView.position - view.defaultCameraController.target)
+        let offset = SolarSystemSceneCameraMetrics.defaultCameraOffset(
+            for: cameraLimit.preferredOrthographicScale
+        )
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0.22
         pointOfView.position = restoreTarget + offset
@@ -466,9 +461,12 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     }
 
     private func updateOrbitAndLabelScale(for renderer: any SCNSceneRenderer) {
-        guard let cameraScale = renderer.pointOfView?.camera?.orthographicScale else { return }
+        guard let pointOfView = renderer.pointOfView,
+              let cameraScale = pointOfView.camera?.orthographicScale else { return }
+        let cameraPosition = pointOfView.presentation.position
         let viewportHeight = max(Double(renderer.currentViewport.height), 1)
-        let orbitThicknessKey = "\(Int((cameraScale * 100).rounded())):\(Int(viewportHeight.rounded()))"
+        let distanceBucket = Int((cameraPosition.length * 10).rounded())
+        let orbitThicknessKey = "\(Int((cameraScale * 100).rounded())):\(distanceBucket):\(Int(viewportHeight.rounded()))"
 
         let refresh: (orbitPaths: [ExperienceOrbitPath], orbitNodes: [String: SCNNode], labelNodes: [SCNNode])? = stateLock.withLock {
             guard orbitThicknessKey != lastOrbitThicknessKey,
@@ -494,7 +492,8 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
                 node.geometry = SolarSystemSceneFactory.orbitGeometry(
                     path: orbitPath,
                     cameraScale: cameraScale,
-                    viewportHeight: viewportHeight
+                    viewportHeight: viewportHeight,
+                    cameraPosition: cameraPosition
                 )
             }
 
@@ -568,8 +567,14 @@ private enum SolarSystemSceneFactory {
         root.eulerAngles.x = -.pi / 10
         scene.rootNode.addChildNode(root)
 
+        let cameraMetrics = SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: settings)
+
         for orbitPath in snapshot.orbitPaths {
-            root.addChildNode(orbitNode(path: orbitPath, cameraScale: SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: settings).orthographicScale))
+            root.addChildNode(orbitNode(
+                path: orbitPath,
+                cameraScale: cameraMetrics.orthographicScale,
+                cameraPosition: cameraMetrics.position
+            ))
         }
 
         for placement in snapshot.bodies {
@@ -584,7 +589,7 @@ private enum SolarSystemSceneFactory {
                 bodyNode.addChildNode(labelNode(
                     for: placement.body,
                     radius: placement.displayRadius,
-                    cameraScale: SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: settings).orthographicScale
+                    cameraScale: cameraMetrics.orthographicScale
                 ))
             }
         }
@@ -792,8 +797,13 @@ private enum SolarSystemSceneFactory {
         return node
     }
 
-    private static func orbitNode(path: ExperienceOrbitPath, cameraScale: Double) -> SCNNode {
-        let node = SCNNode(geometry: orbitGeometry(path: path, cameraScale: cameraScale, viewportHeight: 800))
+    private static func orbitNode(path: ExperienceOrbitPath, cameraScale: Double, cameraPosition: SCNVector3) -> SCNNode {
+        let node = SCNNode(geometry: orbitGeometry(
+            path: path,
+            cameraScale: cameraScale,
+            viewportHeight: 800,
+            cameraPosition: cameraPosition
+        ))
         node.name = "orbit:\(path.id)"
 
         for point in path.points.enumerated() where point.offset.isMultiple(of: 8) {
@@ -806,9 +816,19 @@ private enum SolarSystemSceneFactory {
         return node
     }
 
-    static func orbitGeometry(path: ExperienceOrbitPath, cameraScale: Double, viewportHeight: Double) -> SCNGeometry {
-        let thickness = SolarSystemSceneOrbitRibbon.thickness(cameraScale: cameraScale, viewportHeight: viewportHeight, isMoon: path.bodyId == "moon")
-        let mesh = SolarSystemSceneOrbitRibbon.mesh(points: path.points, thickness: thickness)
+    static func orbitGeometry(
+        path: ExperienceOrbitPath,
+        cameraScale: Double,
+        viewportHeight: Double,
+        cameraPosition: SCNVector3? = nil
+    ) -> SCNGeometry {
+        let mesh = SolarSystemSceneOrbitRibbon.mesh(
+            points: path.points,
+            cameraScale: cameraScale,
+            viewportHeight: viewportHeight,
+            cameraPosition: cameraPosition.map(SIMD3<Float>.init),
+            isMoon: path.bodyId == "moon"
+        )
         let source = SCNGeometrySource(vertices: mesh.vertices.map { SCNVector3($0.x, $0.y, $0.z) })
         let element = SCNGeometryElement(indices: mesh.indices, primitiveType: .triangles)
         let geometry = SCNGeometry(sources: [source], elements: [element])
@@ -884,6 +904,11 @@ struct SolarSystemSceneFocusMetrics {
         let subjectRadius = max(placement.displayRadius, childEnvelope, placement.interactionRadius, 0.22)
         return max(0.85, Double(subjectRadius * 4.8))
     }
+
+    static func cameraOffset(for bodyID: String, in snapshot: ExperienceSceneSnapshot) -> SCNVector3 {
+        let scale = Float(focusedOrthographicScale(for: bodyID, in: snapshot))
+        return SCNVector3(scale * 0.26, scale * 0.38, max(scale * 1.85, 2.4))
+    }
 }
 
 struct SolarSystemSceneOrbitRibbon {
@@ -892,22 +917,54 @@ struct SolarSystemSceneOrbitRibbon {
         let indices: [Int32]
     }
 
-    static func thickness(cameraScale: Double, viewportHeight: Double, isMoon: Bool = false) -> Float {
+    static func thickness(
+        cameraScale: Double,
+        viewportHeight: Double,
+        cameraDistance: Double? = nil,
+        isMoon: Bool = false
+    ) -> Float {
         let pixels = isMoon ? 2.4 : 1.8
         let worldPerPixel = cameraScale / max(viewportHeight, 1)
-        return Float(min(max(worldPerPixel * pixels, 0.006), isMoon ? 0.06 : 0.045))
+        let referenceDistance = max(cameraScale * 1.6, 1)
+        let distanceFactor = cameraDistance.map { distance in
+            min(max(distance / referenceDistance, 0.78), isMoon ? 2.6 : 2.15)
+        } ?? 1
+        let maximum = isMoon ? 0.075 : 0.058
+        return Float(min(max(worldPerPixel * pixels * distanceFactor, 0.006), maximum))
     }
 
     static func mesh(points: [SIMD3<Float>], thickness: Float) -> Mesh {
+        mesh(points: points, thicknesses: Array(repeating: thickness, count: points.count))
+    }
+
+    static func mesh(
+        points: [SIMD3<Float>],
+        cameraScale: Double,
+        viewportHeight: Double,
+        cameraPosition: SIMD3<Float>?,
+        isMoon: Bool = false
+    ) -> Mesh {
+        let thicknesses = points.map { point in
+            thickness(
+                cameraScale: cameraScale,
+                viewportHeight: viewportHeight,
+                cameraDistance: cameraPosition.map { Double(simd_distance($0, point)) },
+                isMoon: isMoon
+            )
+        }
+        return mesh(points: points, thicknesses: thicknesses)
+    }
+
+    private static func mesh(points: [SIMD3<Float>], thicknesses: [Float]) -> Mesh {
         guard points.count > 2 else {
             return Mesh(vertices: [], indices: [])
         }
 
-        let halfThickness = thickness / 2
         var vertices: [SIMD3<Float>] = []
         var indices: [Int32] = []
 
         for index in points.indices {
+            let halfThickness = (thicknesses.indices.contains(index) ? thicknesses[index] : 0.006) / 2
             let side = sideVector(for: points, at: index, halfThickness: halfThickness)
             vertices.append(points[index] - side)
             vertices.append(points[index] + side)
@@ -1009,7 +1066,16 @@ struct SolarSystemSceneCameraMetrics {
             : max(trueScaleScene ? 900 : 250, cameraDistance + span * (trueScaleScene ? 7.0 : 4.8) + (trueScaleScene ? 260 : 140))
         position = objectSnapshot
             ? center + SCNVector3(0, 0, Float(cameraDistance))
-            : center + SCNVector3(6, 9, Float(cameraDistance))
+            : center + Self.defaultCameraOffset(for: orthographicScale, cameraDistance: cameraDistance)
+    }
+
+    static func defaultCameraOffset(for orthographicScale: Double, cameraDistance: Double? = nil) -> SCNVector3 {
+        let zDistance = Float(cameraDistance ?? max(22, orthographicScale * 1.8 + 28))
+        return SCNVector3(
+            max(6, Float(orthographicScale) * 0.12),
+            max(9, Float(orthographicScale) * 0.18),
+            zDistance
+        )
     }
 
     private static func initialSubjectCenter(for snapshot: ExperienceSceneSnapshot) -> SCNVector3 {
@@ -1146,6 +1212,12 @@ private extension SCNVector3 {
 
     var normalizedOrDefault: SCNVector3 {
         length > 0 ? normalized : SCNVector3(0, 0, 1)
+    }
+}
+
+private extension SIMD3<Float> {
+    init(_ vector: SCNVector3) {
+        self.init(Float(vector.x), Float(vector.y), Float(vector.z))
     }
 }
 

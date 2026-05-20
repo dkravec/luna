@@ -27,15 +27,15 @@ struct HomeView: View {
                 LazyVStack(alignment: .leading, spacing: Spacing.section) {
                     homeIntroSection
 
+                    NASAImageOfTheDayView()
+
                     featuredBodySection(dailyContent.featuredBody)
 
                     factOfTheDaySection(dailyContent.dailyFact, featuredBody: dailyContent.featuredBody)
 
+//                    overviewSection
+                    
                     primaryActions
-
-                    NASAImageOfTheDayView()
-
-                    overviewSection
                 }
                 .screenContentPadding()
             }
@@ -258,6 +258,19 @@ private struct HomeSolarSystemPreview: View {
     let bodies: [CelestialBody]
     let date: Date
 
+    private static let previewSettings = ExperienceSceneSettings(
+        isAREnabled: false,
+        sceneScaleProfile: .scaledRecommended,
+        distanceScaleMode: .compressed,
+        objectScaleMode: .relative,
+        distanceCompression: 12,
+        renderDetail: .balanced,
+        orbitPlaybackSpeed: .standard,
+        objectRotationSpeed: .slow,
+        showLabels: false,
+        showOrbits: true
+    )
+
     private var solarSystemBodies: [CelestialBody] {
         bodies
             .filter { body in
@@ -272,10 +285,12 @@ private struct HomeSolarSystemPreview: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             GeometryReader { proxy in
-                let size = min(proxy.size.width, proxy.size.height)
-                let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2)
-                let maxOrbitRadius = size * 0.42
-                let placements = planetPlacements(maxOrbitRadius: maxOrbitRadius)
+                let snapshot = ExperienceSceneEngine.snapshot(
+                    for: solarSystemBodies,
+                    settings: Self.previewSettings,
+                    simulationDate: date
+                )
+                let layout = HomeSolarSystemPreviewLayout(snapshot: snapshot, size: proxy.size)
 
                 ZStack {
                     LinearGradient(
@@ -287,24 +302,26 @@ private struct HomeSolarSystemPreview: View {
                         endPoint: .bottomTrailing
                     )
 
-                    ForEach(placements) { placement in
-                        Circle()
-                            .stroke(Color.white.opacity(0.14), lineWidth: 1)
-                            .frame(width: placement.orbitRadius * 2, height: placement.orbitRadius * 2)
-                            .position(center)
+                    ForEach(layout.orbits) { orbit in
+                        Path { path in
+                            guard let first = orbit.points.first else { return }
+                            path.move(to: first)
+                            for point in orbit.points.dropFirst() {
+                                path.addLine(to: point)
+                            }
+                            path.closeSubpath()
+                        }
+                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
                     }
 
-                    ForEach(placements) { placement in
+                    ForEach(layout.placements) { placement in
                         BodyVisual(celestialBody: placement.body, size: placement.bodySize)
-                            .position(
-                                x: center.x + cos(placement.angle) * placement.orbitRadius,
-                                y: center.y + sin(placement.angle) * placement.orbitRadius
-                            )
+                            .position(placement.position)
                     }
 
-                    if let sun = solarSystemBodies.first(where: { $0.type == .star }) {
-                        BodyVisual(celestialBody: sun, size: max(34, size * 0.16))
-                            .position(center)
+                    if let sun = layout.sun {
+                        BodyVisual(celestialBody: sun.body, size: sun.bodySize)
+                            .position(sun.position)
                     }
                 }
             }
@@ -327,37 +344,68 @@ private struct HomeSolarSystemPreview: View {
         .accessibilityLabel("Overhead solar system preview for \(date.formatted(.dateTime.year().month(.abbreviated).day()))")
     }
 
-    private func planetPlacements(maxOrbitRadius: CGFloat) -> [HomeOrbitPlacement] {
-        let orbitingBodies = solarSystemBodies.filter { $0.type != .star }
-        let maxDistance = orbitingBodies
-            .compactMap(\.averageDistanceFromSunKm)
-            .max() ?? 1
-
-        return orbitingBodies.enumerated().map { index, body in
-            let normalizedDistance = max(0.08, min((body.averageDistanceFromSunKm ?? 0) / maxDistance, 1))
-            let orbitRadius = maxOrbitRadius * CGFloat(pow(normalizedDistance, 0.34))
-            let angle = CGFloat(index) * 1.62 + CGFloat(dayOfYear) * 0.012
-            let bodySize = max(10, min(24, CGFloat(log10(max(body.radiusKm, 1))) * 4.2))
-
-            return HomeOrbitPlacement(
-                id: body.id,
-                body: body,
-                orbitRadius: orbitRadius,
-                angle: angle,
-                bodySize: bodySize
-            )
-        }
-    }
-
-    private var dayOfYear: Int {
-        Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
-    }
 }
 
 private struct HomeOrbitPlacement: Identifiable {
     let id: String
     let body: CelestialBody
-    let orbitRadius: CGFloat
-    let angle: CGFloat
     let bodySize: CGFloat
+    let position: CGPoint
+}
+
+private struct HomeOrbitPathPlacement: Identifiable {
+    let id: String
+    let points: [CGPoint]
+}
+
+private struct HomeSolarSystemPreviewLayout {
+    let placements: [HomeOrbitPlacement]
+    let orbits: [HomeOrbitPathPlacement]
+    let sun: HomeOrbitPlacement?
+
+    init(snapshot: ExperienceSceneSnapshot, size: CGSize) {
+        let bounds = snapshot.bounds
+        let margin = max(min(size.width, size.height) * 0.10, 18)
+        let availableWidth = max(size.width - margin * 2, 1)
+        let availableHeight = max(size.height - margin * 2, 1)
+        let scale = min(
+            availableWidth / CGFloat(max(bounds.size.x, 0.001)),
+            availableHeight / CGFloat(max(bounds.size.z, 0.001))
+        )
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
+
+        func project(_ point: SIMD3<Float>) -> CGPoint {
+            CGPoint(
+                x: center.x + CGFloat(point.x - bounds.center.x) * scale,
+                y: center.y + CGFloat(point.z - bounds.center.z) * scale
+            )
+        }
+
+        let bodyPlacements = snapshot.bodies.map { body in
+            HomeOrbitPlacement(
+                id: body.id,
+                body: body.body,
+                bodySize: Self.bodySize(for: body, canvasSize: min(size.width, size.height)),
+                position: project(body.position)
+            )
+        }
+
+        placements = bodyPlacements.filter { $0.body.type != .star }
+        sun = bodyPlacements.first { $0.body.type == .star }
+        orbits = snapshot.orbitPaths.map { path in
+            HomeOrbitPathPlacement(
+                id: path.id,
+                points: path.points.map(project)
+            )
+        }
+    }
+
+    private static func bodySize(for body: ExperienceSceneBody, canvasSize: CGFloat) -> CGFloat {
+        if body.body.type == .star {
+            return max(10, min(16, canvasSize * 0.6))
+        }
+
+        let sourceSize = CGFloat(log10(max(body.body.radiusKm, 1))) * 4.2
+        return max(10, min(16, sourceSize))
+    }
 }

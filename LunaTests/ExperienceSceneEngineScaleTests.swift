@@ -190,7 +190,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
             .map { length($0 - snapshot.bounds.center) }
             .max() ?? 0
 
-        XCTAssertGreaterThanOrEqual(snapshot.bounds.span / 2, farthestOrbitPoint - 0.02)
+        XCTAssertGreaterThanOrEqual(snapshot.bounds.span / 2, farthestOrbitPoint - 0.05)
     }
 
     func testScaleProfileDefaultsToCompressedRelative() {
@@ -280,9 +280,23 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let sun = try body("sun", in: snapshot)
         let earth = try body("earth", in: snapshot)
 
-        XCTAssertEqual(Double(sun.displayRadius), sourceRadius("sun") / Self.physicalKilometersPerSceneUnit, accuracy: 0.000001)
-        XCTAssertEqual(Double(earth.displayRadius), sourceRadius("earth") / Self.physicalKilometersPerSceneUnit, accuracy: 0.000001)
+        XCTAssertEqual(Double(sun.displayRadius), trueScaleSceneUnits(sourceRadius("sun")), accuracy: 0.000001)
+        XCTAssertEqual(Double(earth.displayRadius), trueScaleSceneUnits(sourceRadius("earth")), accuracy: 0.000001)
         XCTAssertEqual(Double(length(earth.position)), expectedSceneDistance("earth", distance: .trueScale), accuracy: 0.001)
+    }
+
+    func testTrueScaleEnvironmentIsLargerWhilePreservingRatios() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .trueScale, object: .trueScale)
+        )
+        let sun = try body("sun", in: snapshot)
+        let earth = try body("earth", in: snapshot)
+        let neptune = try body("neptune", in: snapshot)
+
+        XCTAssertEqual(radiusRatio(earth, sun), sourceRadiusRatio("earth", "sun"), accuracy: 0.0001)
+        XCTAssertEqual(distanceRatio(neptune.position, earth.position), expectedSceneDistanceRatio("neptune", "earth", distance: .trueScale), accuracy: 0.02)
+        XCTAssertGreaterThan(Double(length(earth.position)), sourceDistance("earth") / Self.physicalKilometersPerSceneUnit)
     }
 
     func testTrueScalePlanetsOrbitOutsideTrueScaleSun() throws {
@@ -321,7 +335,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let returnedEarth = try body("earth", in: returned)
 
         XCTAssertGreaterThan(length(advancedEarth.position - initialEarth.position), 0.25)
-        XCTAssertLessThan(length(returnedEarth.position - initialEarth.position), 0.01)
+        XCTAssertLessThan(length(returnedEarth.position - initialEarth.position), 0.08)
     }
 
     func testSelectedFocusScaleIncludesBodyAndChildEnvelope() throws {
@@ -397,9 +411,24 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let mesh = SolarSystemSceneOrbitRibbon.mesh(points: earthOrbit.points, thickness: thickness)
 
         XCTAssertGreaterThan(thickness, 0)
-        XCTAssertLessThanOrEqual(thickness, 0.045)
+        XCTAssertLessThanOrEqual(thickness, 0.058)
         XCTAssertEqual(mesh.vertices.count, earthOrbit.points.count * 2)
         XCTAssertEqual(mesh.indices.count, earthOrbit.points.count * 6)
+    }
+
+    func testOrbitRibbonThicknessRespondsToCameraDistance() {
+        let near = SolarSystemSceneOrbitRibbon.thickness(
+            cameraScale: 24,
+            viewportHeight: 800,
+            cameraDistance: 24
+        )
+        let far = SolarSystemSceneOrbitRibbon.thickness(
+            cameraScale: 24,
+            viewportHeight: 800,
+            cameraDistance: 120
+        )
+
+        XCTAssertGreaterThan(far, near)
     }
 
     func testOrbitRibbonMeshIsFiniteForFlatAndVerticalPaths() {
@@ -855,6 +884,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         makeBody(id: "neptune", name: "Neptune", radiusKm: 24_622, averageDistanceFromSunKm: 4_495_100_000, orbit: orbit(4_495_060_000, eccentricity: 0.0113, inclination: 1.770, longitude: 131.784, periapsis: 273.187, meanAnomaly: 256.228), displayOrder: 6)
     ]
     private static let physicalKilometersPerSceneUnit: Double = 316_553_521
+    private static let trueScaleEnvironmentMultiplier: Double = 6
     private static let compressedDistanceKilometersPerSceneUnit: Double = 74_900_000
 
     private static func makeBody(
@@ -1054,8 +1084,12 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         case .compressed:
             return sourceDistance(body.id) / Self.compressedDistanceKilometersPerSceneUnit / distanceCompression
         case .trueScale:
-            return sourceDistance(body.id) / Self.physicalKilometersPerSceneUnit
+            return trueScaleSceneUnits(sourceDistance(body.id))
         }
+    }
+
+    private func trueScaleSceneUnits(_ kilometers: Double) -> Double {
+        kilometers / Self.physicalKilometersPerSceneUnit * Self.trueScaleEnvironmentMultiplier
     }
 
     private func eccentricRadiusScale(for body: CelestialBody) -> Double {

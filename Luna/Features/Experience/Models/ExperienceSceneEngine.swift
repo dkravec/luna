@@ -99,6 +99,7 @@ protocol ExperienceSceneRenderer {
 enum ExperienceSceneEngine {
     private static let physicalKilometersPerSceneUnit: Double = 316_553_521
     private static let compressedDistanceKilometersPerSceneUnit: Double = 74_900_000
+    private static let trueScaleEnvironmentMultiplier: Float = 6
     private static let minimumInteractionRadius: Float = 0.035
 
     static func snapshot(
@@ -291,7 +292,7 @@ enum ExperienceSceneEngine {
         case .trueScale:
             switch body.type {
             default:
-                return Float(body.radiusKm / physicalKilometersPerSceneUnit)
+                return trueScaleSceneUnits(body.radiusKm)
             }
         }
     }
@@ -705,7 +706,11 @@ enum ExperienceSceneEngine {
 
     private static func trueDistance(for body: CelestialBody, fallbackDistance: Double?) -> Float {
         let distance = body.orbit?.semiMajorAxisKm ?? fallbackDistance ?? 0
-        return Float(max(distance, 0) / physicalKilometersPerSceneUnit)
+        return trueScaleSceneUnits(distance)
+    }
+
+    private static func trueScaleSceneUnits(_ kilometers: Double) -> Float {
+        Float(max(kilometers, 0) / physicalKilometersPerSceneUnit) * trueScaleEnvironmentMultiplier
     }
 
     private static func compressedDistance(for body: CelestialBody, fallbackDistance: Double?) -> Float {

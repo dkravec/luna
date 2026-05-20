@@ -192,7 +192,7 @@ struct ObjectExperienceView: View {
     }
 
     private var arPlacementColor: Color {
-        arPlacementState.isReady ? Color.accentColor : Color.orange
+        arPlacementState.isReady ? Color.accentColor : .white
     }
 
     @ViewBuilder

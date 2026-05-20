@@ -159,6 +159,10 @@ struct ExperienceView: View {
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                Text(simulationDateText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
             .padding(14)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
@@ -558,6 +562,10 @@ struct ExperienceView: View {
         }
 
         return "Browse the same scale controls in a non-AR scene."
+    }
+
+    private var simulationDateText: String {
+        currentSimulationDate.formatted(.dateTime.year().month(.abbreviated).day())
     }
 
     private var arPlacementTitle: String {
