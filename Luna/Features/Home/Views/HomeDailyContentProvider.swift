@@ -22,6 +22,18 @@ struct HomeDailyContentProvider {
         return HomeDailyContent(featuredBody: featuredBody, dailyFact: fact)
     }
 
+    func history(for bodies: [CelestialBody], endingAt date: Date = Date(), days: Int = 7) -> [HomeDailyContent] {
+        guard days > 0 else { return [] }
+
+        return (0..<days).compactMap { offset in
+            guard let historyDate = calendar.date(byAdding: .day, value: -offset, to: date) else {
+                return nil
+            }
+
+            return content(for: bodies, date: historyDate)
+        }
+    }
+
     func featuredBody(from bodies: [CelestialBody], date: Date = Date()) -> CelestialBody? {
         let eligibleBodies = eligibleBodies(from: bodies)
         guard !eligibleBodies.isEmpty else { return nil }

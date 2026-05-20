@@ -462,6 +462,14 @@ enum Haptics {
     private static var isEnabled = UserProfile.defaultProfile.hapticsEnabled
     private static var intensity = UserProfile.defaultProfile.hapticIntensity
 
+    static var isSupported: Bool {
+#if os(iOS)
+        UIDevice.current.userInterfaceIdiom == .phone
+#else
+        false
+#endif
+    }
+
     static func configure(isEnabled: Bool, intensity: HapticIntensity) {
         Self.isEnabled = isEnabled
         Self.intensity = intensity
@@ -469,7 +477,7 @@ enum Haptics {
 
     static func selection() {
 #if os(iOS)
-        guard isEnabled else { return }
+        guard isEnabled, isSupported else { return }
 
         let generator = UIImpactFeedbackGenerator(style: intensity.impactStyle)
         generator.prepare()

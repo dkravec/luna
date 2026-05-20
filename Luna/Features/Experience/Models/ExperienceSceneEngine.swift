@@ -457,6 +457,10 @@ enum ExperienceSceneEngine {
                 }
 
                 let baseRadius = baseChildOrbitRadius(for: body, settings: settings)
+                guard settings.distanceScaleMode == .educational else {
+                    return (body.id, baseRadius)
+                }
+
                 let parentRadius = displayRadii[parentId] ?? 0
                 let bodyRadius = displayRadii[body.id] ?? 0
                 let minimumRadius = parentRadius + bodyRadius + childOrbitClearanceMargin(for: settings)

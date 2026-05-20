@@ -29,9 +29,7 @@ struct HomeView: View {
 
                     NASAImageOfTheDayView()
 
-                    featuredBodySection(dailyContent.featuredBody)
-
-                    factOfTheDaySection(dailyContent.dailyFact, featuredBody: dailyContent.featuredBody)
+                    dailyContentSection(dailyContent)
 
 //                    overviewSection
                     
@@ -52,11 +50,27 @@ struct HomeView: View {
     @ViewBuilder
     private var homeIntroSection: some View {
         VStack(alignment: .leading, spacing: Spacing.section) {
-            PageHeader(
-                title: "Luna",
-                subtitle: "Explore planets, compare scale, and step into space with AR."
-            )
-            .guidedTourTarget(.homeOverview)
+            HStack(alignment: .top, spacing: 12) {
+                PageHeader(
+                    title: "Luna",
+                    subtitle: "Explore planets, compare scale, and step into space with AR."
+                )
+                .guidedTourTarget(.homeOverview)
+
+                Spacer(minLength: 8)
+
+                Button {
+                    appState.selectedTab = .settings
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.headline.weight(.semibold))
+                        .frame(width: 42, height: 42)
+                        .background(Color.primary.opacity(0.08), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Open Settings")
+                .hapticTap()
+            }
 
             miniSolarSystemPreview
         }
@@ -68,7 +82,7 @@ struct HomeView: View {
         if !appState.celestialBodies.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline) {
-                    SectionHeader(title: "Solar System", subtitle: "An overhead view of Luna's local catalog.")
+                    SectionHeader(title: "Solar System")
 
                     Button {
                         appState.selectedTab = .arExperience
@@ -88,6 +102,76 @@ struct HomeView: View {
                     date: Date()
                 )
                 .frame(height: 240)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func dailyContentSection(_ content: HomeDailyContent) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Today In Luna")
+
+            if let body = content.featuredBody {
+                NavigationLink {
+                    BodyDetailView(
+                        celestialBody: body,
+                        childBodies: appState.celestialBodies.filter { $0.parentBodyId == body.id }
+                    )
+                } label: {
+                    Card {
+                        HStack(alignment: .center, spacing: 14) {
+                            BodyCardVisual(celestialBody: body, size: 82)
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(spacing: 8) {
+                                    Text(body.name)
+                                        .font(.title3.weight(.bold))
+                                        .foregroundStyle(.primary)
+
+                                    Text(body.type.title)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.primary.opacity(0.06), in: Capsule(style: .continuous))
+                                }
+
+                                Text(body.summary.isEmpty ? body.subtitle : body.summary)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                Text(content.dailyFact.message)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .padding(.top, 2)
+                                    .accessibilityIdentifier("home.dailyFact")
+                            }
+
+                            Spacer(minLength: 0)
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
+            } else {
+                Card {
+                    HStack(alignment: .top, spacing: 12) {
+                        IconBadge(systemImage: content.dailyFact.systemImage)
+
+                        Text(content.dailyFact.message)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .accessibilityElement(children: .combine)
             }
         }
     }
@@ -244,7 +328,7 @@ struct HomeView: View {
                 case .homeWelcome:
                     proxy.scrollTo(ScrollAnchor.overview, anchor: .top)
                 case .homeExplore:
-                    proxy.scrollTo(ScrollAnchor.exploreAction, anchor: .center)
+                    proxy.scrollTo(ScrollAnchor.exploreAction, anchor: .bottom)
                 default:
                     break
                 }
@@ -368,16 +452,18 @@ private struct HomeSolarSystemPreviewLayout {
         let margin = max(min(size.width, size.height) * 0.10, 18)
         let availableWidth = max(size.width - margin * 2, 1)
         let availableHeight = max(size.height - margin * 2, 1)
+        let projectedBounds = Self.projectedBounds(for: snapshot, bounds: bounds)
         let scale = min(
             availableWidth / CGFloat(max(bounds.size.x, 0.001)),
-            availableHeight / CGFloat(max(bounds.size.z, 0.001))
+            availableHeight / CGFloat(max(projectedBounds.height, 0.001))
         )
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
 
         func project(_ point: SIMD3<Float>) -> CGPoint {
-            CGPoint(
+            let projectedY = Self.projectedY(point)
+            return CGPoint(
                 x: center.x + CGFloat(point.x - bounds.center.x) * scale,
-                y: center.y + CGFloat(point.z - bounds.center.z) * scale
+                y: center.y + CGFloat(projectedY - projectedBounds.midY) * scale
             )
         }
 
@@ -408,4 +494,22 @@ private struct HomeSolarSystemPreviewLayout {
         let sourceSize = CGFloat(log10(max(body.body.radiusKm, 1))) * 4.2
         return max(10, min(16, sourceSize))
     }
+
+    private static func projectedY(_ point: SIMD3<Float>) -> Float {
+        point.z * tiltCosine - point.y * tiltSine
+    }
+
+    private static func projectedBounds(for snapshot: ExperienceSceneSnapshot, bounds: ExperienceSceneBounds) -> (midY: Float, height: Float) {
+        let projectedValues = snapshot.bodies.map { projectedY($0.position) }
+            + snapshot.orbitPaths.flatMap { $0.points.map(projectedY) }
+
+        guard let minY = projectedValues.min(), let maxY = projectedValues.max() else {
+            return (projectedY(bounds.center), max(bounds.size.z * tiltCosine, 0.001))
+        }
+
+        return ((minY + maxY) / 2, max(maxY - minY, 0.001))
+    }
+
+    private static let tiltCosine = Float(cos(Double.pi / 4))
+    private static let tiltSine = Float(sin(Double.pi / 4))
 }

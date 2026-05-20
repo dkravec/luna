@@ -1,4 +1,54 @@
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
+
+enum AppIconChoice: String, CaseIterable, Identifiable {
+    case current
+    case legacy2019
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .current:
+            return "Current"
+        case .legacy2019:
+            return "2019"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .current:
+            return "The default Luna app icon"
+        case .legacy2019:
+            return "The classic Luna icon from the existing resource set"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .current:
+            return "app"
+        case .legacy2019:
+            return "clock.arrow.circlepath"
+        }
+    }
+
+    var alternateIconName: String? {
+        switch self {
+        case .current:
+            return nil
+        case .legacy2019:
+            return "LunaLegacy"
+        }
+    }
+
+    init(iconName: String?) {
+        self = Self.allCases.first { $0.alternateIconName == iconName } ?? .current
+    }
+}
 
 struct SettingsView: View {
     @EnvironmentObject private var appState: LunaAppState
@@ -17,6 +67,7 @@ struct SettingsView: View {
                 )
 
                 generalSection
+                appIconSection
                 experienceSection
                 dailyFactSection
                 profileSection
@@ -288,52 +339,54 @@ struct SettingsView: View {
 
                 CardDivider(leadingInset: 56)
 
-                CardRow {
-                    Toggle(
-                        isOn: Binding(
-                            get: { appState.userProfile.hapticsEnabled },
-                            set: { setHapticsEnabled($0) }
-                        )
-                    ) {
-                        RowLabel(
-                            title: "Haptics",
-                            subtitle: "Use press feedback across Luna",
-                            systemImage: "hand.tap"
-                        )
-                    }
-                }
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    HStack(spacing: 12) {
-                        RowLabel(
-                            title: "Haptic Strength",
-                            subtitle: "Choose how firm button presses feel",
-                            systemImage: "waveform.path.ecg"
-                        )
-
-                        Spacer(minLength: 12)
-
-                        Picker(
-                            "Haptic Strength",
-                            selection: Binding(
-                                get: { appState.userProfile.hapticIntensity },
-                                set: { setHapticIntensity($0) }
+                if Haptics.isSupported {
+                    CardRow {
+                        Toggle(
+                            isOn: Binding(
+                                get: { appState.userProfile.hapticsEnabled },
+                                set: { setHapticsEnabled($0) }
                             )
                         ) {
-                            ForEach(HapticIntensity.allCases) { intensity in
-                                Text(intensity.title).tag(intensity)
-                            }
+                            RowLabel(
+                                title: "Haptics",
+                                subtitle: "Use press feedback across Luna",
+                                systemImage: "hand.tap"
+                            )
                         }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                        .disabled(!appState.userProfile.hapticsEnabled)
                     }
-                    .opacity(appState.userProfile.hapticsEnabled ? 1 : 0.55)
-                }
 
-                CardDivider(leadingInset: 56)
+                    CardDivider(leadingInset: 56)
+
+                    CardRow {
+                        HStack(spacing: 12) {
+                            RowLabel(
+                                title: "Haptic Strength",
+                                subtitle: "Choose how firm button presses feel",
+                                systemImage: "waveform.path.ecg"
+                            )
+
+                            Spacer(minLength: 12)
+
+                            Picker(
+                                "Haptic Strength",
+                                selection: Binding(
+                                    get: { appState.userProfile.hapticIntensity },
+                                    set: { setHapticIntensity($0) }
+                                )
+                            ) {
+                                ForEach(HapticIntensity.allCases) { intensity in
+                                    Text(intensity.title).tag(intensity)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                            .disabled(!appState.userProfile.hapticsEnabled)
+                        }
+                        .opacity(appState.userProfile.hapticsEnabled ? 1 : 0.55)
+                    }
+
+                    CardDivider(leadingInset: 56)
+                }
 
                 NavigationLink {
                     AboutView()
@@ -344,6 +397,34 @@ struct SettingsView: View {
                             title: "About",
                             subtitle: "Version, build, and project details",
                             systemImage: "info.circle",
+                            showsChevron: true
+                        )
+                    }
+                }
+                .buttonStyle(.plain)
+                .hapticTap()
+            }
+        }
+    }
+
+    private var appIconSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "App Icon")
+
+            CardSection {
+                NavigationLink {
+                    AppIconSettingsView(
+                        selectedChoice: appState.selectedAppIconChoice,
+                        onSelect: appState.setAppIconChoice
+                    )
+                    .appBackground()
+                } label: {
+                    CardRow {
+                        RowLabel(
+                            title: "App Icon",
+                            subtitle: "Choose Luna's Home Screen icon",
+                            systemImage: "app.badge",
+                            value: appState.selectedAppIconChoice.title,
                             showsChevron: true
                         )
                     }
@@ -459,6 +540,62 @@ private struct SettingsScaleModeView: View {
             .screenContentPadding()
         }
         .navigationTitle("Scaling")
+    }
+}
+
+private struct AppIconSettingsView: View {
+    let selectedChoice: AppIconChoice
+    let onSelect: (AppIconChoice) -> Void
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                PageHeader(
+                    title: "Choose App Icon",
+                    subtitle: appIconSupportSubtitle
+                )
+
+                CardSection {
+                    ForEach(Array(AppIconChoice.allCases.enumerated()), id: \.element.id) { index, choice in
+                        Button {
+                            onSelect(choice)
+                            Haptics.selection()
+                        } label: {
+                            CardRow {
+                                RowLabel(
+                                    title: choice.title,
+                                    subtitle: choice.subtitle,
+                                    systemImage: choice.systemImage,
+                                    value: choice == selectedChoice ? "Selected" : nil
+                                )
+                            }
+                        }
+                        .buttonStyle(.plain)
+#if os(iOS)
+                        .disabled(!UIApplication.shared.supportsAlternateIcons)
+#else
+                        .disabled(choice != .current)
+#endif
+
+                        if index < AppIconChoice.allCases.count - 1 {
+                            CardDivider(leadingInset: 56)
+                        }
+                    }
+                }
+            }
+            .screenContentPadding()
+        }
+        .navigationTitle("App Icon")
+    }
+
+    private var appIconSupportSubtitle: String {
+#if os(iOS)
+        UIApplication.shared.supportsAlternateIcons
+            ? "Pick the icon Luna uses on your Home Screen."
+            : "Alternate icons are unavailable on this device."
+#else
+        "macOS uses the bundled app icon."
+#endif
     }
 }
 

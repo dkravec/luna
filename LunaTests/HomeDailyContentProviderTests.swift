@@ -66,6 +66,17 @@ final class HomeDailyContentProviderTests: XCTestCase {
         XCTAssertTrue(fact.message.contains("1 body"))
     }
 
+    func testHistoryReturnsDailyContentInReverseChronologicalOrder() throws {
+        let provider = provider()
+        let endDate = try date(year: 2026, month: 5, day: 19)
+
+        let history = provider.history(for: Self.bodies, endingAt: endDate, days: 4)
+
+        XCTAssertEqual(history.count, 4)
+        XCTAssertEqual(history.first, provider.content(for: Self.bodies, date: endDate))
+        XCTAssertGreaterThan(Set(history.compactMap(\.featuredBody?.id)).count, 1)
+    }
+
     private func provider() -> HomeDailyContentProvider {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!

@@ -25,6 +25,7 @@ struct ExploreView: View {
                         placeholder: "Search Explore",
                         text: $viewModel.searchText
                     )
+                    collectionSummarySection
                     if viewModel.isSearching {
                         filterSection
                     }
@@ -63,6 +64,39 @@ struct ExploreView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var collectionSummarySection: some View {
+        if viewModel.loadState == .loaded {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "Catalog")
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(viewModel.exploreCollections) { collection in
+                            Button {
+                                selectedCollection = collection
+                            } label: {
+                                Label {
+                                    Text("\(collection.title) \(viewModel.bodyCount(in: collection))")
+                                        .font(.caption.weight(.semibold))
+                                } icon: {
+                                    Image(systemName: collection.systemImage)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .background(Color.primary.opacity(0.07), in: Capsule(style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(collection.title), \(viewModel.bodyCount(in: collection)) items")
+                            .hapticTap()
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
             }
         }
     }

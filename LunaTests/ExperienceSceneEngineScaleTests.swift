@@ -148,21 +148,53 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         }
     }
 
-    func testMoonClearsEarthInCompressedAndTrueDistanceModes() throws {
+    func testMoonClearsEarthInEducationalMode() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .educational, object: .relative)
+        )
+
+        let earth = try body("earth", in: snapshot)
+        let moon = try body("moon", in: snapshot)
+        XCTAssertGreaterThan(
+            length(moon.position - earth.position),
+            earth.displayRadius + moon.displayRadius + 0.01,
+            "Educational mode should prioritize visual clearance"
+        )
+    }
+
+    func testMoonUsesEarthRelativeOrbitInsteadOfSunDistance() throws {
         for distanceMode in [DistanceScaleMode.compressed, .trueScale] {
             let snapshot = ExperienceSceneEngine.snapshot(
                 for: Self.bodies,
-                settings: settings(distance: distanceMode, object: .relative)
+                settings: settings(distance: distanceMode, object: .trueScale)
             )
 
             let earth = try body("earth", in: snapshot)
             let moon = try body("moon", in: snapshot)
-            XCTAssertGreaterThan(
-                length(moon.position - earth.position),
-                earth.displayRadius + moon.displayRadius + 0.01,
-                "Moon should clear Earth in \(distanceMode.rawValue)"
+            let mars = try body("mars", in: snapshot)
+            let moonDistanceFromEarth = Double(length(moon.position - earth.position))
+            let moonDistanceFromMars = Double(length(moon.position - mars.position))
+
+            XCTAssertEqual(
+                moonDistanceFromEarth,
+                expectedSceneDistance("moon", distance: distanceMode),
+                accuracy: distanceMode == .trueScale ? 0.001 : 0.01
             )
+            XCTAssertLessThan(moonDistanceFromEarth, moonDistanceFromMars * 0.05)
         }
+    }
+
+    func testMoonOrbitPathIsCenteredOnEarth() throws {
+        let snapshot = ExperienceSceneEngine.snapshot(
+            for: Self.bodies,
+            settings: settings(distance: .trueScale, object: .trueScale)
+        )
+        let earth = try body("earth", in: snapshot)
+        let moonOrbit = try XCTUnwrap(snapshot.orbitPaths.first { $0.bodyId == "moon" })
+        let firstOrbitDistance = Double(length(moonOrbit.points[0] - earth.position))
+
+        XCTAssertEqual(firstOrbitDistance, perihelionDistance("moon", distance: .trueScale), accuracy: 0.001)
     }
 
     func testTrueSizeDistanceModesHaveVisibleSunClearance() throws {
@@ -880,8 +912,9 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         makeBody(id: "venus", name: "Venus", radiusKm: 6_051.8, averageDistanceFromSunKm: 108_200_000, orbit: orbit(108_208_000, eccentricity: 0.0068, inclination: 3.394, longitude: 76.680, periapsis: 54.884, meanAnomaly: 50.115), displayOrder: 2),
         makeBody(id: "earth", name: "Earth", radiusKm: 6_371, averageDistanceFromSunKm: 149_600_000, orbit: orbit(149_598_023, eccentricity: 0.0167, inclination: 0, longitude: 0, periapsis: 114.208, meanAnomaly: 358.617), displayOrder: 3),
         makeBody(id: "moon", name: "Moon", type: .moon, radiusKm: 1_737.4, averageDistanceFromSunKm: 149_600_000, averageDistanceFromEarthKm: 384_400, orbit: orbit(384_400, eccentricity: 0.0549, inclination: 5.145, longitude: 125.08, periapsis: 318.15, meanAnomaly: 135.27), parentBodyId: "earth", displayOrder: 4),
-        makeBody(id: "jupiter", name: "Jupiter", radiusKm: 69_911, averageDistanceFromSunKm: 778_500_000, orbit: orbit(778_570_000, eccentricity: 0.0489, inclination: 1.304, longitude: 100.464, periapsis: 273.867, meanAnomaly: 20.020), displayOrder: 5),
-        makeBody(id: "neptune", name: "Neptune", radiusKm: 24_622, averageDistanceFromSunKm: 4_495_100_000, orbit: orbit(4_495_060_000, eccentricity: 0.0113, inclination: 1.770, longitude: 131.784, periapsis: 273.187, meanAnomaly: 256.228), displayOrder: 6)
+        makeBody(id: "mars", name: "Mars", radiusKm: 3_389.5, averageDistanceFromSunKm: 227_900_000, orbit: orbit(227_939_200, eccentricity: 0.0934, inclination: 1.850, longitude: 49.558, periapsis: 286.502, meanAnomaly: 19.412), displayOrder: 5),
+        makeBody(id: "jupiter", name: "Jupiter", radiusKm: 69_911, averageDistanceFromSunKm: 778_500_000, orbit: orbit(778_570_000, eccentricity: 0.0489, inclination: 1.304, longitude: 100.464, periapsis: 273.867, meanAnomaly: 20.020), displayOrder: 6),
+        makeBody(id: "neptune", name: "Neptune", radiusKm: 24_622, averageDistanceFromSunKm: 4_495_100_000, orbit: orbit(4_495_060_000, eccentricity: 0.0113, inclination: 1.770, longitude: 131.784, periapsis: 273.187, meanAnomaly: 256.228), displayOrder: 7)
     ]
     private static let physicalKilometersPerSceneUnit: Double = 316_553_521
     private static let trueScaleEnvironmentMultiplier: Double = 6
