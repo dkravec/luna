@@ -388,7 +388,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertLessThan(length(returnedEarth.position - initialEarth.position), 0.08)
     }
 
-    func testSelectedFocusScaleIncludesBodyAndChildEnvelope() throws {
+    func testSelectedFocusScaleStaysCloseToSelectedBody() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,
             settings: settings(distance: .compressed, object: .relative)
@@ -397,9 +397,13 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let moon = try body("moon", in: snapshot)
         let childEnvelope = length(moon.position - earth.position) + moon.displayRadius
 
-        let scale = SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: "earth", in: snapshot)
+        let earthScale = SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: "earth", in: snapshot)
+        let moonScale = SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: "moon", in: snapshot)
 
-        XCTAssertGreaterThanOrEqual(scale, Double(childEnvelope * 4.7))
+        XCTAssertLessThan(earthScale, Double(childEnvelope * 4.0))
+        XCTAssertGreaterThanOrEqual(earthScale, Double(earth.displayRadius * 3.0))
+        XCTAssertGreaterThanOrEqual(moonScale, 0.7)
+        XCTAssertLessThanOrEqual(moonScale, 0.75)
     }
 
     func testTrueScaleCameraMetricsAndLimitsCoverFullBounds() {

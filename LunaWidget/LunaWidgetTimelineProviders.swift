@@ -1,8 +1,10 @@
 import Foundation
+import os
 import WidgetKit
 
 struct NASAImageTimelineProvider: TimelineProvider {
     private let sharedCache = NASAAPODSharedCache()
+    private let logger = Logger(subsystem: "net.novapro.Luna.widget", category: "APOD")
 
     func placeholder(in context: Context) -> NASAImageEntry {
         NASAImageEntry(
@@ -37,20 +39,30 @@ struct NASAImageTimelineProvider: TimelineProvider {
             let imageData: Data?
             var imageFilename: String?
 
-            if let imageURL = item.imageURL,
-               let fetchedImageData = try? await NASAImageFetcher.fetchImageData(from: imageURL) {
-                let imageFileURL = sharedCache.imageFileURL(forDateString: item.dateString)
-                try? sharedCache.createCacheDirectoriesIfNeeded()
-                try? fetchedImageData.write(to: imageFileURL, options: .atomic)
-                imageData = fetchedImageData
-                imageFilename = imageFileURL.lastPathComponent
+            if let imageURL = item.imageURL {
+                do {
+                    let fetchedImageData = try await NASAImageFetcher.fetchImageData(from: imageURL)
+                    let imageFileURL = sharedCache.imageFileURL(forDateString: item.dateString)
+                    try sharedCache.createCacheDirectoriesIfNeeded()
+                    try fetchedImageData.write(to: imageFileURL, options: .atomic)
+                    imageData = fetchedImageData
+                    imageFilename = imageFileURL.lastPathComponent
+                } catch {
+                    logger.error("APOD widget image fetch/cache failed: \(error.localizedDescription, privacy: .public)")
+                    imageData = nil
+                }
             } else {
+                logger.notice("APOD widget payload did not include an image URL")
                 imageData = nil
             }
 
             let record = item.sharedRecord(imageFilename: imageFilename)
             let existingHistory = sharedCache.readHistory(limit: 30).filter { $0.dateString != record.dateString }
-            try? sharedCache.save(latest: record, history: [record] + existingHistory)
+            do {
+                try sharedCache.save(latest: record, history: [record] + existingHistory)
+            } catch {
+                logger.error("APOD widget shared cache save failed: \(error.localizedDescription, privacy: .public)")
+            }
 
             return NASAImageEntry(
                 date: Date(),
@@ -59,6 +71,7 @@ struct NASAImageTimelineProvider: TimelineProvider {
                 imageData: imageData
             )
         } catch {
+            logger.error("APOD widget timeline fetch failed: \(error.localizedDescription, privacy: .public)")
             return NASAImageEntry(
                 date: Date(),
                 title: "NASA Image",
@@ -72,6 +85,9 @@ struct NASAImageTimelineProvider: TimelineProvider {
         guard let record = sharedCache.readLatest() else { return nil }
         let imageURL = sharedCache.imageFileURL(forDateString: record.dateString)
         let imageData = try? Data(contentsOf: imageURL)
+        if record.imageFilename != nil, imageData == nil {
+            logger.notice("APOD widget shared cache metadata exists but cached image is missing")
+        }
 
         return NASAImageEntry(
             date: NASAAPODSharedCache.dateFormatter.date(from: record.dateString) ?? Date(),

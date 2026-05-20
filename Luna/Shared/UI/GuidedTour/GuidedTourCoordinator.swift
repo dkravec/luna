@@ -72,7 +72,7 @@ enum GuidedTourStep: String, CaseIterable, Identifiable {
         case .exploreCategories:
             return .exploreCategory
         case .exploreBody:
-            return .experienceScene
+            return .exploreBody
         case .bodyDetailExperience:
             return .bodyDetailExperience
         case .experienceScene:
@@ -92,10 +92,8 @@ enum GuidedTourStep: String, CaseIterable, Identifiable {
         switch self {
         case .homeWelcome, .homeExplore:
             return .home
-        case .exploreCategories:
+        case .exploreCategories, .exploreBody:
             return .explore
-        case .exploreBody:
-            return .experience
         case .bodyDetailExperience:
             return .bodyDetail(nil)
         case .experienceScene, .experienceMode, .experienceControls, .experiencePlayback:
@@ -123,7 +121,7 @@ enum GuidedTourStep: String, CaseIterable, Identifiable {
         case .exploreCategories:
             return "Browse Collections"
         case .exploreBody:
-            return "Open Earth"
+            return "Open A Body"
         case .bodyDetailExperience:
             return "View It In Space"
         case .experienceScene:
@@ -148,7 +146,7 @@ enum GuidedTourStep: String, CaseIterable, Identifiable {
         case .exploreCategories:
             return "Collections group planets, moons, satellites, and NASA models so the library stays easy to scan."
         case .exploreBody:
-            return "Luna opens Earth in the Solar System experience so you can see object info in context."
+            return "Open a body card to see facts, orbital details, related bodies, and an entry into the immersive view."
         case .bodyDetailExperience:
             return "This button opens an object-specific experience for the selected body."
         case .experienceScene:
@@ -188,7 +186,6 @@ enum GuidedTourStep: String, CaseIterable, Identifiable {
 final class GuidedTourCoordinator: ObservableObject {
     @Published private(set) var currentStep: GuidedTourStep?
     @Published private(set) var pendingBodyID: String?
-    @Published private(set) var pendingExperienceBodyID: String?
     @Published private(set) var presentationID = UUID()
     @Published private(set) var dismissalID: UUID?
 
@@ -211,7 +208,6 @@ final class GuidedTourCoordinator: ObservableObject {
     func start(at step: GuidedTourStep = .homeWelcome) {
         isTransitionLocked = false
         pendingBodyID = nil
-        pendingExperienceBodyID = nil
         presentationID = UUID()
         dismissalID = nil
         if step == .homeWelcome {
@@ -270,7 +266,6 @@ final class GuidedTourCoordinator: ObservableObject {
         isTransitionLocked = false
         currentStep = nil
         pendingBodyID = nil
-        pendingExperienceBodyID = nil
         presentationID = UUID()
         dismissalID = UUID()
         stateDidChange()
@@ -280,7 +275,6 @@ final class GuidedTourCoordinator: ObservableObject {
         isTransitionLocked = false
         currentStep = nil
         pendingBodyID = nil
-        pendingExperienceBodyID = nil
         presentationID = UUID()
         dismissalID = UUID()
         completionHandler()
@@ -288,9 +282,8 @@ final class GuidedTourCoordinator: ObservableObject {
     }
 
     private func setStep(_ step: GuidedTourStep) {
-        let bodyID = defaultBodyIDProvider()
-        pendingBodyID = step == .bodyDetailExperience ? bodyID : nil
-        pendingExperienceBodyID = step == .exploreBody ? bodyID : nil
+        let bodyID = step == .bodyDetailExperience ? defaultBodyIDProvider() : nil
+        pendingBodyID = bodyID
 
         switch step.route {
         case .bodyDetail:

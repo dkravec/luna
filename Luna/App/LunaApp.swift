@@ -26,7 +26,6 @@ final class LunaAppState: ObservableObject {
     @Published var selectedTab: LunaTab = .home
     @Published private(set) var guidedTourStep: GuidedTourStep?
     @Published private(set) var guidedTourBodyID: String?
-    @Published private(set) var guidedTourExperienceFocusBodyID: String?
     @Published private(set) var guidedTourPresentationID = UUID()
     @Published private(set) var guidedTourDismissalID: UUID?
     @Published var appearancePreference: AppAppearancePreference = .system
@@ -375,7 +374,6 @@ final class LunaAppState: ObservableObject {
     private func syncGuidedTourState() {
         guidedTourStep = guidedTour.currentStep
         guidedTourBodyID = guidedTour.pendingBodyID
-        guidedTourExperienceFocusBodyID = guidedTour.pendingExperienceBodyID
         guidedTourPresentationID = guidedTour.presentationID
         guidedTourDismissalID = guidedTour.dismissalID
         persistGuidedTourStep(guidedTour.currentStep)

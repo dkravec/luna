@@ -411,7 +411,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         let currentOffset = focusChanged
             ? SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot)
             : pointOfView.position - focusCenter
-        let minimumDistance = max(Float(focusedOrthographicScale(for: focusedBodyID) * 1.25), 2.2)
+        let minimumDistance = max(Float(focusedOrthographicScale(for: focusedBodyID) * 0.95), 1.4)
         let nextOffset = currentOffset.length < minimumDistance ? currentOffset.normalizedOrDefault * minimumDistance : currentOffset
         let desiredScale = focusChanged
             ? focusedOrthographicScale(for: focusedBodyID)
@@ -941,8 +941,9 @@ struct SolarSystemSceneFocusMetrics {
                 length(child.position - placement.position) + child.displayRadius
             }
             .max() ?? 0
-        let subjectRadius = max(placement.displayRadius, childEnvelope, placement.interactionRadius, 0.22)
-        return max(0.85, Double(subjectRadius * 4.8))
+        let cappedChildEnvelope = min(childEnvelope, placement.displayRadius * 2.4)
+        let subjectRadius = max(placement.displayRadius, cappedChildEnvelope, placement.interactionRadius, 0.20)
+        return max(0.70, Double(subjectRadius * 3.1))
     }
 
     static func cameraOffset(for bodyID: String, in snapshot: ExperienceSceneSnapshot) -> SCNVector3 {
@@ -958,9 +959,9 @@ struct SolarSystemSceneFocusMetrics {
         }
 
         return SCNVector3(
-            radial.x * scale * 0.42,
-            scale * 0.38,
-            max(scale * 1.85, 2.4) + radial.z * scale * 0.42
+            radial.x * scale * 0.22,
+            scale * 0.24,
+            max(scale * 1.20, 1.6) + radial.z * scale * 0.22
         )
     }
 }
