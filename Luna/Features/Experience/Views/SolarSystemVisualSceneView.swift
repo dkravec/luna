@@ -408,15 +408,24 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         }
 
         let focusChanged = activeFocusID != focusedBodyID
-        let currentOffset = focusChanged
-            ? SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot)
-            : pointOfView.position - focusCenter
-        let minimumDistance = max(Float(focusedOrthographicScale(for: focusedBodyID) * 0.95), 1.4)
-        let nextOffset = currentOffset.length < minimumDistance ? currentOffset.normalizedOrDefault * minimumDistance : currentOffset
+        let desiredFocusScale = focusedOrthographicScale(for: focusedBodyID)
+        let idealOffset = SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot)
+        let currentOffset = focusChanged ? idealOffset : pointOfView.position - focusCenter
+        let minimumDistance = max(Float(desiredFocusScale * 0.88), 1.25)
+        let maximumDistance = max(Float(desiredFocusScale * 1.55), minimumDistance + 0.2)
+        let nextOffset = clampedFocusOffset(
+            currentOffset,
+            idealOffset: idealOffset,
+            minimumDistance: minimumDistance,
+            maximumDistance: maximumDistance,
+            shouldResetToIdeal: focusChanged
+        )
         let desiredScale = focusChanged
-            ? focusedOrthographicScale(for: focusedBodyID)
-            : min(max(pointOfView.camera?.orthographicScale ?? focusedOrthographicScale(for: focusedBodyID), cameraLimit.minimumOrthographicScale), cameraLimit.maximumOrthographicScale)
+            ? desiredFocusScale
+            : min(max(pointOfView.camera?.orthographicScale ?? desiredFocusScale, cameraLimit.minimumOrthographicScale), cameraLimit.maximumOrthographicScale)
 
+        stopCameraAnimations(pointOfView)
+        view.defaultCameraController.target = focusCenter
         SCNTransaction.begin()
         SCNTransaction.animationDuration = focusChanged ? 0.26 : 0
         pointOfView.position = focusCenter + nextOffset
@@ -431,7 +440,6 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         }
         SCNTransaction.commit()
 
-        view.defaultCameraController.target = focusCenter
         focusState = CameraFocusState(
             target: focusCenter,
             cameraOffset: nextOffset,
@@ -440,6 +448,33 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         stateLock.lock()
         activeFocusID = focusedBodyID
         stateLock.unlock()
+    }
+
+    private func clampedFocusOffset(
+        _ offset: SCNVector3,
+        idealOffset: SCNVector3,
+        minimumDistance: Float,
+        maximumDistance: Float,
+        shouldResetToIdeal: Bool
+    ) -> SCNVector3 {
+        if shouldResetToIdeal {
+            return idealOffset.normalizedOrDefault * min(max(idealOffset.length, minimumDistance), maximumDistance)
+        }
+
+        let distance = offset.length
+        if distance < minimumDistance {
+            return offset.normalizedOrDefault * minimumDistance
+        }
+        if distance > maximumDistance {
+            return offset.normalizedOrDefault * maximumDistance
+        }
+        return offset
+    }
+
+    private func stopCameraAnimations(_ pointOfView: SCNNode) {
+        pointOfView.removeAllActions()
+        pointOfView.removeAllAnimations()
+        pointOfView.camera?.removeAllAnimations()
     }
 
     private func restoreCameraFocusIfNeeded(to view: SCNView) {

@@ -228,7 +228,11 @@ struct ExploreView: View {
                     }
                     .buttonStyle(.plain)
                     .hapticTap()
-                    .guidedTourTarget(.exploreCategory, when: collection == viewModel.exploreCollections.first)
+                    .guidedTourTarget(
+                        .exploreCategory,
+                        when: appState.guidedTourStep == .exploreCategories
+                            && collection == guidedTourCollectionFallback
+                    )
                 }
             }
         }
@@ -250,7 +254,7 @@ struct ExploreView: View {
                 LazyVStack(spacing: 10) {
                     ForEach(viewModel.filteredBodies) { body in
                         bodyLink(for: body)
-                            .guidedTourTarget(.exploreBody, when: body.id == viewModel.filteredBodies.first?.id)
+                            .guidedTourTarget(.exploreBody, when: shouldHighlightBodyForGuidedTour(body))
                     }
                 }
             }
@@ -267,6 +271,15 @@ struct ExploreView: View {
         }
         .buttonStyle(.plain)
         .hapticTap()
+    }
+
+    private var guidedTourCollectionFallback: ExploreCollection? {
+        appState.defaultCollectionForGuidedTour() ?? viewModel.exploreCollections.first
+    }
+
+    private func shouldHighlightBodyForGuidedTour(_ body: CelestialBody) -> Bool {
+        appState.guidedTourStep == .exploreBody
+            && body.id == appState.defaultBodyForGuidedTour()?.id
     }
 
     private func openRequestedGuidedTourCollectionIfNeeded() {
@@ -376,7 +389,11 @@ private struct CategoryExploreView: View {
                                     }
                                     .buttonStyle(.plain)
                                     .hapticTap()
-                                    .guidedTourTarget(.exploreBody, when: appState.guidedTourStep == .exploreBody && body.id == filteredBodies.first?.id)
+                                    .guidedTourTarget(
+                                        .exploreBody,
+                                        when: appState.guidedTourStep == .exploreBody
+                                            && body.id == appState.defaultBodyForGuidedTour()?.id
+                                    )
                                 }
                             }
                         }

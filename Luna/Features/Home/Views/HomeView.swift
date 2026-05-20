@@ -56,7 +56,7 @@ struct HomeView: View {
                     title: "Luna",
                     subtitle: "Explore planets, compare scale, and step into space with AR."
                 )
-                .guidedTourTarget(.homeOverview)
+                .guidedTourTarget(.homeOverview, when: appState.guidedTourStep == .homeWelcome)
 
                 Spacer(minLength: 8)
 
@@ -272,7 +272,7 @@ struct HomeView: View {
                             showsChevron: true
                         )
                     }
-                    .guidedTourTarget(.homeExploreAction)
+                    .guidedTourTarget(.homeExploreAction, when: appState.guidedTourStep == .homeExplore)
                 }
                 .buttonStyle(.plain)
                 .hapticTap()

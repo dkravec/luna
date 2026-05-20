@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 #if os(iOS)
 import UIKit
 #elseif os(macOS)
@@ -102,6 +103,7 @@ struct NASAImageWidgetView: View {
             if let image = UIImage(data: imageData) {
                 Image(uiImage: image)
                     .resizable()
+                    .lunaWidgetFullColorImage()
                     .scaledToFill()
             } else {
                 placeholder
@@ -110,6 +112,7 @@ struct NASAImageWidgetView: View {
             if let image = NSImage(data: imageData) {
                 Image(nsImage: image)
                     .resizable()
+                    .lunaWidgetFullColorImage()
                     .scaledToFill()
             } else {
                 placeholder
@@ -129,6 +132,7 @@ struct NASAImageWidgetView: View {
             Image(systemName: "sparkles")
                 .font(.largeTitle.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.72))
+                .widgetAccentable(false)
         }
     }
 }
@@ -267,9 +271,13 @@ private struct LunaWidgetContainer<Content: View>: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.black)
+            .background {
+                LunaWidgetSpaceBackground()
+                    .widgetAccentable(false)
+            }
             .clipShape(ContainerRelativeShape())
             .clipped()
+            .widgetAccentable(false)
             .lunaWidgetBackground()
     }
 }
@@ -279,10 +287,25 @@ private extension View {
     func lunaWidgetBackground() -> some View {
         if #available(iOSApplicationExtension 17.0, macOSApplicationExtension 14.0, *) {
             containerBackground(for: .widget) {
-                LunaWidgetSpaceBackground()
+                ZStack {
+                    Color.black
+                    LunaWidgetSpaceBackground()
+                }
             }
         } else {
             background(Color.black)
+        }
+    }
+
+}
+
+private extension Image {
+    @ViewBuilder
+    func lunaWidgetFullColorImage() -> some View {
+        if #available(iOSApplicationExtension 18.0, macOSApplicationExtension 15.0, watchOSApplicationExtension 11.0, *) {
+            self.widgetAccentedRenderingMode(.fullColor)
+        } else {
+            self
         }
     }
 }

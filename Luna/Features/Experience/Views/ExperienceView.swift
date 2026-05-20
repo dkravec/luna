@@ -221,7 +221,7 @@ struct ExperienceView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isOrbitPlaybackEnabled ? "Pause orbits" : "Play orbits")
-                .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback)
+                .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback && !isAREnabled)
             }
         }
     }
@@ -277,7 +277,7 @@ struct ExperienceView: View {
             .disabled(!arPlacementState.isReady)
             .opacity(arPlacementState.isReady ? 1 : 0.62)
             .accessibilityLabel(arPlacementAccessibilityLabel)
-            .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback)
+            .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback && isAREnabled)
         }
 #endif
     }
