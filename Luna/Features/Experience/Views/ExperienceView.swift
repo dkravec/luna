@@ -38,7 +38,7 @@ struct ExperienceView: View {
         ZStack {
             sceneLayer
                 .ignoresSafeArea(edges: .bottom)
-                .guidedTourTarget(.experienceScene, when: appState.guidedTourStep == .experienceScene)
+                .guidedTourTarget(.experienceScene, when: appState.guidedTourStep?.target == .experienceScene)
             experienceSceneTourTapArea
             topBar
                 .padding(.horizontal, 16)
@@ -63,6 +63,7 @@ struct ExperienceView: View {
             }
             initializePreferredModeIfNeeded()
             prepareSceneAfterInitialRender()
+            applyGuidedTourExperienceFocusIfNeeded()
         }
         .onDisappear {
             pauseOrbitPlaybackIfNeeded()
@@ -71,6 +72,18 @@ struct ExperienceView: View {
             if selectedTab != .arExperience {
                 pauseOrbitPlaybackIfNeeded()
             }
+        }
+        .onChange(of: appState.guidedTourExperienceFocusBodyID) { _ in
+            applyGuidedTourExperienceFocusIfNeeded()
+        }
+        .onChange(of: appState.guidedTourStep) { _ in
+            applyGuidedTourExperienceFocusIfNeeded()
+        }
+        .onChange(of: isSceneReady) { _ in
+            applyGuidedTourExperienceFocusIfNeeded()
+        }
+        .onChange(of: appState.celestialBodies) { _ in
+            applyGuidedTourExperienceFocusIfNeeded()
         }
         .onReceive(Self.playbackTimer) { date in
             advanceOrbitPlaybackIfNeeded(at: date)
@@ -87,7 +100,7 @@ struct ExperienceView: View {
 
     @ViewBuilder
     private var experienceSceneTourTapArea: some View {
-        if appState.guidedTourStep == .experienceScene {
+        if appState.guidedTourStep?.target == .experienceScene {
             Color.white.opacity(0.001)
                 .contentShape(Rectangle())
                 .accessibilityHidden(true)
@@ -690,6 +703,21 @@ struct ExperienceView: View {
 
     private func showQuickDetails(for body: CelestialBody) {
         Haptics.selection()
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            selectedQuickDetailsBody = body
+        }
+    }
+
+    private func applyGuidedTourExperienceFocusIfNeeded() {
+        guard isSceneReady,
+              appState.selectedTab == .arExperience,
+              let bodyID = appState.guidedTourExperienceFocusBodyID,
+              let body = appState.celestialBodies.first(where: { $0.id == bodyID })
+        else {
+            return
+        }
+
+        isAREnabled = false
         withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
             selectedQuickDetailsBody = body
         }

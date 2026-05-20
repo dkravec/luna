@@ -1,8 +1,10 @@
 import Foundation
 
 struct HomeDailyContent: Equatable {
+    let date: Date
     let featuredBody: CelestialBody?
     let dailyFact: HomeDailyFact
+    let relatedFacts: [HomeDailyFact]
 }
 
 struct HomeDailyFact: Equatable {
@@ -17,9 +19,15 @@ struct HomeDailyContentProvider {
     func content(for bodies: [CelestialBody], date: Date = Date()) -> HomeDailyContent {
         let eligibleBodies = eligibleBodies(from: bodies)
         let featuredBody = featuredBody(from: eligibleBodies, date: date)
-        let fact = dailyFact(featuredBody: featuredBody, bodies: eligibleBodies, date: date)
+        let relatedFacts = factCandidates(featuredBody: featuredBody, bodies: eligibleBodies)
+        let fact = dailyFact(from: relatedFacts, eligibleBodyCount: eligibleBodies.count, date: date)
 
-        return HomeDailyContent(featuredBody: featuredBody, dailyFact: fact)
+        return HomeDailyContent(
+            date: date,
+            featuredBody: featuredBody,
+            dailyFact: fact,
+            relatedFacts: relatedFacts.isEmpty ? [fact] : relatedFacts
+        )
     }
 
     func history(for bodies: [CelestialBody], endingAt date: Date = Date(), days: Int = 7) -> [HomeDailyContent] {
@@ -45,11 +53,20 @@ struct HomeDailyContentProvider {
     func dailyFact(featuredBody: CelestialBody?, bodies: [CelestialBody], date: Date = Date()) -> HomeDailyFact {
         let eligibleBodies = eligibleBodies(from: bodies)
         let candidates = factCandidates(featuredBody: featuredBody, bodies: eligibleBodies)
+        return dailyFact(from: candidates, eligibleBodyCount: eligibleBodies.count, date: date)
+    }
+
+    func relatedFacts(featuredBody: CelestialBody?, bodies: [CelestialBody]) -> [HomeDailyFact] {
+        let eligibleBodies = eligibleBodies(from: bodies)
+        return factCandidates(featuredBody: featuredBody, bodies: eligibleBodies)
+    }
+
+    private func dailyFact(from candidates: [HomeDailyFact], eligibleBodyCount: Int, date: Date) -> HomeDailyFact {
         guard !candidates.isEmpty else {
-            let noun = eligibleBodies.count == 1 ? "body" : "bodies"
+            let noun = eligibleBodyCount == 1 ? "body" : "bodies"
             return HomeDailyFact(
                 title: "Fact of the Day",
-                message: "Luna has \(eligibleBodies.count) \(noun) ready to explore.",
+                message: "Luna has \(eligibleBodyCount) \(noun) ready to explore.",
                 systemImage: "sparkles"
             )
         }

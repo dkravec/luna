@@ -114,10 +114,7 @@ struct HomeView: View {
 
             if let body = content.featuredBody {
                 NavigationLink {
-                    BodyDetailView(
-                        celestialBody: body,
-                        childBodies: appState.celestialBodies.filter { $0.parentBodyId == body.id }
-                    )
+                    TodayInLunaDetailView(content: content)
                 } label: {
                     Card {
                         VStack(alignment: .leading, spacing: 12) {

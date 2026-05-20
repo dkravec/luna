@@ -39,7 +39,7 @@ final class LunaTourUITests: XCTestCase {
         assertTour(title: "Browse Collections", progress: "3 of 10")
 
         tapNext()
-        assertTour(title: "Open A Body", progress: "4 of 10")
+        assertTour(title: "Open Earth", progress: "4 of 10")
 
         tapNext()
         assertTour(title: "View It In Space", progress: "5 of 10")

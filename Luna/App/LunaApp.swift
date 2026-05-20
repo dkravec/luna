@@ -26,6 +26,7 @@ final class LunaAppState: ObservableObject {
     @Published var selectedTab: LunaTab = .home
     @Published private(set) var guidedTourStep: GuidedTourStep?
     @Published private(set) var guidedTourBodyID: String?
+    @Published private(set) var guidedTourExperienceFocusBodyID: String?
     @Published private(set) var guidedTourPresentationID = UUID()
     @Published private(set) var guidedTourDismissalID: UUID?
     @Published var appearancePreference: AppAppearancePreference = .system
@@ -80,7 +81,7 @@ final class LunaAppState: ObservableObject {
         configureForUITestingIfNeeded()
 
         if userProfile.hasCompletedOnboarding && !userProfile.hasCompletedFirstRunTour {
-            startFirstRunTour()
+            restoreOrStartFirstRunTour()
         }
     }
 
@@ -374,8 +375,10 @@ final class LunaAppState: ObservableObject {
     private func syncGuidedTourState() {
         guidedTourStep = guidedTour.currentStep
         guidedTourBodyID = guidedTour.pendingBodyID
+        guidedTourExperienceFocusBodyID = guidedTour.pendingExperienceBodyID
         guidedTourPresentationID = guidedTour.presentationID
         guidedTourDismissalID = guidedTour.dismissalID
+        persistGuidedTourStep(guidedTour.currentStep)
     }
 
     private func handleGuidedTourRoute(_ route: GuidedTourRoute) {
@@ -395,6 +398,7 @@ final class LunaAppState: ObservableObject {
 
     private func completeGuidedTourPersistence() {
         userProfile.hasCompletedFirstRunTour = true
+        clearPersistedGuidedTourStep()
         saveUserProfile()
     }
 
@@ -403,4 +407,32 @@ final class LunaAppState: ObservableObject {
             ?? celestialBodies.first { $0.type == .planet }
             ?? celestialBodies.sorted { $0.displayOrder < $1.displayOrder }.first
     }
+
+    private func restoreOrStartFirstRunTour() {
+        let restoredStep = persistedGuidedTourStep()
+        guidedTour.start(at: restoredStep ?? .homeWelcome)
+    }
+
+    private func persistGuidedTourStep(_ step: GuidedTourStep?) {
+        guard let step else {
+            clearPersistedGuidedTourStep()
+            return
+        }
+
+        UserDefaults.standard.set(step.rawValue, forKey: Self.persistedGuidedTourStepKey)
+    }
+
+    private func persistedGuidedTourStep() -> GuidedTourStep? {
+        guard let rawValue = UserDefaults.standard.string(forKey: Self.persistedGuidedTourStepKey) else {
+            return nil
+        }
+
+        return GuidedTourStep(rawValue: rawValue)
+    }
+
+    private func clearPersistedGuidedTourStep() {
+        UserDefaults.standard.removeObject(forKey: Self.persistedGuidedTourStepKey)
+    }
+
+    private static let persistedGuidedTourStepKey = "Luna.guidedTour.currentStep"
 }

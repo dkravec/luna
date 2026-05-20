@@ -85,6 +85,8 @@ extension View {
 }
 
 private struct GuidedTourOverlayView: View {
+    @State private var allowsMissingTargetFallback = false
+
     let step: GuidedTourStep
     let targetFrame: CGRect?
     let containerSize: CGSize
@@ -141,6 +143,13 @@ private struct GuidedTourOverlayView: View {
         .allowsHitTesting(true)
         .zIndex(200)
         .transition(.opacity)
+        .onAppear {
+            scheduleMissingTargetFallback()
+        }
+        .onChange(of: step) { _ in
+            allowsMissingTargetFallback = false
+            scheduleMissingTargetFallback()
+        }
     }
 
     static func calloutCard(
@@ -225,12 +234,27 @@ private struct GuidedTourOverlayView: View {
             }
         }
 
+        guard allowsMissingTargetFallback else {
+            return CGRect(
+                x: size.width / 2,
+                y: max(size.height * 0.24, safeAreaInsets.top + 96),
+                width: 1,
+                height: 1
+            )
+        }
+
         return CGRect(
             x: 24,
             y: max(size.height * 0.18, safeAreaInsets.top + 72),
             width: max(80, size.width - 48),
             height: min(280, size.height * 0.34)
         )
+    }
+
+    private func scheduleMissingTargetFallback() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            allowsMissingTargetFallback = true
+        }
     }
 
     private var safeAreaDimStrips: some View {

@@ -24,6 +24,8 @@ final class GuidedTourCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.next())
         waitForTransitionUnlock()
         XCTAssertEqual(coordinator.currentStep, .exploreBody)
+        XCTAssertEqual(coordinator.pendingExperienceBodyID, "earth")
+        XCTAssertEqual(routes.last, .experience)
 
         XCTAssertTrue(coordinator.next())
         waitForTransitionUnlock()
@@ -35,7 +37,8 @@ final class GuidedTourCoordinatorTests: XCTestCase {
         waitForTransitionUnlock()
         XCTAssertEqual(coordinator.currentStep, .exploreBody)
         XCTAssertNil(coordinator.pendingBodyID)
-        XCTAssertEqual(routes.last, .explore)
+        XCTAssertEqual(coordinator.pendingExperienceBodyID, "earth")
+        XCTAssertEqual(routes.last, .experience)
     }
 
     func testTargetTapOnlyAdvancesMatchingActionableStep() {

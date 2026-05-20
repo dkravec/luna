@@ -244,6 +244,65 @@ struct CardBackground: View {
     }
 }
 
+struct DetailMediaCard<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .frame(maxWidth: .infinity)
+            .background(CardBackground())
+            .clipShape(RoundedRectangle(cornerRadius: Radii.card, style: .continuous))
+            .accessibilityElement(children: .contain)
+    }
+}
+
+struct DetailMetadataCard<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                content
+            }
+        }
+    }
+}
+
+struct DetailTextCard: View {
+    let title: String?
+    let text: String
+
+    init(title: String? = nil, text: String) {
+        self.title = title
+        self.text = text
+    }
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                if let title {
+                    Text(title)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+
+                Text(text)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
 struct SectionHeader: View {
     let title: String
     var subtitle: String?

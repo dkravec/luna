@@ -183,35 +183,31 @@ private struct NASAImageOfTheDayDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Card {
-                    VStack(alignment: .leading, spacing: 14) {
-                        heroImage
-                            .frame(maxHeight: 320)
-                            .frame(maxWidth: .infinity)
+                DetailMediaCard {
+                    heroImage
+                        .frame(maxHeight: 320)
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                }
 
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(item.date, format: .dateTime.month(.wide).day().year())
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
+                DetailMetadataCard {
+                    Text(item.date, format: .dateTime.month(.wide).day().year())
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
 
-                            Text(item.title)
-                                .font(.title2.weight(.bold))
-                                .foregroundStyle(.primary)
-                                .fixedSize(horizontal: false, vertical: true)
+                    Text(item.title)
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                            if let copyright = item.copyright {
-                                Label(copyright, systemImage: "camera")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Text(item.explanation)
-                                .font(.body)
-                                .foregroundStyle(.primary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                    if let copyright = item.copyright {
+                        Label(copyright, systemImage: "camera")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
+
+                DetailTextCard(text: item.explanation)
 
                 if let sourceURL = item.sourceURL {
                     Button {
