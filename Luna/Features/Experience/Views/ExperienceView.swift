@@ -38,7 +38,6 @@ struct ExperienceView: View {
         ZStack {
             sceneLayer
                 .ignoresSafeArea(edges: .bottom)
-                .guidedTourTarget(.experienceScene, when: appState.guidedTourStep == .experienceScene)
             experienceSceneTourTapArea
             topBar
                 .padding(.horizontal, 16)
@@ -89,7 +88,9 @@ struct ExperienceView: View {
     private var experienceSceneTourTapArea: some View {
         if appState.guidedTourStep == .experienceScene {
             Color.white.opacity(0.001)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
+                .guidedTourTarget(.experienceScene)
                 .accessibilityHidden(true)
                 .onTapGesture {
                     _ = appState.guidedTourTargetTapped(.experienceScene)

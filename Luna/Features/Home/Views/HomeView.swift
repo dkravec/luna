@@ -45,6 +45,9 @@ struct HomeView: View {
             .onChange(of: appState.guidedTourStep) { step in
                 scrollForGuidedTourStep(step, proxy: proxy)
             }
+            .onChange(of: appState.guidedTourPresentationID) { _ in
+                scrollForGuidedTourStep(appState.guidedTourStep, proxy: proxy)
+            }
         }
     }
 
@@ -321,16 +324,24 @@ struct HomeView: View {
     private func scrollForGuidedTourStep(_ step: GuidedTourStep?, proxy: ScrollViewProxy) {
         guard let step else { return }
 
-        DispatchQueue.main.async {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                switch step {
-                case .homeWelcome:
-                    proxy.scrollTo(ScrollAnchor.overview, anchor: .top)
-                case .homeExplore:
-                    proxy.scrollTo(ScrollAnchor.exploreAction, anchor: .center)
-                default:
-                    break
-                }
+        let delays: [TimeInterval] = step == .homeExplore ? [0, 0.18, 0.45] : [0]
+
+        for delay in delays {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                performGuidedTourScroll(for: step, proxy: proxy)
+            }
+        }
+    }
+
+    private func performGuidedTourScroll(for step: GuidedTourStep, proxy: ScrollViewProxy) {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            switch step {
+            case .homeWelcome:
+                proxy.scrollTo(ScrollAnchor.overview, anchor: .top)
+            case .homeExplore:
+                proxy.scrollTo(ScrollAnchor.exploreAction, anchor: .center)
+            default:
+                break
             }
         }
     }

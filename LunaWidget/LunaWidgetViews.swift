@@ -159,24 +159,22 @@ struct LunaFactWidgetView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(entry.bodyName)
                                 .font(family == .systemSmall ? .headline.weight(.bold) : .title3.weight(.bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(.white.opacity(0.92))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.78)
 
                             Text(entry.bodyType)
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.70))
+                                .foregroundStyle(.white.opacity(0.58))
                                 .lineLimit(1)
                         }
                     }
 
                     Text(entry.fact)
                         .font(family == .systemSmall ? .caption.weight(.semibold) : .headline.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.92))
+                        .foregroundStyle(.white.opacity(0.82))
                         .lineLimit(family == .systemSmall ? 4 : 5)
                         .minimumScaleFactor(0.78)
-
-                    // LunaWidgetDebugBuildMarker()
                 }
                 .padding(family == .systemSmall ? 14 : 18)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -202,13 +200,11 @@ struct LunaSolarOverviewWidgetView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Solar System")
                             .font(family == .systemSmall ? .caption.weight(.bold) : .headline.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.white.opacity(0.90))
 
                         Text(entry.date, format: .dateTime.month(.abbreviated).day())
                             .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.72))
-
-                        // LunaWidgetDebugBuildMarker()
+                            .foregroundStyle(.white.opacity(0.58))
                     }
                     .padding(family == .systemSmall ? 12 : 16)
                     .frame(width: proxy.size.width, alignment: .leading)
@@ -224,40 +220,51 @@ private struct LunaWidgetOrbitView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let size = min(proxy.size.width, proxy.size.height)
-            let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2)
-            let maxDistance = bodies.map(\.distanceFromSun).max() ?? 1
+            let layout = LunaWidgetSolarLayout(
+                bodies: bodies,
+                size: proxy.size,
+                date: Date()
+            )
 
             ZStack {
-                ForEach(bodies.filter { $0.distanceFromSun > 0 }) { body in
-                    let radius = max(13, CGFloat(sqrt(body.distanceFromSun / maxDistance)) * size * 0.42)
-
-                    Ellipse()
-                        .stroke(.white.opacity(body.id == "earth" ? 0.20 : 0.12), lineWidth: body.id == "earth" ? 1.2 : 0.8)
-                        .frame(width: radius * 2, height: radius * 1.32)
-                        .position(center)
+                ForEach(layout.orbits) { orbit in
+                    Path { path in
+                        guard let first = orbit.points.first else { return }
+                        path.move(to: first)
+                        for point in orbit.points.dropFirst() {
+                            path.addLine(to: point)
+                        }
+                        path.closeSubpath()
+                    }
+                    .stroke(.white.opacity(orbit.isInner ? 0.13 : 0.09), lineWidth: orbit.isInner ? 0.9 : 0.7)
+                    .widgetAccentable(false)
                 }
 
                 Circle()
-                    .fill(Color(red: 1.0, green: 0.72, blue: 0.22))
-                    .frame(width: max(9, size * 0.08), height: max(9, size * 0.08))
-                    .position(center)
-
-                ForEach(bodies.filter { $0.distanceFromSun > 0 }) { body in
-                    let radius = max(13, CGFloat(sqrt(body.distanceFromSun / maxDistance)) * size * 0.42)
-                    let angle = body.angleRadians(on: Date())
-                    let point = CGPoint(
-                        x: center.x + cos(angle) * radius,
-                        y: center.y + sin(angle) * radius * 0.66
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color(red: 1.0, green: 0.76, blue: 0.28).opacity(0.95),
+                                Color(red: 0.95, green: 0.40, blue: 0.12).opacity(0.72)
+                            ],
+                            center: .center,
+                            startRadius: 1,
+                            endRadius: layout.sunSize / 2
+                        )
                     )
+                    .frame(width: layout.sunSize, height: layout.sunSize)
+                    .shadow(color: Color.orange.opacity(0.28), radius: 8)
+                    .position(layout.center)
+                    .widgetAccentable(false)
 
+                ForEach(layout.placements) { placement in
                     LunaWidgetBodyVisual(
-                        textureAssetName: body.textureAssetName,
-                        fallbackName: body.name,
-                        hasRings: body.hasRings,
-                        size: max(body.displaySize, body.hasRings ? 11 : 7)
+                        textureAssetName: placement.body.textureAssetName,
+                        fallbackName: placement.body.name,
+                        hasRings: placement.body.hasRings,
+                        size: placement.size
                     )
-                    .position(point)
+                    .position(placement.position)
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
@@ -268,16 +275,88 @@ private struct LunaWidgetOrbitView: View {
 struct LunaWidgetSpaceBackground: View {
     var body: some View {
         ZStack {
-            Color(red: 0.02, green: 0.02, blue: 0.03)
+            Color(red: 0.012, green: 0.013, blue: 0.020)
 
             Image("WidgetStarfield")
                 .resizable()
                 .lunaWidgetFullColorImage()
                 .scaledToFill()
-                .opacity(0.36)
+                .opacity(0.20)
                 .widgetAccentable(false)
         }
     }
+}
+
+private struct LunaWidgetSolarLayout {
+    struct Orbit: Identifiable {
+        let id: String
+        let points: [CGPoint]
+        let isInner: Bool
+    }
+
+    struct Placement: Identifiable {
+        let id: String
+        let body: LunaWidgetBody
+        let position: CGPoint
+        let size: CGFloat
+    }
+
+    let center: CGPoint
+    let sunSize: CGFloat
+    let orbits: [Orbit]
+    let placements: [Placement]
+
+    init(bodies: [LunaWidgetBody], size: CGSize, date: Date) {
+        let canvas = max(min(size.width, size.height), 1)
+        let margin = max(canvas * 0.09, 12)
+        let maxDistance = max(bodies.map(\.distanceFromSun).max() ?? 1, 1)
+        let centerPoint = CGPoint(x: size.width / 2, y: size.height / 2)
+        let computedSunSize = max(9, min(18, canvas * 0.095))
+        let maxRadius = max(min(size.width, size.height) / 2 - margin, 1)
+
+        func expandedRadius(for body: LunaWidgetBody) -> CGFloat {
+            let normalized = min(max(body.distanceFromSun / maxDistance, 0), 1)
+            return max(canvas * 0.12, CGFloat(pow(normalized, 0.38)) * maxRadius)
+        }
+
+        func project(radius: CGFloat, angle: Double) -> CGPoint {
+            CGPoint(
+                x: centerPoint.x + cos(angle) * radius,
+                y: centerPoint.y + sin(angle) * radius * Self.tiltScale
+            )
+        }
+
+        let planetBodies = bodies.filter { $0.distanceFromSun > 0 }
+        let computedOrbits = planetBodies.map { body in
+            let radius = expandedRadius(for: body)
+            let points = stride(from: 0, to: Self.pathSegments, by: 1).map { index in
+                project(
+                    radius: radius,
+                    angle: Double(index) / Double(Self.pathSegments) * .pi * 2
+                )
+            }
+            return Orbit(id: body.id, points: points, isInner: body.distanceFromSun <= 230)
+        }
+
+        let computedPlacements = planetBodies.map { body in
+            let radius = expandedRadius(for: body)
+            let point = project(radius: radius, angle: body.angleRadians(on: date))
+            return Placement(
+                id: body.id,
+                body: body,
+                position: point,
+                size: max(body.displaySize, body.hasRings ? 10 : 6)
+            )
+        }
+
+        center = centerPoint
+        sunSize = computedSunSize
+        orbits = computedOrbits
+        placements = computedPlacements
+    }
+
+    private static let tiltScale: CGFloat = 0.56
+    private static let pathSegments = 96
 }
 
 private struct LunaWidgetBodyVisual: View {
@@ -290,9 +369,10 @@ private struct LunaWidgetBodyVisual: View {
         ZStack {
             if hasRings {
                 Ellipse()
-                    .stroke(.white.opacity(0.38), lineWidth: max(1, size * 0.08))
+                    .stroke(.white.opacity(0.28), lineWidth: max(1, size * 0.08))
                     .frame(width: size * 1.85, height: size * 0.66)
                     .rotationEffect(.degrees(-12))
+                    .widgetAccentable(false)
             }
 
             if let textureAssetName {
@@ -309,10 +389,11 @@ private struct LunaWidgetBodyVisual: View {
             }
 
             Circle()
-                .stroke(.white.opacity(0.22), lineWidth: 1)
+                .stroke(.white.opacity(0.16), lineWidth: 1)
                 .frame(width: size, height: size)
         }
         .frame(width: hasRings ? size * 1.95 : size, height: max(size, hasRings ? size * 0.92 : size))
+        .widgetAccentable(false)
     }
 
     private var color: Color {
@@ -333,26 +414,6 @@ private struct LunaWidgetBodyVisual: View {
     }
 }
 
-private struct LunaWidgetDebugBuildMarker: View {
-    var body: some View {
-#if DEBUG
-        Text(debugText)
-            .font(.system(size: 6, weight: .semibold))
-            .foregroundStyle(.white.opacity(0.36))
-            .lineLimit(1)
-            .accessibilityHidden(true)
-#else
-        EmptyView()
-#endif
-    }
-
-    private var debugText: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
-        return "Luna \(version)(\(build))"
-    }
-}
-
 private struct LunaWidgetContainer<Content: View>: View {
     let content: Content
 
@@ -363,7 +424,7 @@ private struct LunaWidgetContainer<Content: View>: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(LunaWidgetSpaceBackground())
+            .background(Color(red: 0.012, green: 0.013, blue: 0.020))
             .widgetAccentable(false)
             .lunaWidgetBackground()
     }
@@ -374,7 +435,7 @@ private extension View {
     func lunaWidgetBackground() -> some View {
         if #available(iOSApplicationExtension 17.0, macOSApplicationExtension 14.0, *) {
             containerBackground(for: .widget) {
-                LunaWidgetSpaceBackground()
+                Color(red: 0.012, green: 0.013, blue: 0.020)
             }
         } else {
             background(Color.black)

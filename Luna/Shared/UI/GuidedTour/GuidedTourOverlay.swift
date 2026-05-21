@@ -239,8 +239,8 @@ private struct GuidedTourOverlayView: View {
     }
 
     private func highlightFrame(in size: CGSize) -> CGRect? {
-        if let settledTargetFrame, !settledTargetFrame.isEmpty {
-            let alignedFrame = settledTargetFrame.offsetBy(dx: 0, dy: -safeAreaInsets.top)
+        if let frame = effectiveTargetFrame, !frame.isEmpty {
+            let alignedFrame = frame.offsetBy(dx: 0, dy: -safeAreaInsets.top)
             let paddedFrame = alignedFrame.insetBy(dx: -6, dy: -6)
             let visibleBounds = CGRect(origin: .zero, size: size)
             let clippedFrame = paddedFrame.intersection(visibleBounds)
@@ -263,6 +263,14 @@ private struct GuidedTourOverlayView: View {
             width: max(80, size.width - 48),
             height: min(280, size.height * 0.34)
         )
+    }
+
+    private var effectiveTargetFrame: CGRect? {
+        if step == .homeExplore {
+            return settledTargetFrame
+        }
+
+        return targetFrame
     }
 
     private func scheduleMissingTargetFallback() {

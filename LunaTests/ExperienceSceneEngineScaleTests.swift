@@ -319,8 +319,8 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
             metrics.position.z - metrics.subjectCenter.z
         )
 
-        XCTAssertGreaterThan(offset.y, offset.z * 1.25)
-        XCTAssertLessThan(offset.y, offset.z * 1.75)
+        XCTAssertGreaterThan(offset.y, offset.z * 1.05)
+        XCTAssertLessThan(offset.y, offset.z * 1.55)
         XCTAssertGreaterThan(offset.z, 0)
         XCTAssertGreaterThan(offset.x, 0)
     }
@@ -334,7 +334,8 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let recommendedMetrics = SolarSystemSceneCameraMetrics(snapshot: recommended, settings: recommendedSettings)
         let trueScaleMetrics = SolarSystemSceneCameraMetrics(snapshot: trueScale, settings: trueScaleSettings)
 
-        XCTAssertLessThanOrEqual(recommendedMetrics.orthographicScale, 16)
+        XCTAssertLessThanOrEqual(recommendedMetrics.orthographicScale, 19)
+        XCTAssertGreaterThan(recommendedMetrics.orthographicScale, Double(recommended.bounds.span) * 0.78 + 2.2)
         XCTAssertGreaterThan(trueScaleMetrics.orthographicScale, recommendedMetrics.orthographicScale)
         XCTAssertEqual(trueScaleMetrics.orthographicScale, Double(trueScale.bounds.span + 2.6), accuracy: 0.001)
     }

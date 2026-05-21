@@ -416,40 +416,57 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         let focusChanged = activeFocusID != focusedBodyID
         let desiredFocusScale = focusedOrthographicScale(for: focusedBodyID)
         let idealOffset = SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot)
-        let currentOffset = focusChanged ? idealOffset : pointOfView.position - (focusState?.target ?? focusCenter)
-        let minimumDistance = max(Float(desiredFocusScale * 0.88), 1.25)
-        let maximumDistance = max(Float(desiredFocusScale * 1.55), minimumDistance + 0.2)
-        let nextOffset = clampedFocusOffset(
-            currentOffset,
-            idealOffset: idealOffset,
-            minimumDistance: minimumDistance,
-            maximumDistance: maximumDistance,
-            shouldResetToIdeal: focusChanged
-        )
+        let currentScale = pointOfView.camera?.orthographicScale ?? desiredFocusScale
         let desiredScale = focusChanged
             ? desiredFocusScale
-            : min(max(pointOfView.camera?.orthographicScale ?? desiredFocusScale, cameraLimit.minimumOrthographicScale), cameraLimit.maximumOrthographicScale)
+            : min(max(currentScale, cameraLimit.minimumOrthographicScale), cameraLimit.maximumOrthographicScale)
 
-        stopCameraAnimations(pointOfView)
-        view.defaultCameraController.stopInertia()
+        let nextPosition: SCNVector3
+        if focusChanged {
+            let minimumDistance = max(Float(desiredFocusScale * 0.88), 1.25)
+            let maximumDistance = max(Float(desiredFocusScale * 1.55), minimumDistance + 0.2)
+            let nextOffset = clampedFocusOffset(
+                idealOffset,
+                idealOffset: idealOffset,
+                minimumDistance: minimumDistance,
+                maximumDistance: maximumDistance,
+                shouldResetToIdeal: true
+            )
+            nextPosition = focusCenter + nextOffset
+            stopCameraAnimations(pointOfView)
+            view.defaultCameraController.stopInertia()
+        } else {
+            let previousTarget = focusState?.target ?? focusCenter
+            let targetDelta = focusCenter - previousTarget
+            let translatedPosition = pointOfView.position + targetDelta
+            nextPosition = clampedCameraPosition(
+                translatedPosition,
+                target: focusCenter,
+                maximumDistance: cameraLimit.maximumCameraDistance
+            )
+        }
+
         view.defaultCameraController.automaticTarget = false
-        view.defaultCameraController.inertiaEnabled = false
         view.defaultCameraController.target = focusCenter
         SCNTransaction.begin()
         SCNTransaction.animationDuration = focusChanged ? 0.26 : 0
-        pointOfView.position = focusCenter + nextOffset
-        pointOfView.look(at: focusCenter)
+        if focusChanged || focusCenter.distance(to: focusState?.target ?? focusCenter) > 0.0005 {
+            pointOfView.position = nextPosition
+        }
+        if focusChanged {
+            pointOfView.look(at: focusCenter)
+        }
         pointOfView.camera?.orthographicScale = desiredScale
         if let camera = pointOfView.camera {
             SolarSystemSceneCameraMetrics.updateClippingPlanes(
                 for: camera,
                 snapshot: snapshot,
                 settings: settings,
-                cameraPosition: focusCenter + nextOffset
+                cameraPosition: nextPosition
             )
             widenFocusedClippingPlanes(
                 for: camera,
-                cameraPosition: focusCenter + nextOffset,
+                cameraPosition: nextPosition,
                 focusCenter: focusCenter,
                 focusScale: desiredScale
             )
@@ -459,7 +476,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         view.defaultCameraController.target = focusCenter
         focusState = CameraFocusState(
             target: focusCenter,
-            cameraOffset: nextOffset,
+            cameraOffset: nextPosition - focusCenter,
             orthographicScale: desiredScale
         )
         stateLock.lock()
@@ -486,6 +503,20 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             return offset.normalizedOrDefault * maximumDistance
         }
         return offset
+    }
+
+    private func clampedCameraPosition(
+        _ position: SCNVector3,
+        target: SCNVector3,
+        maximumDistance: Float
+    ) -> SCNVector3 {
+        let offset = position - target
+        let distance = offset.length
+        guard distance > maximumDistance, distance > 0 else {
+            return position
+        }
+
+        return target + offset.normalized * maximumDistance
     }
 
     private func widenFocusedClippingPlanes(
@@ -1013,8 +1044,9 @@ struct SolarSystemSceneFocusMetrics {
                 length(child.position - placement.position) + child.displayRadius
             }
             .max() ?? 0
-        let cappedChildEnvelope = min(childEnvelope, placement.displayRadius * 2.4)
-        let subjectRadius = max(placement.displayRadius, cappedChildEnvelope, placement.interactionRadius * 0.72, 0.20)
+        let cappedChildEnvelope = min(childEnvelope, placement.displayRadius * 1.05)
+        let cappedInteractionRadius = min(placement.interactionRadius * 0.45, placement.displayRadius * 1.05)
+        let subjectRadius = max(placement.displayRadius, cappedChildEnvelope, cappedInteractionRadius, 0.20)
         return max(0.82, Double(subjectRadius * 4.3))
     }
 
@@ -1217,8 +1249,8 @@ struct SolarSystemSceneCameraMetrics {
         let scale = Float(orthographicScale)
         return SCNVector3(
             max(3.5, scale * 0.18),
-            max(distance * 0.68, scale * 1.18),
-            max(distance * 0.46, scale * 0.72)
+            max(distance * 0.64, scale * 1.12),
+            max(distance * 0.52, scale * 0.82)
         )
     }
 
@@ -1242,9 +1274,9 @@ struct SolarSystemSceneCameraMetrics {
 
         switch settings.sceneScaleProfile {
         case .scaledRecommended:
-            return max(7, min(16, span * 0.78 + 2.2))
+            return max(7, min(19, span * 0.90 + 2.8))
         case .uniform:
-            return max(7, min(18, span * 0.86 + 2.4))
+            return max(7, min(21, span * 0.96 + 3.0))
         case .trueSize:
             return max(7, span + 2.6)
         case .custom:
@@ -1252,9 +1284,9 @@ struct SolarSystemSceneCameraMetrics {
             case .trueScale:
                 return max(7, span + 2.6)
             case .educational:
-                return max(7, min(18, span * 0.88 + 2.4))
+                return max(7, min(21, span * 0.98 + 3.0))
             case .compressed:
-                return max(7, min(22, span * 0.95 + 2.4))
+                return max(7, min(25, span * 1.05 + 3.2))
             }
         }
     }
@@ -1417,6 +1449,10 @@ private extension SCNVector3 {
 
     var normalizedOrDefault: SCNVector3 {
         length > 0 ? normalized : SCNVector3(0, 0, 1)
+    }
+
+    func distance(to other: SCNVector3) -> Float {
+        (self - other).length
     }
 }
 

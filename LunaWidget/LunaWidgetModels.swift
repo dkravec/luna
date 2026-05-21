@@ -159,16 +159,3 @@ struct LunaWidgetBody: Identifiable {
         return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 }
-
-enum LunaWidgetAssetProbe {
-    static func exists(_ name: String?) -> Bool {
-        guard let name else { return false }
-#if os(iOS)
-        return UIImage(named: name, in: .main, compatibleWith: nil) != nil
-#elseif os(macOS)
-        return NSImage(named: name) != nil
-#else
-        return false
-#endif
-    }
-}
