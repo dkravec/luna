@@ -144,26 +144,32 @@ struct LunaFactWidgetView: View {
 
     var body: some View {
         LunaWidgetContainer {
-            ZStack(alignment: .bottomLeading) {
+            ZStack(alignment: .topLeading) {
                 LunaWidgetSpaceBackground()
 
-                VStack(alignment: .leading, spacing: family == .systemSmall ? 6 : 10) {
-                    Label(entry.bodyType, systemImage: "sparkles")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.78))
-                        .lineLimit(1)
+                VStack(alignment: .leading, spacing: family == .systemSmall ? 8 : 12) {
+                    HStack(alignment: .center, spacing: 10) {
+                        LunaWidgetBodyMarker(name: entry.bodyName)
 
-                    Text(entry.bodyName)
-                        .font(family == .systemSmall ? .title3.weight(.bold) : .title.weight(.bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.bodyName)
+                                .font(family == .systemSmall ? .headline.weight(.bold) : .title3.weight(.bold))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.78)
+
+                            Text(entry.bodyType)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.70))
+                                .lineLimit(1)
+                        }
+                    }
 
                     Text(entry.fact)
-                        .font(family == .systemSmall ? .caption.weight(.semibold) : .headline)
-                        .foregroundStyle(.white.opacity(0.90))
-                        .lineLimit(family == .systemSmall ? 3 : 4)
-                        .minimumScaleFactor(0.76)
+                        .font(family == .systemSmall ? .caption.weight(.semibold) : .headline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.92))
+                        .lineLimit(family == .systemSmall ? 4 : 5)
+                        .minimumScaleFactor(0.78)
                 }
                 .padding(family == .systemSmall ? 14 : 18)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -184,7 +190,7 @@ struct LunaSolarOverviewWidgetView: View {
                     LunaWidgetSpaceBackground()
 
                     LunaWidgetOrbitView(bodies: entry.bodies)
-                        .padding(family == .systemSmall ? 16 : 24)
+                        .padding(family == .systemSmall ? 18 : 26)
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Solar System")
@@ -214,22 +220,13 @@ private struct LunaWidgetOrbitView: View {
             let maxDistance = bodies.map(\.distanceFromSun).max() ?? 1
 
             ZStack {
-                ForEach(bodies.filter { $0.distanceFromSun > 0 }) { body in
-                    let radius = max(12, CGFloat(sqrt(body.distanceFromSun / maxDistance)) * size * 0.42)
-
-                    Circle()
-                        .stroke(.white.opacity(0.16), lineWidth: 1)
-                        .frame(width: radius * 2, height: radius * 2)
-                        .position(center)
-                }
-
                 Circle()
-                    .fill(.yellow)
+                    .fill(Color(red: 1.0, green: 0.72, blue: 0.22))
                     .frame(width: max(9, size * 0.08), height: max(9, size * 0.08))
                     .position(center)
 
                 ForEach(bodies.filter { $0.distanceFromSun > 0 }) { body in
-                    let radius = max(12, CGFloat(sqrt(body.distanceFromSun / maxDistance)) * size * 0.42)
+                    let radius = max(12, CGFloat(sqrt(body.distanceFromSun / maxDistance)) * size * 0.40)
                     let angle = body.angleRadians(on: Date())
                     let point = CGPoint(
                         x: center.x + cos(angle) * radius,
@@ -249,15 +246,38 @@ private struct LunaWidgetOrbitView: View {
 
 struct LunaWidgetSpaceBackground: View {
     var body: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.02, green: 0.025, blue: 0.055),
-                Color(red: 0.10, green: 0.17, blue: 0.30),
-                Color(red: 0.02, green: 0.02, blue: 0.04)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        Color(red: 0.02, green: 0.02, blue: 0.03)
+    }
+}
+
+private struct LunaWidgetBodyMarker: View {
+    let name: String
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(color)
+            Circle()
+                .stroke(.white.opacity(0.22), lineWidth: 1)
+        }
+        .frame(width: 34, height: 34)
+    }
+
+    private var color: Color {
+        switch name.lowercased() {
+        case "mercury", "moon":
+            return .gray
+        case "venus", "saturn":
+            return .yellow
+        case "earth", "uranus", "neptune":
+            return .blue
+        case "mars":
+            return .red
+        case "jupiter":
+            return .orange
+        default:
+            return .white.opacity(0.72)
+        }
     }
 }
 
@@ -271,12 +291,7 @@ private struct LunaWidgetContainer<Content: View>: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background {
-                LunaWidgetSpaceBackground()
-                    .widgetAccentable(false)
-            }
-            .clipShape(ContainerRelativeShape())
-            .clipped()
+            .background(LunaWidgetSpaceBackground())
             .widgetAccentable(false)
             .lunaWidgetBackground()
     }
@@ -287,10 +302,7 @@ private extension View {
     func lunaWidgetBackground() -> some View {
         if #available(iOSApplicationExtension 17.0, macOSApplicationExtension 14.0, *) {
             containerBackground(for: .widget) {
-                ZStack {
-                    Color.black
-                    LunaWidgetSpaceBackground()
-                }
+                LunaWidgetSpaceBackground()
             }
         } else {
             background(Color.black)

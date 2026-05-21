@@ -110,30 +110,36 @@ private struct GuidedTourOverlayView: View {
                 .accessibilityIdentifier("tour.overlay")
                 .allowsHitTesting(false)
 
-            GuidedTourDimShape(highlightFrame: highlightedFrame)
-                .fill(Color.black.opacity(0.58), style: FillStyle(eoFill: true))
-                .accessibilityHidden(true)
-                .allowsHitTesting(false)
+            if let highlightedFrame {
+                GuidedTourDimShape(highlightFrame: highlightedFrame)
+                    .fill(Color.black.opacity(0.58), style: FillStyle(eoFill: true))
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
 
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.white.opacity(0.95), lineWidth: 2)
-                .background {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color.white.opacity(0.08))
-                }
-                .shadow(color: Color.black.opacity(0.32), radius: 18, x: 0, y: 8)
-                .frame(width: highlightedFrame.width, height: highlightedFrame.height)
-                .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
-                .accessibilityIdentifier("tour.spotlight")
-                .accessibilityLabel("Tour spotlight")
-                .allowsHitTesting(false)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.white.opacity(0.95), lineWidth: 2)
+                    .background {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Color.white.opacity(0.08))
+                    }
+                    .shadow(color: Color.black.opacity(0.32), radius: 18, x: 0, y: 8)
+                    .frame(width: highlightedFrame.width, height: highlightedFrame.height)
+                    .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
+                    .accessibilityIdentifier("tour.spotlight")
+                    .accessibilityLabel("Tour spotlight")
+                    .allowsHitTesting(false)
 
-            Color.white.opacity(0.001)
-                .frame(width: highlightedFrame.width, height: highlightedFrame.height)
-                .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
-                .contentShape(Rectangle())
-                .onTapGesture(perform: onTargetTap)
-                .zIndex(1)
+                Color.white.opacity(0.001)
+                    .frame(width: highlightedFrame.width, height: highlightedFrame.height)
+                    .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onTargetTap)
+                    .zIndex(1)
+            } else {
+                Color.black.opacity(0.58)
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
+            }
 
         }
         .frame(width: containerSize.width, height: containerSize.height)
@@ -223,7 +229,7 @@ private struct GuidedTourOverlayView: View {
         .shadow(color: Color.black.opacity(0.24), radius: 24, x: 0, y: 12)
     }
 
-    private func highlightFrame(in size: CGSize) -> CGRect {
+    private func highlightFrame(in size: CGSize) -> CGRect? {
         if let targetFrame, !targetFrame.isEmpty {
             let alignedFrame = targetFrame.offsetBy(dx: 0, dy: -safeAreaInsets.top)
             let paddedFrame = alignedFrame.insetBy(dx: -6, dy: -6)
@@ -235,12 +241,7 @@ private struct GuidedTourOverlayView: View {
         }
 
         guard allowsMissingTargetFallback else {
-            return CGRect(
-                x: size.width / 2,
-                y: max(size.height * 0.24, safeAreaInsets.top + 96),
-                width: 1,
-                height: 1
-            )
+            return nil
         }
 
         return CGRect(

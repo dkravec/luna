@@ -292,6 +292,21 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertEqual(Float(limit.subjectCenter.x), sun.position.x, accuracy: 0.0001)
     }
 
+    func testInitialSceneCameraUsesOverheadAngledView() {
+        let sceneSettings = settings(distance: .compressed, object: .relative)
+        let snapshot = ExperienceSceneEngine.snapshot(for: Self.bodies, settings: sceneSettings)
+        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: sceneSettings)
+        let offset = SCNVector3(
+            metrics.position.x - metrics.subjectCenter.x,
+            metrics.position.y - metrics.subjectCenter.y,
+            metrics.position.z - metrics.subjectCenter.z
+        )
+
+        XCTAssertGreaterThan(offset.y, offset.z * 1.8)
+        XCTAssertGreaterThan(offset.z, 0)
+        XCTAssertGreaterThan(offset.x, 0)
+    }
+
     func testInitialSceneZoomUsesProfileSettings() {
         let recommendedSettings = settings(distance: .compressed, object: .relative, sceneScaleProfile: .scaledRecommended)
         let trueScaleSettings = settings(distance: .trueScale, object: .trueScale, sceneScaleProfile: .trueSize)

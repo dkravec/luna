@@ -99,6 +99,9 @@ private extension VisualSceneContainer {
         view.preferredFramesPerSecond = 30
         view.delegate = coordinator
         view.backgroundColor = platformColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
+        view.defaultCameraController.automaticTarget = false
+        view.defaultCameraController.inertiaEnabled = false
+        view.defaultCameraController.worldUp = SCNVector3(0, 1, 0)
 #if os(iOS)
         let tapRecognizer = UITapGestureRecognizer(target: coordinator, action: #selector(VisualSceneCameraCoordinator.handleTap(_:)))
         tapRecognizer.cancelsTouchesInView = false
@@ -211,6 +214,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             )
             view.scene = scene
             view.pointOfView = scene.rootNode.childNode(withName: "sceneCamera", recursively: false)
+            view.defaultCameraController.automaticTarget = false
+            view.defaultCameraController.inertiaEnabled = false
+            view.defaultCameraController.stopInertia()
             view.defaultCameraController.target = nextCameraLimit.subjectCenter
             captureNodes(from: scene)
             structureKey = nextStructureKey
@@ -425,10 +431,14 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             : min(max(pointOfView.camera?.orthographicScale ?? desiredFocusScale, cameraLimit.minimumOrthographicScale), cameraLimit.maximumOrthographicScale)
 
         stopCameraAnimations(pointOfView)
+        view.defaultCameraController.stopInertia()
+        view.defaultCameraController.automaticTarget = false
+        view.defaultCameraController.inertiaEnabled = false
         view.defaultCameraController.target = focusCenter
         SCNTransaction.begin()
         SCNTransaction.animationDuration = focusChanged ? 0.26 : 0
         pointOfView.position = focusCenter + nextOffset
+        pointOfView.look(at: focusCenter)
         pointOfView.camera?.orthographicScale = desiredScale
         if let camera = pointOfView.camera {
             SolarSystemSceneCameraMetrics.updateClippingPlanes(
@@ -437,9 +447,16 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
                 settings: settings,
                 cameraPosition: focusCenter + nextOffset
             )
+            widenFocusedClippingPlanes(
+                for: camera,
+                cameraPosition: focusCenter + nextOffset,
+                focusCenter: focusCenter,
+                focusScale: desiredScale
+            )
         }
         SCNTransaction.commit()
 
+        view.defaultCameraController.target = focusCenter
         focusState = CameraFocusState(
             target: focusCenter,
             cameraOffset: nextOffset,
@@ -471,6 +488,17 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         return offset
     }
 
+    private func widenFocusedClippingPlanes(
+        for camera: SCNCamera,
+        cameraPosition: SCNVector3,
+        focusCenter: SCNVector3,
+        focusScale: Double
+    ) {
+        let focusDistance = Double((cameraPosition - focusCenter).length)
+        camera.zNear = min(camera.zNear, 0.001)
+        camera.zFar = max(camera.zFar, focusDistance + focusScale * 8.0 + 80)
+    }
+
     private func stopCameraAnimations(_ pointOfView: SCNNode) {
         pointOfView.removeAllActions()
         pointOfView.removeAllAnimations()
@@ -494,9 +522,15 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         let offset = SolarSystemSceneCameraMetrics.defaultCameraOffset(
             for: cameraLimit.preferredOrthographicScale
         )
+        stopCameraAnimations(pointOfView)
+        view.defaultCameraController.stopInertia()
+        view.defaultCameraController.automaticTarget = false
+        view.defaultCameraController.inertiaEnabled = false
+        view.defaultCameraController.target = restoreTarget
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0.22
         pointOfView.position = restoreTarget + offset
+        pointOfView.look(at: restoreTarget)
         pointOfView.camera?.orthographicScale = cameraLimit.preferredOrthographicScale
         if let camera = pointOfView.camera {
             SolarSystemSceneCameraMetrics.updateClippingPlanes(
@@ -521,6 +555,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
     private func focusTarget(for bodyID: String) -> SCNVector3? {
         guard let node = bodyNodes[bodyID]?.presentation else { return nil }
+        if let visualNode = node.childNode(withName: "bodyVisual:\(bodyID)", recursively: true)?.presentation {
+            return visualNode.worldBoundingBoxCenter() ?? visualNode.convertPosition(SCNVector3Zero, to: nil)
+        }
         return node.worldBoundingBoxCenter() ?? node.convertPosition(SCNVector3Zero, to: nil)
     }
 
@@ -994,9 +1031,9 @@ struct SolarSystemSceneFocusMetrics {
         }
 
         return SCNVector3(
-            radial.x * scale * 0.22,
-            scale * 0.24,
-            max(scale * 1.20, 1.6) + radial.z * scale * 0.22
+            radial.x * scale * 0.18,
+            max(scale * 0.62, 0.90),
+            max(scale * 1.24, 1.55) + radial.z * scale * 0.18
         )
     }
 }
@@ -1176,11 +1213,12 @@ struct SolarSystemSceneCameraMetrics {
     }
 
     static func defaultCameraOffset(for orthographicScale: Double, cameraDistance: Double? = nil) -> SCNVector3 {
-        let zDistance = Float(cameraDistance ?? max(22, orthographicScale * 1.8 + 28))
+        let distance = Float(cameraDistance ?? max(22, orthographicScale * 1.8 + 28))
+        let scale = Float(orthographicScale)
         return SCNVector3(
-            max(6, Float(orthographicScale) * 0.12),
-            max(9, Float(orthographicScale) * 0.18),
-            zDistance
+            max(3.5, scale * 0.18),
+            max(distance * 0.78, scale * 1.35),
+            max(distance * 0.34, scale * 0.55)
         )
     }
 

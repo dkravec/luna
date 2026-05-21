@@ -88,6 +88,10 @@ final class LunaTourUITests: XCTestCase {
 
         assertTour(title: "Start From Home", progress: "1 of 10")
         assertSpotlightAligned(with: "tourTarget.home.overview", tolerance: 70)
+
+        tapNext()
+        assertTour(title: "Open Explore", progress: "2 of 10")
+        assertSpotlightAligned(with: "tourTarget.home.explore")
     }
 
     private func launchTourPending(resetProfile: Bool) {
