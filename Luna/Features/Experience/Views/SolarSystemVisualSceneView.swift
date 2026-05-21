@@ -96,7 +96,12 @@ private struct VisualSceneContainer: NSViewRepresentable {
 
 private extension VisualSceneContainer {
     func makeSceneView(coordinator: VisualSceneCameraCoordinator) -> SCNView {
+#if os(macOS)
+        let view = VisualSceneSCNView()
+        view.selectedCameraInputHandler = coordinator
+#else
         let view = SCNView()
+#endif
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = false
         view.isPlaying = false
@@ -110,10 +115,11 @@ private extension VisualSceneContainer {
         let tapRecognizer = UITapGestureRecognizer(target: coordinator, action: #selector(VisualSceneCameraCoordinator.handleTap(_:)))
         tapRecognizer.cancelsTouchesInView = false
         view.addGestureRecognizer(tapRecognizer)
-        coordinator.installManualInteractionRecognizers(in: view)
+        coordinator.installSelectedCameraRecognizers(in: view)
 #elseif os(macOS)
         let clickRecognizer = NSClickGestureRecognizer(target: coordinator, action: #selector(VisualSceneCameraCoordinator.handleClick(_:)))
         view.addGestureRecognizer(clickRecognizer)
+        coordinator.installSelectedCameraRecognizers(in: view)
 #endif
         configure(view)
         return view
@@ -134,6 +140,19 @@ private extension VisualSceneContainer {
     }
 }
 
+#if os(macOS)
+private final class VisualSceneSCNView: SCNView {
+    weak var selectedCameraInputHandler: VisualSceneCameraCoordinator?
+
+    override func scrollWheel(with event: NSEvent) {
+        guard selectedCameraInputHandler?.handleSelectedCameraScroll(deltaY: event.scrollingDeltaY, in: self) == true else {
+            super.scrollWheel(with: event)
+            return
+        }
+    }
+}
+#endif
+
 private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDelegate {
     private let stateLock = NSLock()
     private var cameraLimit = SceneCameraLimit.default
@@ -147,8 +166,8 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     private var orbitNodes: [String: SCNNode] = [:]
     private var labelNodes: [String: SCNNode] = [:]
     private var bodyLookup: [String: CelestialBody] = [:]
-    private var focusState: CameraFocusState?
-    private var manualInteraction = VisualSceneFocusInteraction()
+    private var selectedCameraState: VisualSceneSelectedCameraState?
+    private var hasInstalledSelectedCameraRecognizers = false
     private var lastOrbitThicknessKey: String?
     private var pendingOrbitThicknessKey: String?
     var onSelectBody: (CelestialBody) -> Void = { _ in }
@@ -168,15 +187,17 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         let target = state.activeFocusID.flatMap { state.focusTargets[$0] } ?? state.cameraLimit.subjectCenter
         let offset = pointOfView.position - target
         let distance = offset.length
-        if !manualInteraction.isActive, distance > state.cameraLimit.maximumCameraDistance, distance > 0 {
+        if state.activeFocusID == nil, distance > state.cameraLimit.maximumCameraDistance, distance > 0 {
             pointOfView.position = target + offset.normalized * state.cameraLimit.maximumCameraDistance
         }
-        SolarSystemSceneCameraMetrics.updateClippingPlanes(
-            for: camera,
-            snapshot: state.snapshot,
-            settings: state.settings,
-            cameraPosition: pointOfView.position
-        )
+        if state.activeFocusID == nil {
+            SolarSystemSceneCameraMetrics.updateClippingPlanes(
+                for: camera,
+                snapshot: state.snapshot,
+                settings: state.settings,
+                cameraPosition: pointOfView.position
+            )
+        }
 
         updateOrbitAndLabelScale(for: renderer)
     }
@@ -206,8 +227,8 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         pendingOrbitThicknessKey = nil
         stateLock.unlock()
 
-        focusState = nil
-        manualInteraction = VisualSceneFocusInteraction()
+        selectedCameraState = nil
+        hasInstalledSelectedCameraRecognizers = false
         structureKey = nil
     }
 
@@ -328,37 +349,46 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     }
 
 #if os(iOS)
-    func installManualInteractionRecognizers(in view: SCNView) {
-        guard view.gestureRecognizers?.contains(where: { $0.name == "LunaVisualManualFocusTracker" }) != true else {
-            return
-        }
+    func installSelectedCameraRecognizers(in view: SCNView) {
+        guard !hasInstalledSelectedCameraRecognizers else { return }
 
-        let recognizers: [UIGestureRecognizer] = [
-            UIPanGestureRecognizer(target: self, action: #selector(handleManualInteraction(_:))),
-            UIPinchGestureRecognizer(target: self, action: #selector(handleManualInteraction(_:))),
-            UIRotationGestureRecognizer(target: self, action: #selector(handleManualInteraction(_:)))
-        ]
+        let panRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handleSelectedCameraPan(_:)))
+        panRecognizer.name = "LunaSelectedCameraPan"
+        panRecognizer.cancelsTouchesInView = false
+        panRecognizer.delegate = self
+        view.addGestureRecognizer(panRecognizer)
 
-        for recognizer in recognizers {
-            recognizer.name = "LunaVisualManualFocusTracker"
-            recognizer.cancelsTouchesInView = false
-            recognizer.delegate = self
-            view.addGestureRecognizer(recognizer)
-        }
+        let pinchRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handleSelectedCameraPinch(_:)))
+        pinchRecognizer.name = "LunaSelectedCameraPinch"
+        pinchRecognizer.cancelsTouchesInView = false
+        pinchRecognizer.delegate = self
+        view.addGestureRecognizer(pinchRecognizer)
+
+        hasInstalledSelectedCameraRecognizers = true
     }
 
-    @objc private func handleManualInteraction(_ recognizer: UIGestureRecognizer) {
-        switch recognizer.state {
-        case .began:
-            manualInteraction.begin()
-        case .ended, .cancelled, .failed:
-            let didFinishAllGestures = manualInteraction.end()
-            if didFinishAllGestures, let view = recognizer.view as? SCNView {
-                captureManualFocusState(from: view)
-            }
-        default:
-            break
-        }
+    @objc private func handleSelectedCameraPan(_ recognizer: UIPanGestureRecognizer) {
+        guard let view = recognizer.view as? SCNView else { return }
+        let translation = recognizer.translation(in: view)
+        recognizer.setTranslation(.zero, in: view)
+        applySelectedCameraOrbitDelta(
+            yawDelta: Float(-translation.x) * 0.006,
+            pitchDelta: Float(-translation.y) * 0.006,
+            scaleMultiplier: 1,
+            in: view
+        )
+    }
+
+    @objc private func handleSelectedCameraPinch(_ recognizer: UIPinchGestureRecognizer) {
+        guard let view = recognizer.view as? SCNView else { return }
+        let scaleMultiplier = recognizer.scale > 0 ? 1 / Double(recognizer.scale) : 1
+        recognizer.scale = 1
+        applySelectedCameraOrbitDelta(
+            yawDelta: 0,
+            pitchDelta: 0,
+            scaleMultiplier: scaleMultiplier,
+            in: view
+        )
     }
 
     @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
@@ -366,6 +396,57 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         selectBody(at: recognizer.location(in: view), in: view)
     }
 #elseif os(macOS)
+    func installSelectedCameraRecognizers(in view: SCNView) {
+        guard !hasInstalledSelectedCameraRecognizers else { return }
+
+        let panRecognizer = NSPanGestureRecognizer(target: self, action: #selector(handleSelectedCameraPan(_:)))
+        panRecognizer.delegate = self
+        view.addGestureRecognizer(panRecognizer)
+
+        let magnificationRecognizer = NSMagnificationGestureRecognizer(target: self, action: #selector(handleSelectedCameraMagnification(_:)))
+        magnificationRecognizer.delegate = self
+        view.addGestureRecognizer(magnificationRecognizer)
+
+        hasInstalledSelectedCameraRecognizers = true
+    }
+
+    @objc private func handleSelectedCameraPan(_ recognizer: NSPanGestureRecognizer) {
+        guard let view = recognizer.view as? SCNView else { return }
+        let translation = recognizer.translation(in: view)
+        recognizer.setTranslation(.zero, in: view)
+        applySelectedCameraOrbitDelta(
+            yawDelta: Float(-translation.x) * 0.006,
+            pitchDelta: Float(translation.y) * 0.006,
+            scaleMultiplier: 1,
+            in: view
+        )
+    }
+
+    @objc private func handleSelectedCameraMagnification(_ recognizer: NSMagnificationGestureRecognizer) {
+        guard let view = recognizer.view as? SCNView else { return }
+        let scaleMultiplier = 1 / max(0.12, 1 + Double(recognizer.magnification))
+        recognizer.magnification = 0
+        applySelectedCameraOrbitDelta(
+            yawDelta: 0,
+            pitchDelta: 0,
+            scaleMultiplier: scaleMultiplier,
+            in: view
+        )
+    }
+
+    func handleSelectedCameraScroll(deltaY: CGFloat, in view: SCNView) -> Bool {
+        guard activeFocusID != nil else { return false }
+
+        let scaleMultiplier = pow(0.998, Double(deltaY))
+        applySelectedCameraOrbitDelta(
+            yawDelta: 0,
+            pitchDelta: 0,
+            scaleMultiplier: scaleMultiplier,
+            in: view
+        )
+        return true
+    }
+
     @objc func handleClick(_ recognizer: NSClickGestureRecognizer) {
         guard let view = recognizer.view as? SCNView else { return }
         selectBody(at: recognizer.location(in: view), in: view)
@@ -461,24 +542,6 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         orbitID.hasSuffix("-orbit") ? String(orbitID.dropLast(6)) : orbitID
     }
 
-    private func captureManualFocusState(from view: SCNView) {
-        guard let bodyID = activeFocusID,
-              let target = focusTarget(for: bodyID),
-              let pointOfView = view.pointOfView else {
-            return
-        }
-
-        let scale = pointOfView.camera?.orthographicScale ?? focusState?.orthographicScale ?? focusedOrthographicScale(for: bodyID)
-        view.defaultCameraController.automaticTarget = false
-        view.defaultCameraController.target = target
-        focusState = VisualSceneFocusMath.capturedState(
-            bodyID: bodyID,
-            target: target,
-            cameraPosition: pointOfView.position,
-            orthographicScale: scale
-        )
-    }
-
     private func applyCameraFocus(_ focusedBodyID: String?, cameraLimit: SceneCameraLimit, to view: SCNView) {
         guard let pointOfView = view.pointOfView else { return }
 
@@ -491,106 +554,114 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             return
         }
 
-        let focusChanged = VisualSceneFocusMath.selectionDidChange(current: focusState, nextBodyID: focusedBodyID)
-            || activeFocusID != focusedBodyID
+        let focusChanged = VisualSceneSelectedCameraMath.selectionDidChange(
+            current: selectedCameraState,
+            nextBodyID: focusedBodyID
+        ) || activeFocusID != focusedBodyID
         let desiredFocusScale = focusedOrthographicScale(for: focusedBodyID)
-        let idealOffset = SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot)
-        let currentScale = pointOfView.camera?.orthographicScale ?? desiredFocusScale
-        let desiredScale = focusChanged
-            ? desiredFocusScale
-            : min(max(currentScale, cameraLimit.minimumOrthographicScale), cameraLimit.maximumOrthographicScale)
-
+        let selectedLimit = VisualSceneSelectedCameraLimit(focusedScale: desiredFocusScale)
         view.defaultCameraController.automaticTarget = false
-        view.defaultCameraController.target = focusCenter
+        view.defaultCameraController.inertiaEnabled = false
+        view.defaultCameraController.stopInertia()
+        view.allowsCameraControl = false
 
-        if manualInteraction.isActive {
-            focusState = VisualSceneFocusMath.capturedState(
+        var nextState: VisualSceneSelectedCameraState
+        if focusChanged {
+            let idealOffset = SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot)
+            nextState = VisualSceneSelectedCameraState(
                 bodyID: focusedBodyID,
                 target: focusCenter,
-                cameraPosition: pointOfView.position,
-                orthographicScale: desiredScale
+                offset: idealOffset,
+                orthographicScale: desiredFocusScale,
+                limit: selectedLimit
             )
-            updateActiveFocusID(focusedBodyID)
-            updateFocusedClippingPlanes(
-                for: pointOfView,
-                cameraPosition: pointOfView.position,
-                focusCenter: focusCenter,
-                focusScale: desiredScale
-            )
-            return
-        }
-
-        let nextPosition: SCNVector3
-        if focusChanged {
-            let minimumDistance = max(Float(desiredFocusScale * 0.88), 1.25)
-            let maximumDistance = max(Float(desiredFocusScale * 1.55), minimumDistance + 0.2)
-            let nextOffset = clampedFocusOffset(
-                idealOffset,
-                idealOffset: idealOffset,
-                minimumDistance: minimumDistance,
-                maximumDistance: maximumDistance,
-                shouldResetToIdeal: true
-            )
-            nextPosition = focusCenter + nextOffset
             stopCameraAnimations(pointOfView)
-            view.defaultCameraController.stopInertia()
         } else {
-            let previousTarget = focusState?.target ?? focusCenter
-            nextPosition = VisualSceneFocusMath.cameraPositionFollowingTargetDelta(
-                currentCameraPosition: pointOfView.position,
-                previousTarget: previousTarget,
-                nextTarget: focusCenter,
-                maximumDistance: cameraLimit.maximumCameraDistance
-            )
+            nextState = selectedCameraState?.following(target: focusCenter, limit: selectedLimit)
+                ?? VisualSceneSelectedCameraState(
+                    bodyID: focusedBodyID,
+                    target: focusCenter,
+                    offset: pointOfView.position - focusCenter,
+                    orthographicScale: pointOfView.camera?.orthographicScale ?? desiredFocusScale,
+                    limit: selectedLimit
+                )
         }
 
-        SCNTransaction.begin()
-        SCNTransaction.animationDuration = focusChanged ? 0.26 : 0
-        SCNTransaction.disableActions = !focusChanged
-        if focusChanged || focusCenter.distance(to: focusState?.target ?? focusCenter) > 0.0005 {
-            pointOfView.position = nextPosition
-        }
-        if focusChanged {
-            pointOfView.look(at: focusCenter)
-        }
-        pointOfView.camera?.orthographicScale = desiredScale
+        selectedCameraState = nextState
+        applySelectedCameraState(
+            nextState,
+            to: view,
+            animated: focusChanged,
+            updatesOrientation: focusChanged
+        )
         updateFocusedClippingPlanes(
             for: pointOfView,
-            cameraPosition: nextPosition,
+            cameraPosition: nextState.cameraPosition,
             focusCenter: focusCenter,
-            focusScale: desiredScale
+            focusScale: nextState.orthographicScale,
+            focusRadius: selectedFocusRadius(for: focusedBodyID)
         )
-        SCNTransaction.commit()
 
         view.defaultCameraController.target = focusCenter
-        focusState = CameraFocusState(
-            bodyID: focusedBodyID,
-            target: focusCenter,
-            cameraOffset: nextPosition - focusCenter,
-            orthographicScale: desiredScale
-        )
         updateActiveFocusID(focusedBodyID)
     }
 
-    private func clampedFocusOffset(
-        _ offset: SCNVector3,
-        idealOffset: SCNVector3,
-        minimumDistance: Float,
-        maximumDistance: Float,
-        shouldResetToIdeal: Bool
-    ) -> SCNVector3 {
-        if shouldResetToIdeal {
-            return idealOffset.normalizedOrDefault * min(max(idealOffset.length, minimumDistance), maximumDistance)
-        }
+    private func applySelectedCameraOrbitDelta(
+        yawDelta: Float,
+        pitchDelta: Float,
+        scaleMultiplier: Double,
+        in view: SCNView
+    ) {
+        guard let bodyID = activeFocusID,
+              let target = focusTarget(for: bodyID) else { return }
 
-        let distance = offset.length
-        if distance < minimumDistance {
-            return offset.normalizedOrDefault * minimumDistance
+        let desiredFocusScale = focusedOrthographicScale(for: bodyID)
+        let selectedLimit = VisualSceneSelectedCameraLimit(focusedScale: desiredFocusScale)
+        var nextState = selectedCameraState?.following(target: target, limit: selectedLimit)
+            ?? VisualSceneSelectedCameraState(
+                bodyID: bodyID,
+                target: target,
+                offset: (view.pointOfView?.position ?? target + SCNVector3(0, 0, Float(desiredFocusScale))) - target,
+                orthographicScale: view.pointOfView?.camera?.orthographicScale ?? desiredFocusScale,
+                limit: selectedLimit
+            )
+
+        nextState.applyInput(
+            yawDelta: yawDelta,
+            pitchDelta: pitchDelta,
+            scaleMultiplier: scaleMultiplier,
+            limit: selectedLimit
+        )
+        selectedCameraState = nextState
+        applySelectedCameraState(nextState, to: view, animated: false, updatesOrientation: true)
+        if let pointOfView = view.pointOfView {
+            updateFocusedClippingPlanes(
+                for: pointOfView,
+                cameraPosition: nextState.cameraPosition,
+                focusCenter: target,
+                focusScale: nextState.orthographicScale,
+                focusRadius: selectedFocusRadius(for: bodyID)
+            )
         }
-        if distance > maximumDistance {
-            return offset.normalizedOrDefault * maximumDistance
+    }
+
+    private func applySelectedCameraState(
+        _ state: VisualSceneSelectedCameraState,
+        to view: SCNView,
+        animated: Bool,
+        updatesOrientation: Bool
+    ) {
+        guard let pointOfView = view.pointOfView else { return }
+
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = animated ? 0.26 : 0
+        SCNTransaction.disableActions = !animated
+        pointOfView.position = state.cameraPosition
+        if updatesOrientation {
+            pointOfView.look(at: state.target)
         }
-        return offset
+        pointOfView.camera?.orthographicScale = state.orthographicScale
+        SCNTransaction.commit()
     }
 
     private func updateActiveFocusID(_ focusedBodyID: String?) {
@@ -603,7 +674,8 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         for pointOfView: SCNNode,
         cameraPosition: SCNVector3,
         focusCenter: SCNVector3,
-        focusScale: Double
+        focusScale: Double,
+        focusRadius: Float
     ) {
         guard let camera = pointOfView.camera else { return }
 
@@ -617,7 +689,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             for: camera,
             cameraPosition: cameraPosition,
             focusCenter: focusCenter,
-            focusScale: focusScale
+            focusScale: focusScale,
+            focusRadius: focusRadius,
+            sceneSpan: snapshot.bounds.span
         )
     }
 
@@ -625,11 +699,21 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         for camera: SCNCamera,
         cameraPosition: SCNVector3,
         focusCenter: SCNVector3,
-        focusScale: Double
+        focusScale: Double,
+        focusRadius: Float,
+        sceneSpan: Float
     ) {
-        let focusDistance = Double((cameraPosition - focusCenter).length)
-        camera.zNear = min(camera.zNear, 0.001)
-        camera.zFar = max(camera.zFar, focusDistance + focusScale * 8.0 + 80)
+        let range = VisualSceneSelectedCameraMath.focusedClippingRange(
+            baseNear: camera.zNear,
+            baseFar: camera.zFar,
+            cameraPosition: cameraPosition,
+            focusCenter: focusCenter,
+            focusScale: focusScale,
+            focusRadius: focusRadius,
+            sceneSpan: sceneSpan
+        )
+        camera.zNear = range.zNear
+        camera.zFar = range.zFar
     }
 
     private func stopCameraAnimations(_ pointOfView: SCNNode) {
@@ -639,7 +723,8 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     }
 
     private func restoreCameraFocusIfNeeded(to view: SCNView) {
-        guard activeFocusID != nil || focusState != nil else {
+        guard activeFocusID != nil || selectedCameraState != nil else {
+            view.allowsCameraControl = true
             return
         }
 
@@ -647,7 +732,8 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             stateLock.lock()
             activeFocusID = nil
             stateLock.unlock()
-            focusState = nil
+            selectedCameraState = nil
+            view.allowsCameraControl = true
             return
         }
 
@@ -676,7 +762,8 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         SCNTransaction.commit()
 
         view.defaultCameraController.target = restoreTarget
-        focusState = nil
+        view.allowsCameraControl = true
+        selectedCameraState = nil
         stateLock.lock()
         activeFocusID = nil
         stateLock.unlock()
@@ -684,6 +771,14 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
     private func focusedOrthographicScale(for bodyID: String) -> Double {
         SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: bodyID, in: snapshot)
+    }
+
+    private func selectedFocusRadius(for bodyID: String) -> Float {
+        guard let placement = snapshot.bodies.first(where: { $0.id == bodyID }) else {
+            return 0.2
+        }
+
+        return max(placement.displayRadius, placement.interactionRadius * 0.35, 0.2)
     }
 
     private func focusTarget(for bodyID: String) -> SCNVector3? {
@@ -786,12 +881,33 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
 #if os(iOS)
 extension VisualSceneCameraCoordinator: UIGestureRecognizerDelegate {
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard gestureRecognizer.name == "LunaSelectedCameraPan"
+            || gestureRecognizer.name == "LunaSelectedCameraPinch" else {
+            return true
+        }
+
+        return activeFocusID != nil
+    }
+
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        gestureRecognizer.name == "LunaVisualManualFocusTracker"
-            || otherGestureRecognizer.name == "LunaVisualManualFocusTracker"
+        false
+    }
+}
+#elseif os(macOS)
+extension VisualSceneCameraCoordinator: NSGestureRecognizerDelegate {
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: NSGestureRecognizer) -> Bool {
+        activeFocusID != nil
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: NSGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer
+    ) -> Bool {
+        false
     }
 }
 #endif
@@ -804,64 +920,157 @@ private extension NSLock {
     }
 }
 
-struct CameraFocusState {
+struct VisualSceneSelectedCameraLimit {
+    let minimumScale: Double
+    let maximumScale: Double
+    let minimumDistance: Float
+    let maximumDistance: Float
+
+    init(focusedScale: Double) {
+        minimumScale = max(0.22, focusedScale * 0.38)
+        maximumScale = max(focusedScale * 3.2, focusedScale + 2.2)
+        minimumDistance = max(Float(focusedScale * 0.62), 0.7)
+        maximumDistance = max(Float(focusedScale * 2.4), minimumDistance + 0.4)
+    }
+}
+
+struct VisualSceneSelectedCameraState {
     let bodyID: String
-    let target: SCNVector3
-    let cameraOffset: SCNVector3
-    let orthographicScale: Double
+    private(set) var target: SCNVector3
+    private(set) var yaw: Float
+    private(set) var pitch: Float
+    private(set) var distance: Float
+    private(set) var orthographicScale: Double
+
+    init(
+        bodyID: String,
+        target: SCNVector3,
+        offset: SCNVector3,
+        orthographicScale: Double,
+        limit: VisualSceneSelectedCameraLimit
+    ) {
+        self.bodyID = bodyID
+        self.target = target
+        let clampedOffset = VisualSceneSelectedCameraMath.clampedOffset(offset, limit: limit)
+        let spherical = VisualSceneSelectedCameraMath.sphericalComponents(for: clampedOffset)
+        yaw = spherical.yaw
+        pitch = spherical.pitch
+        distance = spherical.distance
+        self.orthographicScale = VisualSceneSelectedCameraMath.clampedScale(orthographicScale, limit: limit)
+    }
+
+    var cameraOffset: SCNVector3 {
+        VisualSceneSelectedCameraMath.offset(yaw: yaw, pitch: pitch, distance: distance)
+    }
+
+    var cameraPosition: SCNVector3 {
+        target + cameraOffset
+    }
+
+    func following(target nextTarget: SCNVector3, limit: VisualSceneSelectedCameraLimit) -> VisualSceneSelectedCameraState {
+        var copy = self
+        copy.target = nextTarget
+        copy.distance = min(max(copy.distance, limit.minimumDistance), limit.maximumDistance)
+        copy.orthographicScale = VisualSceneSelectedCameraMath.clampedScale(copy.orthographicScale, limit: limit)
+        return copy
+    }
+
+    mutating func applyInput(
+        yawDelta: Float,
+        pitchDelta: Float,
+        scaleMultiplier: Double,
+        limit: VisualSceneSelectedCameraLimit
+    ) {
+        yaw += yawDelta
+        pitch = VisualSceneSelectedCameraMath.clampedPitch(pitch + pitchDelta)
+        orthographicScale = VisualSceneSelectedCameraMath.clampedScale(
+            orthographicScale * scaleMultiplier,
+            limit: limit
+        )
+        distance = VisualSceneSelectedCameraMath.distance(
+            forScale: orthographicScale,
+            currentDistance: distance,
+            limit: limit
+        )
+    }
 }
 
-struct VisualSceneFocusInteraction {
-    private(set) var activeGestureCount = 0
-
-    var isActive: Bool {
-        activeGestureCount > 0
-    }
-
-    mutating func begin() {
-        activeGestureCount += 1
-    }
-
-    @discardableResult
-    mutating func end() -> Bool {
-        activeGestureCount = max(0, activeGestureCount - 1)
-        return !isActive
-    }
-}
-
-enum VisualSceneFocusMath {
-    static func selectionDidChange(current: CameraFocusState?, nextBodyID: String?) -> Bool {
+enum VisualSceneSelectedCameraMath {
+    static func selectionDidChange(current: VisualSceneSelectedCameraState?, nextBodyID: String?) -> Bool {
         current?.bodyID != nextBodyID
     }
 
-    static func cameraPositionFollowingTargetDelta(
-        currentCameraPosition: SCNVector3,
-        previousTarget: SCNVector3,
-        nextTarget: SCNVector3,
-        maximumDistance: Float
-    ) -> SCNVector3 {
-        let targetDelta = nextTarget - previousTarget
-        let translatedPosition = currentCameraPosition + targetDelta
-        let offset = translatedPosition - nextTarget
-        let distance = offset.length
-        guard distance > maximumDistance, distance > 0 else {
-            return translatedPosition
-        }
-
-        return nextTarget + offset.normalized * maximumDistance
+    static func sphericalComponents(for offset: SCNVector3) -> (yaw: Float, pitch: Float, distance: Float) {
+        let safeOffset = offset.length > 0 ? offset : SCNVector3(0, 0, 1)
+        let distance = max(safeOffset.length, 0.001)
+        let xValue = Float(safeOffset.x)
+        let yValue = Float(safeOffset.y)
+        let zValue = Float(safeOffset.z)
+        let horizontalDistance = max(sqrtf(xValue * xValue + zValue * zValue), 0.001)
+        return (
+            yaw: atan2f(xValue, zValue),
+            pitch: clampedPitch(atan2f(yValue, horizontalDistance)),
+            distance: distance
+        )
     }
 
-    static func capturedState(
-        bodyID: String,
-        target: SCNVector3,
+    static func offset(yaw: Float, pitch: Float, distance: Float) -> SCNVector3 {
+        let horizontalDistance = cosf(pitch) * distance
+        return SCNVector3(
+            sinf(yaw) * horizontalDistance,
+            sinf(pitch) * distance,
+            cosf(yaw) * horizontalDistance
+        )
+    }
+
+    static func clampedOffset(_ offset: SCNVector3, limit: VisualSceneSelectedCameraLimit) -> SCNVector3 {
+        let distance = offset.length
+        guard distance > 0 else {
+            return SCNVector3(0, 0, limit.minimumDistance)
+        }
+
+        if distance < limit.minimumDistance {
+            return offset.normalized * limit.minimumDistance
+        }
+        if distance > limit.maximumDistance {
+            return offset.normalized * limit.maximumDistance
+        }
+        return offset
+    }
+
+    static func clampedPitch(_ pitch: Float) -> Float {
+        min(max(pitch, -1.32), 1.32)
+    }
+
+    static func clampedScale(_ scale: Double, limit: VisualSceneSelectedCameraLimit) -> Double {
+        min(max(scale, limit.minimumScale), limit.maximumScale)
+    }
+
+    static func distance(
+        forScale scale: Double,
+        currentDistance: Float,
+        limit: VisualSceneSelectedCameraLimit
+    ) -> Float {
+        let normalizedScale = (scale - limit.minimumScale) / max(limit.maximumScale - limit.minimumScale, 0.001)
+        let nextDistance = limit.minimumDistance + Float(normalizedScale) * (limit.maximumDistance - limit.minimumDistance)
+        return min(max(nextDistance, limit.minimumDistance), max(limit.maximumDistance, currentDistance))
+    }
+
+    static func focusedClippingRange(
+        baseNear: Double,
+        baseFar: Double,
         cameraPosition: SCNVector3,
-        orthographicScale: Double
-    ) -> CameraFocusState {
-        CameraFocusState(
-            bodyID: bodyID,
-            target: target,
-            cameraOffset: cameraPosition - target,
-            orthographicScale: orthographicScale
+        focusCenter: SCNVector3,
+        focusScale: Double,
+        focusRadius: Float,
+        sceneSpan: Float
+    ) -> (zNear: Double, zFar: Double) {
+        let focusDistance = Double((cameraPosition - focusCenter).length)
+        let radius = Double(max(focusRadius, 0.2))
+        let spanMargin = Double(max(sceneSpan, 1)) * 0.35
+        return (
+            zNear: min(baseNear, 0.001),
+            zFar: max(baseFar, focusDistance + focusScale * 10.0 + radius * 12.0 + spanMargin + 120)
         )
     }
 }
