@@ -14,6 +14,7 @@ struct LunaARSceneView: UIViewRepresentable {
     let recenterTrigger: Int
     var showsDebugSurfaces = false
     var onPlacementStateChange: (ARPlacementState) -> Void = { _ in }
+    var onSceneReady: () -> Void = {}
     var onSelectBody: (CelestialBody) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
@@ -37,6 +38,7 @@ struct LunaARSceneView: UIViewRepresentable {
             recenterTrigger: recenterTrigger,
             showsDebugSurfaces: showsDebugSurfaces,
             onPlacementStateChange: onPlacementStateChange,
+            onSceneReady: onSceneReady,
             onSelectBody: onSelectBody
         )
         return view
@@ -53,6 +55,7 @@ struct LunaARSceneView: UIViewRepresentable {
             recenterTrigger: recenterTrigger,
             showsDebugSurfaces: showsDebugSurfaces,
             onPlacementStateChange: onPlacementStateChange,
+            onSceneReady: onSceneReady,
             onSelectBody: onSelectBody
         )
     }
@@ -73,6 +76,7 @@ struct LunaARSceneView: UIViewRepresentable {
         private var placementUpdateSubscription: Cancellable?
         private var lastPlacementState: ARPlacementState?
         private var onPlacementStateChange: (ARPlacementState) -> Void = { _ in }
+        private var onSceneReady: () -> Void = {}
         private var bodyLookup: [String: CelestialBody] = [:]
         private var onSelectBody: (CelestialBody) -> Void = { _ in }
         private static var textureCache: [String: TextureResource] = [:]
@@ -162,9 +166,11 @@ struct LunaARSceneView: UIViewRepresentable {
             recenterTrigger: Int,
             showsDebugSurfaces: Bool,
             onPlacementStateChange: @escaping (ARPlacementState) -> Void,
+            onSceneReady: @escaping () -> Void,
             onSelectBody: @escaping (CelestialBody) -> Void
         ) {
             self.onPlacementStateChange = onPlacementStateChange
+            self.onSceneReady = onSceneReady
             self.onSelectBody = onSelectBody
             view.debugOptions = showsDebugSurfaces
                 ? [.showFeaturePoints, .showAnchorOrigins, .showAnchorGeometry]
@@ -249,8 +255,9 @@ struct LunaARSceneView: UIViewRepresentable {
             guard nextState != lastPlacementState else { return }
 
             lastPlacementState = nextState
-            DispatchQueue.main.async { [onPlacementStateChange] in
+            DispatchQueue.main.async { [onPlacementStateChange, onSceneReady] in
                 onPlacementStateChange(nextState)
+                onSceneReady()
             }
         }
 

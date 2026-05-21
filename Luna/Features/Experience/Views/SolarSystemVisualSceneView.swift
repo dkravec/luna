@@ -19,6 +19,7 @@ struct SolarSystemVisualSceneView: View {
     var simulationTimeDays: Double = 0
     var simulationDate: Date = Date()
     var focusedBodyID: String?
+    var onSceneReady: () -> Void = {}
     var onSelectBody: (CelestialBody) -> Void = { _ in }
 
     var body: some View {
@@ -33,6 +34,7 @@ struct SolarSystemVisualSceneView: View {
             settings: settings,
             showsLabels: settings.showLabels,
             focusedBodyID: focusedBodyID,
+            onSceneReady: onSceneReady,
             onSelectBody: onSelectBody
         )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -46,6 +48,7 @@ private struct VisualSceneContainer: UIViewRepresentable {
     let settings: ExperienceSceneSettings
     let showsLabels: Bool
     let focusedBodyID: String?
+    let onSceneReady: () -> Void
     let onSelectBody: (CelestialBody) -> Void
 
     func makeCoordinator() -> VisualSceneCameraCoordinator {
@@ -70,6 +73,7 @@ private struct VisualSceneContainer: NSViewRepresentable {
     let settings: ExperienceSceneSettings
     let showsLabels: Bool
     let focusedBodyID: String?
+    let onSceneReady: () -> Void
     let onSelectBody: (CelestialBody) -> Void
 
     func makeCoordinator() -> VisualSceneCameraCoordinator {
@@ -117,7 +121,14 @@ private extension VisualSceneContainer {
     func configure(_ view: SCNView) {
         if let coordinator = view.delegate as? VisualSceneCameraCoordinator {
             coordinator.onSelectBody = onSelectBody
-            coordinator.apply(snapshot: snapshot, settings: settings, showsLabels: showsLabels, focusedBodyID: focusedBodyID, to: view)
+            coordinator.apply(
+                snapshot: snapshot,
+                settings: settings,
+                showsLabels: showsLabels,
+                focusedBodyID: focusedBodyID,
+                to: view,
+                onSceneReady: onSceneReady
+            )
         }
     }
 }
@@ -197,7 +208,14 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         structureKey = nil
     }
 
-    func apply(snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings, showsLabels: Bool, focusedBodyID: String?, to view: SCNView) {
+    func apply(
+        snapshot: ExperienceSceneSnapshot,
+        settings: ExperienceSceneSettings,
+        showsLabels: Bool,
+        focusedBodyID: String?,
+        to view: SCNView,
+        onSceneReady: @escaping () -> Void
+    ) {
         let nextStructureKey = Self.structureKey(for: snapshot, settings: settings, showsLabels: showsLabels)
         let nextCameraLimit = SceneCameraLimit(snapshot: snapshot, settings: settings)
         stateLock.lock()
@@ -234,6 +252,12 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
         update(nextCameraLimit)
         applyCameraFocus(focusedBodyID, cameraLimit: nextCameraLimit, to: view)
+
+        if view.scene != nil, !snapshot.bodies.isEmpty {
+            DispatchQueue.main.async {
+                onSceneReady()
+            }
+        }
     }
 
     private func updateExistingNodes(with snapshot: ExperienceSceneSnapshot, cameraScale: Double, cameraPosition: SCNVector3?) {

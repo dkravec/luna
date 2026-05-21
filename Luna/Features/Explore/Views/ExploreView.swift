@@ -138,7 +138,8 @@ struct ExploreView: View {
         if let bodyID = guidedTourBodyID, let body = body(withID: bodyID) {
             BodyDetailView(
                 celestialBody: body,
-                childBodies: viewModel.children(of: body)
+                childBodies: viewModel.children(of: body),
+                allBodies: viewModel.bodies
             )
         } else {
             EmptyView()
@@ -151,6 +152,7 @@ struct ExploreView: View {
             CategoryExploreView(
                 collection: selectedCollection,
                 bodies: viewModel.bodies(in: selectedCollection),
+                allBodies: viewModel.bodies,
                 childrenProvider: viewModel.children(of:)
             )
             .environmentObject(appState)
@@ -164,7 +166,8 @@ struct ExploreView: View {
         if let selectedBodyID, let body = body(withID: selectedBodyID) {
             BodyDetailView(
                 celestialBody: body,
-                childBodies: viewModel.children(of: body)
+                childBodies: viewModel.children(of: body),
+                allBodies: viewModel.bodies
             )
         } else {
             EmptyView()
@@ -342,6 +345,7 @@ private struct CategoryExploreView: View {
 
     let collection: ExploreCollection
     let bodies: [CelestialBody]
+    let allBodies: [CelestialBody]
     let childrenProvider: (CelestialBody) -> [CelestialBody]
 
     @State private var searchText = ""
@@ -439,7 +443,11 @@ private struct CategoryExploreView: View {
     @ViewBuilder
     private var selectedBodyDestination: some View {
         if let selectedBodyID, let body = bodies.first(where: { $0.id == selectedBodyID }) {
-            BodyDetailView(celestialBody: body, childBodies: childrenProvider(body))
+            BodyDetailView(
+                celestialBody: body,
+                childBodies: childrenProvider(body),
+                allBodies: allBodies
+            )
         } else {
             EmptyView()
         }

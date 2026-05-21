@@ -11,7 +11,14 @@ struct BodyDetailView: View {
     @EnvironmentObject private var appState: LunaAppState
 
     let celestialBody: CelestialBody
-    let childBodies: [CelestialBody]
+    private let childBodies: [CelestialBody]
+    private let allBodies: [CelestialBody]
+
+    init(celestialBody: CelestialBody, childBodies: [CelestialBody], allBodies: [CelestialBody] = []) {
+        self.celestialBody = celestialBody
+        self.childBodies = childBodies.sorted { $0.displayOrder < $1.displayOrder }
+        self.allBodies = allBodies
+    }
 
     var bodyContent: some View {
         ScrollView {
@@ -190,7 +197,11 @@ struct BodyDetailView: View {
                 CardSection {
                     ForEach(Array(childBodies.enumerated()), id: \.element.id) { index, child in
                         NavigationLink {
-                            BodyDetailView(celestialBody: child, childBodies: [])
+                            BodyDetailView(
+                                celestialBody: child,
+                                childBodies: children(of: child),
+                                allBodies: allBodies
+                            )
                         } label: {
                             CardRow {
                                 RowLabel(
@@ -212,6 +223,12 @@ struct BodyDetailView: View {
                 }
             }
         }
+    }
+
+    func children(of body: CelestialBody) -> [CelestialBody] {
+        allBodies
+            .filter { $0.parentBodyId == body.id }
+            .sorted { $0.displayOrder < $1.displayOrder }
     }
 
 }

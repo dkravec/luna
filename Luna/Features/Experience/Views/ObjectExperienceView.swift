@@ -200,7 +200,8 @@ struct ObjectExperienceView: View {
         if let selectedQuickDetailsBody {
             InSceneBodyQuickDetailsCard(
                 celestialBody: selectedQuickDetailsBody,
-                childBodies: childBodies(for: selectedQuickDetailsBody)
+                childBodies: childBodies(for: selectedQuickDetailsBody),
+                allBodies: bodies
             ) {
                 Haptics.selection()
                 self.selectedQuickDetailsBody = nil

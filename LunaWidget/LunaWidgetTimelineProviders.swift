@@ -147,43 +147,13 @@ struct LunaSolarOverviewTimelineProvider: TimelineProvider {
 
 private struct NASAImageFetcher {
     static func fetch() async throws -> NASAImagePayload {
-        var components = URLComponents(string: "https://api.nasa.gov/planetary/apod")!
-        components.queryItems = [
-            URLQueryItem(name: "api_key", value: apiKey),
-            URLQueryItem(name: "thumbs", value: "true")
-        ]
-
-        let (data, response) = try await URLSession.shared.data(from: components.url!)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode) else {
-            throw URLError(.badServerResponse)
-        }
-
+        let data = try await NASAAPODClient.data(from: NASAAPODClient.endpoint())
         let decoder = JSONDecoder()
         return try decoder.decode(NASAImagePayload.self, from: data)
     }
 
     static func fetchImageData(from url: URL) async throws -> Data {
-        let (data, response) = try await URLSession.shared.data(from: url)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode) else {
-            throw URLError(.badServerResponse)
-        }
-
-        return data
-    }
-
-    private static var apiKey: String {
-        let configuredKey = Bundle.main.object(forInfoDictionaryKey: "NASA_API_KEY") as? String
-        let trimmedKey = configuredKey?.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if let trimmedKey, !trimmedKey.isEmpty, trimmedKey != "$(NASA_API_KEY)" {
-            return trimmedKey
-        }
-
-        return "DEMO_KEY"
+        try await NASAAPODClient.imageData(from: url)
     }
 }
 

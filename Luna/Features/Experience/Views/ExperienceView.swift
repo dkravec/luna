@@ -14,6 +14,27 @@ enum LunaDebug {
     }
 }
 
+struct ExperienceSceneReadiness: Equatable {
+    private(set) var readyMode: SceneMode?
+
+    var isReady: Bool {
+        readyMode != nil
+    }
+
+    mutating func reset() {
+        readyMode = nil
+    }
+
+    mutating func markReady(for mode: SceneMode) {
+        readyMode = mode
+    }
+
+    enum SceneMode: Equatable {
+        case ar
+        case visual
+    }
+}
+
 struct ExperienceView: View {
     private static let playbackTimer = Timer
         .publish(every: 1.0 / 24.0, on: .main, in: .common)
@@ -24,7 +45,7 @@ struct ExperienceView: View {
     @State private var isAREnabled = false
     @State private var hasInitializedMode = false
     @State private var isControlsPresented = false
-    @State private var isSceneReady = false
+    @State private var sceneReadiness = ExperienceSceneReadiness()
     @State private var recenterTrigger = 0
     @State private var isOrbitPlaybackEnabled = false
     @State private var playbackStartDate = Date()
@@ -61,7 +82,6 @@ struct ExperienceView: View {
                 appState.loadCelestialBodies()
             }
             initializePreferredModeIfNeeded()
-            prepareSceneAfterInitialRender()
         }
         .onDisappear {
             pauseOrbitPlaybackIfNeeded()
@@ -69,6 +89,11 @@ struct ExperienceView: View {
         .onChange(of: appState.selectedTab) { selectedTab in
             if selectedTab != .arExperience {
                 pauseOrbitPlaybackIfNeeded()
+            }
+        }
+        .onChange(of: appState.celestialBodies) { bodies in
+            if bodies.isEmpty {
+                sceneReadiness.reset()
             }
         }
         .onReceive(Self.playbackTimer) { date in
@@ -106,9 +131,7 @@ struct ExperienceView: View {
 
     @ViewBuilder
     private var sceneLayer: some View {
-        if !isSceneReady {
-            ExperienceLoadingView()
-        } else if appState.celestialBodies.isEmpty {
+        if appState.celestialBodies.isEmpty {
             EmptyStateView(
                 title: "No Bodies Loaded",
                 systemImage: "sparkles",
@@ -117,6 +140,11 @@ struct ExperienceView: View {
             .padding()
         } else {
             sceneContent(simulationDate: currentSimulationDate)
+                .overlay {
+                    if !sceneReadiness.isReady {
+                        ExperienceLoadingView()
+                    }
+                }
         }
     }
 
@@ -133,6 +161,7 @@ struct ExperienceView: View {
                 recenterTrigger: recenterTrigger,
                 showsDebugSurfaces: showsARDebugSurfaces,
                 onPlacementStateChange: { arPlacementState = $0 },
+                onSceneReady: { markSceneReady(for: .ar) },
                 onSelectBody: showQuickDetails(for:)
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -143,6 +172,7 @@ struct ExperienceView: View {
                 content: .solarSystem,
                 simulationDate: simulationDate,
                 focusedBodyID: selectedQuickDetailsBody?.id,
+                onSceneReady: { markSceneReady(for: .visual) },
                 onSelectBody: showQuickDetails(for:)
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -154,6 +184,7 @@ struct ExperienceView: View {
             content: .solarSystem,
             simulationDate: simulationDate,
             focusedBodyID: selectedQuickDetailsBody?.id,
+            onSceneReady: { markSceneReady(for: .visual) },
             onSelectBody: showQuickDetails(for:)
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -231,7 +262,7 @@ struct ExperienceView: View {
     @ViewBuilder
     private var arPlacementReticle: some View {
 #if os(iOS)
-        if isSceneReady, isAREnabled, canUseAR, !appState.celestialBodies.isEmpty {
+        if sceneReadiness.isReady, isAREnabled, canUseAR, !appState.celestialBodies.isEmpty {
             ZStack {
                 Circle()
                     .stroke(arPlacementColor.opacity(0.88), lineWidth: 2)
@@ -256,7 +287,7 @@ struct ExperienceView: View {
     @ViewBuilder
     private var arPlacementButton: some View {
 #if os(iOS)
-        if isSceneReady, isAREnabled, canUseAR, !appState.celestialBodies.isEmpty {
+        if sceneReadiness.isReady, isAREnabled, canUseAR, !appState.celestialBodies.isEmpty {
             Button {
                 if !appState.guidedTourTargetTapped(.experiencePlayback) {
                     placeARScene()
@@ -606,7 +637,8 @@ struct ExperienceView: View {
         if let selectedQuickDetailsBody {
             InSceneBodyQuickDetailsCard(
                 celestialBody: selectedQuickDetailsBody,
-                childBodies: childBodies(for: selectedQuickDetailsBody)
+                childBodies: childBodies(for: selectedQuickDetailsBody),
+                allBodies: appState.celestialBodies
             ) {
                 Haptics.selection()
                 self.selectedQuickDetailsBody = nil
@@ -630,21 +662,17 @@ struct ExperienceView: View {
         hasInitializedMode = true
     }
 
-    private func prepareSceneAfterInitialRender() {
-        guard !isSceneReady else { return }
-
-        Task {
-            try? await Task.sleep(nanoseconds: 140_000_000)
-
-            await MainActor.run {
-                isSceneReady = true
-            }
+    private func setSceneMode(isAR: Bool) {
+        let nextMode = isAR && canUseAR
+        if isAREnabled != nextMode {
+            sceneReadiness.reset()
         }
+        isAREnabled = nextMode
+        appState.setPrefersARMode(isAREnabled)
     }
 
-    private func setSceneMode(isAR: Bool) {
-        isAREnabled = isAR && canUseAR
-        appState.setPrefersARMode(isAREnabled)
+    private func markSceneReady(for mode: ExperienceSceneReadiness.SceneMode) {
+        sceneReadiness.markReady(for: mode)
     }
 
     private func toggleOrbitPlayback() {
@@ -776,6 +804,7 @@ private struct ExperienceLoadingView: View {
 struct InSceneBodyQuickDetailsCard: View {
     let celestialBody: CelestialBody
     let childBodies: [CelestialBody]
+    let allBodies: [CelestialBody]
     let onDismiss: () -> Void
 
     var body: some View {
@@ -794,7 +823,11 @@ struct InSceneBodyQuickDetailsCard: View {
                 Spacer(minLength: 8)
 
                 NavigationLink {
-                    BodyDetailView(celestialBody: celestialBody, childBodies: childBodies)
+                    BodyDetailView(
+                        celestialBody: celestialBody,
+                        childBodies: childBodies,
+                        allBodies: allBodies
+                    )
                 } label: {
                     Image(systemName: "info.circle")
                         .font(.title3.weight(.semibold))

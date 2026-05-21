@@ -964,6 +964,95 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertEqual(Double(length(earth.position)), expectedSceneDistance("earth", distance: .educational), accuracy: 0.02)
     }
 
+    func testRemoteCelestialBodyRepositoryThrowsNotImplemented() {
+        let repository = RemoteCelestialBodyRepository()
+
+        XCTAssertThrowsError(try repository.fetchBodies()) { error in
+            guard case CelestialBodyRepositoryError.notImplemented(let repositoryName) = error else {
+                return XCTFail("Expected notImplemented, got \(error)")
+            }
+            XCTAssertEqual(repositoryName, "RemoteCelestialBodyRepository")
+        }
+
+        XCTAssertThrowsError(try repository.body(id: "earth")) { error in
+            guard case CelestialBodyRepositoryError.notImplemented = error else {
+                return XCTFail("Expected notImplemented, got \(error)")
+            }
+        }
+    }
+
+    func testNASAImageOfTheDayIdentityIsStableForSameSource() throws {
+        let date = try XCTUnwrap(NASAAPODSharedCache.dateFormatter.date(from: "2026-05-21"))
+        let url = try XCTUnwrap(URL(string: "https://example.com/apod.jpg"))
+        let first = NASAImageOfTheDay(
+            title: "APOD",
+            date: date,
+            explanation: "A picture",
+            mediaType: "image",
+            url: url,
+            hdurl: nil,
+            thumbnailURL: nil,
+            copyright: nil
+        )
+        let second = NASAImageOfTheDay(
+            title: "APOD",
+            date: date,
+            explanation: "A picture",
+            mediaType: "image",
+            url: url,
+            hdurl: nil,
+            thumbnailURL: nil,
+            copyright: nil
+        )
+
+        XCTAssertEqual(first.id, second.id)
+    }
+
+    func testNASAAPODClientEndpointIncludesSharedQueryItems() throws {
+        let date = try XCTUnwrap(NASAAPODSharedCache.dateFormatter.date(from: "2026-05-21"))
+        let components = try XCTUnwrap(URLComponents(url: NASAAPODClient.endpoint(date: date), resolvingAgainstBaseURL: false))
+        let query = Dictionary(uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value) })
+
+        XCTAssertEqual(components.scheme, "https")
+        XCTAssertEqual(components.host, "api.nasa.gov")
+        XCTAssertEqual(components.path, "/planetary/apod")
+        XCTAssertEqual(query["api_key"], NASAAPODClient.apiKey)
+        XCTAssertEqual(query["thumbs"], "true")
+        XCTAssertEqual(query["date"], "2026-05-21")
+    }
+
+    func testBodyDetailComputesNestedRelatedBodiesFromFullCatalog() throws {
+        let earth = try XCTUnwrap(Self.bodies.first { $0.id == "earth" })
+        let moon = try XCTUnwrap(Self.bodies.first { $0.id == "moon" })
+        let crater = Self.makeBody(
+            id: "crater",
+            name: "Crater",
+            type: .asteroid,
+            radiusKm: 1,
+            parentBodyId: "moon",
+            displayOrder: 99
+        )
+        let allBodies = Self.bodies + [crater]
+        let view = BodyDetailView(
+            celestialBody: earth,
+            childBodies: [moon],
+            allBodies: allBodies
+        )
+
+        XCTAssertEqual(view.children(of: moon).map(\.id), ["crater"])
+    }
+
+    func testExperienceSceneReadinessOnlyBecomesReadyAfterCallback() {
+        var readiness = ExperienceSceneReadiness()
+
+        XCTAssertFalse(readiness.isReady)
+        readiness.markReady(for: .visual)
+        XCTAssertTrue(readiness.isReady)
+        XCTAssertEqual(readiness.readyMode, .visual)
+        readiness.reset()
+        XCTAssertFalse(readiness.isReady)
+    }
+
     private static let bodies: [CelestialBody] = [
         makeBody(id: "sun", name: "Sun", type: .star, radiusKm: 696_340, parentBodyId: nil, displayOrder: 0),
         makeBody(id: "mercury", name: "Mercury", radiusKm: 2_439.7, averageDistanceFromSunKm: 57_900_000, orbit: orbit(57_909_050, eccentricity: 0.2056, inclination: 7.005, longitude: 48.331, periapsis: 29.124, meanAnomaly: 174.796), displayOrder: 1),

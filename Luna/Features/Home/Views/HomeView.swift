@@ -32,8 +32,6 @@ struct HomeView: View {
 
                     dailyContentSection(dailyContent)
 
-//                    overviewSection
-                    
                     primaryActions
                 }
                 .screenContentPadding()
@@ -62,18 +60,6 @@ struct HomeView: View {
                 .guidedTourTarget(.homeOverview, when: appState.guidedTourStep == .homeWelcome)
 
                 Spacer(minLength: 8)
-
-                // Button {
-                //     appState.selectedTab = .settings
-                // } label: {
-                //     Image(systemName: "gearshape")
-                //         .font(.headline.weight(.semibold))
-                //         .frame(width: 42, height: 42)
-                //         .background(Color.primary.opacity(0.08), in: Circle())
-                // }
-                // .buttonStyle(.plain)
-                // .accessibilityLabel("Open Settings")
-                // .hapticTap()
             }
 
             miniSolarSystemPreview
@@ -178,85 +164,6 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder
-    private func featuredBodySection(_ body: CelestialBody?) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Featured Body")
-
-            if let body {
-                NavigationLink {
-                    BodyDetailView(
-                        celestialBody: body,
-                        childBodies: appState.celestialBodies.filter { $0.parentBodyId == body.id }
-                    )
-                } label: {
-                    Card {
-                        HStack(alignment: .center, spacing: 14) {
-                            BodyCardVisual(celestialBody: body, size: 82)
-
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack(spacing: 8) {
-                                    Text(body.name)
-                                        .font(.title3.weight(.bold))
-                                        .foregroundStyle(.primary)
-
-                                    Text(body.type.title)
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color.primary.opacity(0.06), in: Capsule(style: .continuous))
-                                }
-
-                                Text(body.summary.isEmpty ? body.subtitle : body.summary)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(3)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .hapticTap()
-            } else {
-                EmptyStateView(
-                    title: "No Featured Body",
-                    systemImage: "sparkles",
-                    message: "Luna could not load the local celestial body catalog."
-                )
-            }
-        }
-    }
-
-    private func factOfTheDaySection(_ fact: HomeDailyFact, featuredBody: CelestialBody?) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: fact.title)
-
-            Card {
-                HStack(alignment: .top, spacing: 12) {
-                    if let body = featuredBody {
-                        BodyCardVisual(celestialBody: body, size: 72)
-                    } else {
-                        IconBadge(systemImage: fact.systemImage)
-                    }
-
-                    Text(fact.message)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .accessibilityElement(children: .combine)
-        }
-    }
-
     private var primaryActions: some View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Explore")
@@ -298,25 +205,6 @@ struct HomeView: View {
                 .buttonStyle(.plain)
                 .hapticTap()
                 .guidedTourTarget(.homeExperienceAction)
-            }
-        }
-    }
-
-    private var overviewSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Status")
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                MetricTile(
-                    title: "Viewing Mode",
-                    value: appState.experiencePreferences.prefersARMode ? "AR First" : "Visual First",
-                    systemImage: "viewfinder"
-                )
-                MetricTile(
-                    title: "Bodies Loaded",
-                    value: "\(appState.celestialBodies.count)",
-                    systemImage: "circle.grid.cross"
-                )
             }
         }
     }
