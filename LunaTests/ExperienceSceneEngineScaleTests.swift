@@ -443,6 +443,77 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertLessThanOrEqual(moonScale, 0.88)
     }
 
+    func testSelectedPlaybackFocusPreservesCameraOffsetForSameBody() {
+        let cameraPosition = SCNVector3(10, 5, 3)
+        let previousTarget = SCNVector3(1, 0, -2)
+        let nextTarget = SCNVector3(4, 2, -1)
+
+        let nextPosition = VisualSceneFocusMath.cameraPositionFollowingTargetDelta(
+            currentCameraPosition: cameraPosition,
+            previousTarget: previousTarget,
+            nextTarget: nextTarget,
+            maximumDistance: 100
+        )
+
+        XCTAssertEqual(Float(nextPosition.x - nextTarget.x), Float(cameraPosition.x - previousTarget.x), accuracy: 0.0001)
+        XCTAssertEqual(Float(nextPosition.y - nextTarget.y), Float(cameraPosition.y - previousTarget.y), accuracy: 0.0001)
+        XCTAssertEqual(Float(nextPosition.z - nextTarget.z), Float(cameraPosition.z - previousTarget.z), accuracy: 0.0001)
+    }
+
+    func testSelectedPlaybackFocusClampsOnlyWhenOffsetExceedsLimit() {
+        let nextPosition = VisualSceneFocusMath.cameraPositionFollowingTargetDelta(
+            currentCameraPosition: SCNVector3(40, 0, 0),
+            previousTarget: SCNVector3Zero,
+            nextTarget: SCNVector3(2, 0, 0),
+            maximumDistance: 12
+        )
+
+        XCTAssertEqual(Float(nextPosition.x), 14, accuracy: 0.0001)
+        XCTAssertEqual(Float(nextPosition.y), 0, accuracy: 0.0001)
+        XCTAssertEqual(Float(nextPosition.z), 0, accuracy: 0.0001)
+    }
+
+    func testManualFocusInteractionStaysActiveUntilAllGesturesEnd() {
+        var interaction = VisualSceneFocusInteraction()
+
+        interaction.begin()
+        interaction.begin()
+        XCTAssertTrue(interaction.isActive)
+        XCTAssertFalse(interaction.end())
+        XCTAssertTrue(interaction.isActive)
+        XCTAssertTrue(interaction.end())
+        XCTAssertFalse(interaction.isActive)
+    }
+
+    func testManualFocusCaptureStoresUserCameraOffsetWithoutSnapping() {
+        let state = VisualSceneFocusMath.capturedState(
+            bodyID: "moon",
+            target: SCNVector3(2, 3, 4),
+            cameraPosition: SCNVector3(7, 5, -1),
+            orthographicScale: 1.8
+        )
+
+        XCTAssertEqual(state.bodyID, "moon")
+        XCTAssertEqual(Float(state.cameraOffset.x), 5, accuracy: 0.0001)
+        XCTAssertEqual(Float(state.cameraOffset.y), 2, accuracy: 0.0001)
+        XCTAssertEqual(Float(state.cameraOffset.z), -5, accuracy: 0.0001)
+        XCTAssertEqual(state.orthographicScale, 1.8, accuracy: 0.0001)
+    }
+
+    func testSelectedFocusChangeDetectionDistinguishesSameChangeAndClear() {
+        let state = CameraFocusState(
+            bodyID: "moon",
+            target: SCNVector3Zero,
+            cameraOffset: SCNVector3(0, 0, 1),
+            orthographicScale: 1
+        )
+
+        XCTAssertFalse(VisualSceneFocusMath.selectionDidChange(current: state, nextBodyID: "moon"))
+        XCTAssertTrue(VisualSceneFocusMath.selectionDidChange(current: state, nextBodyID: "earth"))
+        XCTAssertTrue(VisualSceneFocusMath.selectionDidChange(current: state, nextBodyID: nil))
+        XCTAssertFalse(VisualSceneFocusMath.selectionDidChange(current: nil, nextBodyID: nil))
+    }
+
     func testTrueScaleCameraMetricsAndLimitsCoverFullBounds() {
         let sceneSettings = settings(distance: .trueScale, object: .trueScale, sceneScaleProfile: .trueSize)
         let snapshot = ExperienceSceneEngine.snapshot(for: Self.bodies, settings: sceneSettings)
