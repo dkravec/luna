@@ -60,17 +60,17 @@ struct HomeView: View {
 
                 Spacer(minLength: 8)
 
-                Button {
-                    appState.selectedTab = .settings
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.headline.weight(.semibold))
-                        .frame(width: 42, height: 42)
-                        .background(Color.primary.opacity(0.08), in: Circle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Open Settings")
-                .hapticTap()
+                // Button {
+                //     appState.selectedTab = .settings
+                // } label: {
+                //     Image(systemName: "gearshape")
+                //         .font(.headline.weight(.semibold))
+                //         .frame(width: 42, height: 42)
+                //         .background(Color.primary.opacity(0.08), in: Circle())
+                // }
+                // .buttonStyle(.plain)
+                // .accessibilityLabel("Open Settings")
+                // .hapticTap()
             }
 
             miniSolarSystemPreview
@@ -272,10 +272,10 @@ struct HomeView: View {
                             showsChevron: true
                         )
                     }
-                    .guidedTourTarget(.homeExploreAction, when: appState.guidedTourStep == .homeExplore)
                 }
                 .buttonStyle(.plain)
                 .hapticTap()
+                .guidedTourTarget(.homeExploreAction, when: appState.guidedTourStep == .homeExplore)
                 .id(ScrollAnchor.exploreAction)
 
                 CardDivider(leadingInset: 56)

@@ -149,7 +149,12 @@ struct LunaFactWidgetView: View {
 
                 VStack(alignment: .leading, spacing: family == .systemSmall ? 8 : 12) {
                     HStack(alignment: .center, spacing: 10) {
-                        LunaWidgetBodyMarker(name: entry.bodyName)
+                        LunaWidgetBodyVisual(
+                            textureAssetName: entry.textureAssetName,
+                            fallbackName: entry.bodyName,
+                            hasRings: entry.hasRings,
+                            size: family == .systemSmall ? 36 : 44
+                        )
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(entry.bodyName)
@@ -170,6 +175,8 @@ struct LunaFactWidgetView: View {
                         .foregroundStyle(.white.opacity(0.92))
                         .lineLimit(family == .systemSmall ? 4 : 5)
                         .minimumScaleFactor(0.78)
+
+                    // LunaWidgetDebugBuildMarker()
                 }
                 .padding(family == .systemSmall ? 14 : 18)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -190,7 +197,7 @@ struct LunaSolarOverviewWidgetView: View {
                     LunaWidgetSpaceBackground()
 
                     LunaWidgetOrbitView(bodies: entry.bodies)
-                        .padding(family == .systemSmall ? 18 : 26)
+                        .padding(family == .systemSmall ? 14 : 22)
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Solar System")
@@ -200,6 +207,8 @@ struct LunaSolarOverviewWidgetView: View {
                         Text(entry.date, format: .dateTime.month(.abbreviated).day())
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.72))
+
+                        // LunaWidgetDebugBuildMarker()
                     }
                     .padding(family == .systemSmall ? 12 : 16)
                     .frame(width: proxy.size.width, alignment: .leading)
@@ -220,23 +229,35 @@ private struct LunaWidgetOrbitView: View {
             let maxDistance = bodies.map(\.distanceFromSun).max() ?? 1
 
             ZStack {
+                ForEach(bodies.filter { $0.distanceFromSun > 0 }) { body in
+                    let radius = max(13, CGFloat(sqrt(body.distanceFromSun / maxDistance)) * size * 0.42)
+
+                    Ellipse()
+                        .stroke(.white.opacity(body.id == "earth" ? 0.20 : 0.12), lineWidth: body.id == "earth" ? 1.2 : 0.8)
+                        .frame(width: radius * 2, height: radius * 1.32)
+                        .position(center)
+                }
+
                 Circle()
                     .fill(Color(red: 1.0, green: 0.72, blue: 0.22))
                     .frame(width: max(9, size * 0.08), height: max(9, size * 0.08))
                     .position(center)
 
                 ForEach(bodies.filter { $0.distanceFromSun > 0 }) { body in
-                    let radius = max(12, CGFloat(sqrt(body.distanceFromSun / maxDistance)) * size * 0.40)
+                    let radius = max(13, CGFloat(sqrt(body.distanceFromSun / maxDistance)) * size * 0.42)
                     let angle = body.angleRadians(on: Date())
                     let point = CGPoint(
                         x: center.x + cos(angle) * radius,
-                        y: center.y + sin(angle) * radius * 0.72
+                        y: center.y + sin(angle) * radius * 0.66
                     )
 
-                    Circle()
-                        .fill(body.color)
-                        .frame(width: body.displaySize, height: body.displaySize)
-                        .position(point)
+                    LunaWidgetBodyVisual(
+                        textureAssetName: body.textureAssetName,
+                        fallbackName: body.name,
+                        hasRings: body.hasRings,
+                        size: max(body.displaySize, body.hasRings ? 11 : 7)
+                    )
+                    .position(point)
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
@@ -246,25 +267,56 @@ private struct LunaWidgetOrbitView: View {
 
 struct LunaWidgetSpaceBackground: View {
     var body: some View {
-        Color(red: 0.02, green: 0.02, blue: 0.03)
+        ZStack {
+            Color(red: 0.02, green: 0.02, blue: 0.03)
+
+            Image("WidgetStarfield")
+                .resizable()
+                .lunaWidgetFullColorImage()
+                .scaledToFill()
+                .opacity(0.36)
+                .widgetAccentable(false)
+        }
     }
 }
 
-private struct LunaWidgetBodyMarker: View {
-    let name: String
+private struct LunaWidgetBodyVisual: View {
+    let textureAssetName: String?
+    let fallbackName: String
+    let hasRings: Bool
+    let size: CGFloat
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(color)
+            if hasRings {
+                Ellipse()
+                    .stroke(.white.opacity(0.38), lineWidth: max(1, size * 0.08))
+                    .frame(width: size * 1.85, height: size * 0.66)
+                    .rotationEffect(.degrees(-12))
+            }
+
+            if let textureAssetName {
+                Image(textureAssetName)
+                    .resizable()
+                    .lunaWidgetFullColorImage()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+            } else {
+                Circle()
+                    .fill(color)
+                    .frame(width: size, height: size)
+            }
+
             Circle()
                 .stroke(.white.opacity(0.22), lineWidth: 1)
+                .frame(width: size, height: size)
         }
-        .frame(width: 34, height: 34)
+        .frame(width: hasRings ? size * 1.95 : size, height: max(size, hasRings ? size * 0.92 : size))
     }
 
     private var color: Color {
-        switch name.lowercased() {
+        switch fallbackName.lowercased() {
         case "mercury", "moon":
             return .gray
         case "venus", "saturn":
@@ -278,6 +330,26 @@ private struct LunaWidgetBodyMarker: View {
         default:
             return .white.opacity(0.72)
         }
+    }
+}
+
+private struct LunaWidgetDebugBuildMarker: View {
+    var body: some View {
+#if DEBUG
+        Text(debugText)
+            .font(.system(size: 6, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.36))
+            .lineLimit(1)
+            .accessibilityHidden(true)
+#else
+        EmptyView()
+#endif
+    }
+
+    private var debugText: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        return "Luna \(version)(\(build))"
     }
 }
 

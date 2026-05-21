@@ -65,6 +65,7 @@
 		7A6B130224D2000000000000 /* LunaWidgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B130124D2000000000000 /* LunaWidgetModels.swift */; };
 		7A6B130424D2000000000000 /* LunaWidgetTimelineProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B130324D2000000000000 /* LunaWidgetTimelineProviders.swift */; };
 		7A6B130624D2000000000000 /* LunaWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B130524D2000000000000 /* LunaWidgetViews.swift */; };
+		7A6B131024D3000000000000 /* WidgetAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B130F24D3000000000000 /* WidgetAssets.xcassets */; };
 		7A6B0A0224C0000000000000 /* ExperienceSceneEngineScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */; };
 		7A6B0B0224C1000000000000 /* HomeDailyContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B0B0124C1000000000000 /* HomeDailyContentProvider.swift */; };
 		7A6B130824D2000000000000 /* TodayInLunaDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B130724D2000000000000 /* TodayInLunaDetailView.swift */; };
@@ -177,6 +178,7 @@
 		7A6B130124D2000000000000 /* LunaWidgetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaWidgetModels.swift; sourceTree = "<group>"; };
 		7A6B130324D2000000000000 /* LunaWidgetTimelineProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaWidgetTimelineProviders.swift; sourceTree = "<group>"; };
 		7A6B130524D2000000000000 /* LunaWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaWidgetViews.swift; sourceTree = "<group>"; };
+		7A6B130F24D3000000000000 /* WidgetAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = WidgetAssets.xcassets; sourceTree = "<group>"; };
 		7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceSceneEngineScaleTests.swift; sourceTree = "<group>"; };
 		7A6B0A0624C0000000000000 /* LunaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LunaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A6B0B0124C1000000000000 /* HomeDailyContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDailyContentProvider.swift; sourceTree = "<group>"; };
@@ -367,6 +369,7 @@
 				7A6B130124D2000000000000 /* LunaWidgetModels.swift */,
 				7A6B130324D2000000000000 /* LunaWidgetTimelineProviders.swift */,
 				7A6B130524D2000000000000 /* LunaWidgetViews.swift */,
+				7A6B130F24D3000000000000 /* WidgetAssets.xcassets */,
 				7A6B091224B0000000000000 /* Info.plist */,
 				7A6B092A24B1000000000000 /* LunaWidget.entitlements */,
 			);
@@ -868,6 +871,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A6B131024D3000000000000 /* WidgetAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

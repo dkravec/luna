@@ -86,6 +86,8 @@ extension View {
 
 private struct GuidedTourOverlayView: View {
     @State private var allowsMissingTargetFallback = false
+    @State private var settledTargetFrame: CGRect?
+    @State private var targetFrameUpdateID = UUID()
 
     let step: GuidedTourStep
     let targetFrame: CGRect?
@@ -150,11 +152,18 @@ private struct GuidedTourOverlayView: View {
         .zIndex(200)
         .transition(.opacity)
         .onAppear {
+            scheduleTargetFrameUpdate()
             scheduleMissingTargetFallback()
         }
         .onChange(of: step) { _ in
             allowsMissingTargetFallback = false
+            settledTargetFrame = nil
+            targetFrameUpdateID = UUID()
+            scheduleTargetFrameUpdate()
             scheduleMissingTargetFallback()
+        }
+        .onChange(of: targetFrame) { _ in
+            scheduleTargetFrameUpdate()
         }
     }
 
@@ -230,14 +239,18 @@ private struct GuidedTourOverlayView: View {
     }
 
     private func highlightFrame(in size: CGSize) -> CGRect? {
-        if let targetFrame, !targetFrame.isEmpty {
-            let alignedFrame = targetFrame.offsetBy(dx: 0, dy: -safeAreaInsets.top)
+        if let settledTargetFrame, !settledTargetFrame.isEmpty {
+            let alignedFrame = settledTargetFrame.offsetBy(dx: 0, dy: -safeAreaInsets.top)
             let paddedFrame = alignedFrame.insetBy(dx: -6, dy: -6)
             let visibleBounds = CGRect(origin: .zero, size: size)
             let clippedFrame = paddedFrame.intersection(visibleBounds)
             if !clippedFrame.isNull, clippedFrame.width > 1, clippedFrame.height > 1 {
                 return clippedFrame
             }
+        }
+
+        if step == .homeExplore {
+            return nil
         }
 
         guard allowsMissingTargetFallback else {
@@ -255,6 +268,16 @@ private struct GuidedTourOverlayView: View {
     private func scheduleMissingTargetFallback() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
             allowsMissingTargetFallback = true
+        }
+    }
+
+    private func scheduleTargetFrameUpdate() {
+        let updateID = UUID()
+        targetFrameUpdateID = updateID
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
+            guard targetFrameUpdateID == updateID else { return }
+            settledTargetFrame = targetFrame
         }
     }
 

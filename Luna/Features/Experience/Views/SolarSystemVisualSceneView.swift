@@ -416,7 +416,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         let focusChanged = activeFocusID != focusedBodyID
         let desiredFocusScale = focusedOrthographicScale(for: focusedBodyID)
         let idealOffset = SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot)
-        let currentOffset = focusChanged ? idealOffset : pointOfView.position - focusCenter
+        let currentOffset = focusChanged ? idealOffset : pointOfView.position - (focusState?.target ?? focusCenter)
         let minimumDistance = max(Float(desiredFocusScale * 0.88), 1.25)
         let maximumDistance = max(Float(desiredFocusScale * 1.55), minimumDistance + 0.2)
         let nextOffset = clampedFocusOffset(
@@ -1014,8 +1014,8 @@ struct SolarSystemSceneFocusMetrics {
             }
             .max() ?? 0
         let cappedChildEnvelope = min(childEnvelope, placement.displayRadius * 2.4)
-        let subjectRadius = max(placement.displayRadius, cappedChildEnvelope, placement.interactionRadius, 0.20)
-        return max(0.70, Double(subjectRadius * 3.1))
+        let subjectRadius = max(placement.displayRadius, cappedChildEnvelope, placement.interactionRadius * 0.72, 0.20)
+        return max(0.82, Double(subjectRadius * 4.3))
     }
 
     static func cameraOffset(for bodyID: String, in snapshot: ExperienceSceneSnapshot) -> SCNVector3 {
@@ -1031,9 +1031,9 @@ struct SolarSystemSceneFocusMetrics {
         }
 
         return SCNVector3(
-            radial.x * scale * 0.18,
-            max(scale * 0.62, 0.90),
-            max(scale * 1.24, 1.55) + radial.z * scale * 0.18
+            radial.x * scale * 0.16,
+            max(scale * 0.58, 0.86),
+            max(scale * 1.18, 1.45) + radial.z * scale * 0.18
         )
     }
 }
@@ -1217,8 +1217,8 @@ struct SolarSystemSceneCameraMetrics {
         let scale = Float(orthographicScale)
         return SCNVector3(
             max(3.5, scale * 0.18),
-            max(distance * 0.78, scale * 1.35),
-            max(distance * 0.34, scale * 0.55)
+            max(distance * 0.68, scale * 1.18),
+            max(distance * 0.46, scale * 0.72)
         )
     }
 
@@ -1303,10 +1303,14 @@ struct SceneCameraLimit {
         let largestBodyRadius = placements.map(\.displayRadius).max() ?? 1
         let initialCameraDistance = (cameraMetrics.position - center).length
         let initialOrthographicScale = cameraMetrics.orthographicScale
+        let trueScaleScene = settings.distanceScaleMode == .trueScale || settings.sceneScaleProfile == .trueSize
+        let minimumOrthographicScale = trueScaleScene
+            ? max(0.12, min(Double(largestBodyRadius) * 0.55, initialOrthographicScale * 0.08))
+            : max(0.65, Double(largestBodyRadius) * 2.25)
 
         self.init(
             subjectCenter: center,
-            minimumOrthographicScale: max(0.65, Double(largestBodyRadius) * 2.25),
+            minimumOrthographicScale: minimumOrthographicScale,
             preferredOrthographicScale: initialOrthographicScale,
             maximumOrthographicScale: initialOrthographicScale * 2.1,
             maximumCameraDistance: max(initialCameraDistance * 2.5, subjectRadius * 7.0)

@@ -1,5 +1,10 @@
 import SwiftUI
 import WidgetKit
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 struct NASAImageEntry: TimelineEntry {
     let date: Date
@@ -13,6 +18,8 @@ struct LunaFactEntry: TimelineEntry {
     let bodyName: String
     let bodyType: String
     let fact: String
+    let textureAssetName: String?
+    let hasRings: Bool
 }
 
 struct LunaSolarOverviewEntry: TimelineEntry {
@@ -32,7 +39,9 @@ struct LunaWidgetDailyContentProvider {
                 date: date,
                 bodyName: "Luna",
                 bodyType: "Space",
-                fact: "Luna has daily space facts ready to explore."
+                fact: "Luna has daily space facts ready to explore.",
+                textureAssetName: nil,
+                hasRings: false
             )
         }
 
@@ -41,7 +50,9 @@ struct LunaWidgetDailyContentProvider {
             date: date,
             bodyName: content.body.name,
             bodyType: content.body.type,
-            fact: content.fact
+            fact: content.fact,
+            textureAssetName: content.body.textureAssetName,
+            hasRings: content.body.hasRings
         )
     }
 
@@ -84,6 +95,30 @@ struct LunaWidgetBody: Identifiable {
     let orbitalPeriodDays: Double
     let displaySize: CGFloat
     let color: Color
+    let textureAssetName: String?
+    let hasRings: Bool
+
+    init(
+        id: String,
+        name: String,
+        type: String,
+        distanceFromSun: Double,
+        orbitalPeriodDays: Double,
+        displaySize: CGFloat,
+        color: Color,
+        textureAssetName: String? = nil,
+        hasRings: Bool = false
+    ) {
+        self.id = id
+        self.name = name
+        self.type = type
+        self.distanceFromSun = distanceFromSun
+        self.orbitalPeriodDays = orbitalPeriodDays
+        self.displaySize = displaySize
+        self.color = color
+        self.textureAssetName = textureAssetName
+        self.hasRings = hasRings
+    }
 
     var formattedDistance: String {
         if distanceFromSun >= 1_000 {
@@ -107,14 +142,14 @@ struct LunaWidgetBody: Identifiable {
     }
 
     static let defaults = [
-        LunaWidgetBody(id: "mercury", name: "Mercury", type: "Planet", distanceFromSun: 57.9, orbitalPeriodDays: 88, displaySize: 5, color: .gray),
-        LunaWidgetBody(id: "venus", name: "Venus", type: "Planet", distanceFromSun: 108.2, orbitalPeriodDays: 224.7, displaySize: 7, color: .orange),
-        LunaWidgetBody(id: "earth", name: "Earth", type: "Planet", distanceFromSun: 149.6, orbitalPeriodDays: 365.25, displaySize: 7, color: .blue),
-        LunaWidgetBody(id: "mars", name: "Mars", type: "Planet", distanceFromSun: 227.9, orbitalPeriodDays: 687, displaySize: 6, color: .red),
-        LunaWidgetBody(id: "jupiter", name: "Jupiter", type: "Planet", distanceFromSun: 778.5, orbitalPeriodDays: 4_332.6, displaySize: 12, color: .brown),
-        LunaWidgetBody(id: "saturn", name: "Saturn", type: "Planet", distanceFromSun: 1_433.5, orbitalPeriodDays: 10_759, displaySize: 11, color: .yellow),
-        LunaWidgetBody(id: "uranus", name: "Uranus", type: "Planet", distanceFromSun: 2_872.5, orbitalPeriodDays: 30_685, displaySize: 9, color: .cyan),
-        LunaWidgetBody(id: "neptune", name: "Neptune", type: "Planet", distanceFromSun: 4_495.1, orbitalPeriodDays: 60_189, displaySize: 9, color: .indigo)
+        LunaWidgetBody(id: "mercury", name: "Mercury", type: "Planet", distanceFromSun: 57.9, orbitalPeriodDays: 88, displaySize: 5, color: .gray, textureAssetName: "WidgetMercury"),
+        LunaWidgetBody(id: "venus", name: "Venus", type: "Planet", distanceFromSun: 108.2, orbitalPeriodDays: 224.7, displaySize: 7, color: .orange, textureAssetName: "WidgetVenus"),
+        LunaWidgetBody(id: "earth", name: "Earth", type: "Planet", distanceFromSun: 149.6, orbitalPeriodDays: 365.25, displaySize: 7, color: .blue, textureAssetName: "WidgetEarth"),
+        LunaWidgetBody(id: "mars", name: "Mars", type: "Planet", distanceFromSun: 227.9, orbitalPeriodDays: 687, displaySize: 6, color: .red, textureAssetName: "WidgetMars"),
+        LunaWidgetBody(id: "jupiter", name: "Jupiter", type: "Planet", distanceFromSun: 778.5, orbitalPeriodDays: 4_332.6, displaySize: 12, color: .brown, textureAssetName: "WidgetJupiter"),
+        LunaWidgetBody(id: "saturn", name: "Saturn", type: "Planet", distanceFromSun: 1_433.5, orbitalPeriodDays: 10_759, displaySize: 11, color: .yellow, textureAssetName: "WidgetSaturn", hasRings: true),
+        LunaWidgetBody(id: "uranus", name: "Uranus", type: "Planet", distanceFromSun: 2_872.5, orbitalPeriodDays: 30_685, displaySize: 9, color: .cyan, textureAssetName: "WidgetUranus"),
+        LunaWidgetBody(id: "neptune", name: "Neptune", type: "Planet", distanceFromSun: 4_495.1, orbitalPeriodDays: 60_189, displaySize: 9, color: .indigo, textureAssetName: "WidgetNeptune")
     ]
 
     private static func shortNumber(_ value: Double) -> String {
@@ -122,5 +157,18 @@ struct LunaWidgetBody: Identifiable {
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = value >= 10 ? 1 : 2
         return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+}
+
+enum LunaWidgetAssetProbe {
+    static func exists(_ name: String?) -> Bool {
+        guard let name else { return false }
+#if os(iOS)
+        return UIImage(named: name, in: .main, compatibleWith: nil) != nil
+#elseif os(macOS)
+        return NSImage(named: name) != nil
+#else
+        return false
+#endif
     }
 }

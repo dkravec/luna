@@ -99,8 +99,17 @@ struct NASAImageTimelineProvider: TimelineProvider {
 }
 
 struct LunaFactTimelineProvider: TimelineProvider {
+    private let logger = Logger(subsystem: "net.novapro.Luna.widget", category: "Fact")
+
     func placeholder(in context: Context) -> LunaFactEntry {
-        LunaFactEntry(date: Date(), bodyName: "Moon", bodyType: "Moon", fact: "The Moon averages 384,400 km from Earth.")
+        LunaFactEntry(
+            date: Date(),
+            bodyName: "Moon",
+            bodyType: "Moon",
+            fact: "The Moon averages 384,400 km from Earth.",
+            textureAssetName: "WidgetMoon",
+            hasRings: false
+        )
     }
 
     func getSnapshot(in context: Context, completion: @escaping (LunaFactEntry) -> Void) {
@@ -114,11 +123,17 @@ struct LunaFactTimelineProvider: TimelineProvider {
     }
 
     private func entry(for date: Date) -> LunaFactEntry {
-        LunaWidgetDailyContentProvider().content(for: date)
+        let entry = LunaWidgetDailyContentProvider().content(for: date)
+        logger.notice(
+            "Fact timeline build=\(Self.buildVersion, privacy: .public) body=\(entry.bodyName, privacy: .public) texture=\(entry.textureAssetName ?? "none", privacy: .public) textureResolved=\(LunaWidgetAssetProbe.exists(entry.textureAssetName), privacy: .public)"
+        )
+        return entry
     }
 }
 
 struct LunaSolarOverviewTimelineProvider: TimelineProvider {
+    private let logger = Logger(subsystem: "net.novapro.Luna.widget", category: "Solar")
+
     func placeholder(in context: Context) -> LunaSolarOverviewEntry {
         LunaSolarOverviewEntry(date: Date(), bodies: LunaWidgetBody.defaults)
     }
@@ -134,7 +149,20 @@ struct LunaSolarOverviewTimelineProvider: TimelineProvider {
     }
 
     private func entry(for date: Date) -> LunaSolarOverviewEntry {
-        LunaSolarOverviewEntry(date: date, bodies: LunaWidgetBody.defaults)
+        let entry = LunaSolarOverviewEntry(date: date, bodies: LunaWidgetBody.defaults)
+        let resolvedCount = entry.bodies.filter { LunaWidgetAssetProbe.exists($0.textureAssetName) }.count
+        logger.notice(
+            "Solar timeline build=\(Self.buildVersion, privacy: .public) bodies=\(entry.bodies.count, privacy: .public) texturesResolved=\(resolvedCount, privacy: .public)"
+        )
+        return entry
+    }
+}
+
+private extension TimelineProvider {
+    static var buildVersion: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+        return "\(version)(\(build))"
     }
 }
 
