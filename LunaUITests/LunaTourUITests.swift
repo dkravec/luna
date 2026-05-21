@@ -47,6 +47,7 @@ final class LunaTourUITests: XCTestCase {
         tapNext()
         assertTour(title: "Move Through The Scene", progress: "6 of 10")
         assertSpotlightAligned(with: "tourTarget.experience.scene", tolerance: 70)
+        assertSpotlightCoversMostOfScreen()
 
         tapNext()
         assertTour(title: "Switch Modes", progress: "7 of 10")
@@ -88,6 +89,10 @@ final class LunaTourUITests: XCTestCase {
 
         assertTour(title: "Start From Home", progress: "1 of 10")
         assertSpotlightAligned(with: "tourTarget.home.overview", tolerance: 70)
+
+        tapNext()
+        assertTour(title: "Open Explore", progress: "2 of 10")
+        assertSpotlightAligned(with: "tourTarget.home.explore")
     }
 
     private func launchTourPending(resetProfile: Bool) {
@@ -135,6 +140,13 @@ final class LunaTourUITests: XCTestCase {
         if target.frame.maxY <= app.frame.maxY - 90 {
             XCTAssertGreaterThanOrEqual(spotlight.frame.maxY, target.frame.maxY - tolerance)
         }
+    }
+
+    private func assertSpotlightCoversMostOfScreen() {
+        let spotlight = app.descendants(matching: .any)["tour.spotlight"]
+        XCTAssertTrue(spotlight.waitForExistence(timeout: 3), "Missing tour spotlight")
+        XCTAssertGreaterThanOrEqual(spotlight.frame.width, app.frame.width * 0.82)
+        XCTAssertGreaterThanOrEqual(spotlight.frame.height, app.frame.height * 0.62)
     }
 
     private func waitForElementToDisappear(_ element: XCUIElement, timeout: TimeInterval = 3) -> Bool {

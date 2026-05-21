@@ -99,6 +99,9 @@ private extension VisualSceneContainer {
         view.preferredFramesPerSecond = 30
         view.delegate = coordinator
         view.backgroundColor = platformColor(red: 0.015, green: 0.016, blue: 0.024, alpha: 1)
+        view.defaultCameraController.automaticTarget = false
+        view.defaultCameraController.inertiaEnabled = false
+        view.defaultCameraController.worldUp = SCNVector3(0, 1, 0)
 #if os(iOS)
         let tapRecognizer = UITapGestureRecognizer(target: coordinator, action: #selector(VisualSceneCameraCoordinator.handleTap(_:)))
         tapRecognizer.cancelsTouchesInView = false
@@ -125,6 +128,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     private var structureKey: String?
     private var activeFocusID: String?
     private var snapshot = ExperienceSceneSnapshot(bodies: [], orbitPaths: [], bounds: .empty)
+    private var settings = ExperienceSceneSettings.defaults
     private var bodyNodes: [String: SCNNode] = [:]
     private var bodyTiltNodes: [String: SCNNode] = [:]
     private var bodySpinNodes: [String: SCNNode] = [:]
@@ -148,12 +152,18 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         camera.orthographicScale = max(camera.orthographicScale, state.cameraLimit.minimumOrthographicScale)
         camera.orthographicScale = min(camera.orthographicScale, state.cameraLimit.maximumOrthographicScale)
 
-        let target = state.activeFocusID.flatMap { state.bodyNodes[$0]?.presentation.convertPosition(SCNVector3Zero, to: nil) } ?? state.cameraLimit.subjectCenter
+        let target = state.activeFocusID.flatMap { state.focusTargets[$0] } ?? state.cameraLimit.subjectCenter
         let offset = pointOfView.position - target
         let distance = offset.length
         if distance > state.cameraLimit.maximumCameraDistance, distance > 0 {
             pointOfView.position = target + offset.normalized * state.cameraLimit.maximumCameraDistance
         }
+        SolarSystemSceneCameraMetrics.updateClippingPlanes(
+            for: camera,
+            snapshot: state.snapshot,
+            settings: state.settings,
+            cameraPosition: pointOfView.position
+        )
 
         updateOrbitAndLabelScale(for: renderer)
     }
@@ -193,6 +203,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         stateLock.lock()
         bodyLookup = Dictionary(uniqueKeysWithValues: snapshot.bodies.map { ($0.id, $0.body) })
         self.snapshot = snapshot
+        self.settings = settings
         stateLock.unlock()
 
         if view.scene == nil || structureKey != nextStructureKey {
@@ -203,6 +214,9 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             )
             view.scene = scene
             view.pointOfView = scene.rootNode.childNode(withName: "sceneCamera", recursively: false)
+            view.defaultCameraController.automaticTarget = false
+            view.defaultCameraController.inertiaEnabled = false
+            view.defaultCameraController.stopInertia()
             view.defaultCameraController.target = nextCameraLimit.subjectCenter
             captureNodes(from: scene)
             structureKey = nextStructureKey
@@ -395,35 +409,131 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             return
         }
 
-        guard let focusCenter = bodyNodes[focusedBodyID]?.presentation.convertPosition(SCNVector3Zero, to: nil) else {
+        guard let focusCenter = focusTarget(for: focusedBodyID) else {
             return
         }
 
         let focusChanged = activeFocusID != focusedBodyID
-        let currentOffset = focusChanged
-            ? SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot)
-            : pointOfView.position - focusCenter
-        let minimumDistance = max(Float(focusedOrthographicScale(for: focusedBodyID) * 1.25), 2.2)
-        let nextOffset = currentOffset.length < minimumDistance ? currentOffset.normalizedOrDefault * minimumDistance : currentOffset
+        let desiredFocusScale = focusedOrthographicScale(for: focusedBodyID)
+        let idealOffset = SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot)
+        let currentScale = pointOfView.camera?.orthographicScale ?? desiredFocusScale
         let desiredScale = focusChanged
-            ? focusedOrthographicScale(for: focusedBodyID)
-            : min(max(pointOfView.camera?.orthographicScale ?? focusedOrthographicScale(for: focusedBodyID), cameraLimit.minimumOrthographicScale), cameraLimit.maximumOrthographicScale)
+            ? desiredFocusScale
+            : min(max(currentScale, cameraLimit.minimumOrthographicScale), cameraLimit.maximumOrthographicScale)
 
+        let nextPosition: SCNVector3
+        if focusChanged {
+            let minimumDistance = max(Float(desiredFocusScale * 0.88), 1.25)
+            let maximumDistance = max(Float(desiredFocusScale * 1.55), minimumDistance + 0.2)
+            let nextOffset = clampedFocusOffset(
+                idealOffset,
+                idealOffset: idealOffset,
+                minimumDistance: minimumDistance,
+                maximumDistance: maximumDistance,
+                shouldResetToIdeal: true
+            )
+            nextPosition = focusCenter + nextOffset
+            stopCameraAnimations(pointOfView)
+            view.defaultCameraController.stopInertia()
+        } else {
+            let previousTarget = focusState?.target ?? focusCenter
+            let targetDelta = focusCenter - previousTarget
+            let translatedPosition = pointOfView.position + targetDelta
+            nextPosition = clampedCameraPosition(
+                translatedPosition,
+                target: focusCenter,
+                maximumDistance: cameraLimit.maximumCameraDistance
+            )
+        }
+
+        view.defaultCameraController.automaticTarget = false
+        view.defaultCameraController.target = focusCenter
         SCNTransaction.begin()
         SCNTransaction.animationDuration = focusChanged ? 0.26 : 0
-        pointOfView.position = focusCenter + nextOffset
+        if focusChanged || focusCenter.distance(to: focusState?.target ?? focusCenter) > 0.0005 {
+            pointOfView.position = nextPosition
+        }
+        if focusChanged {
+            pointOfView.look(at: focusCenter)
+        }
         pointOfView.camera?.orthographicScale = desiredScale
+        if let camera = pointOfView.camera {
+            SolarSystemSceneCameraMetrics.updateClippingPlanes(
+                for: camera,
+                snapshot: snapshot,
+                settings: settings,
+                cameraPosition: nextPosition
+            )
+            widenFocusedClippingPlanes(
+                for: camera,
+                cameraPosition: nextPosition,
+                focusCenter: focusCenter,
+                focusScale: desiredScale
+            )
+        }
         SCNTransaction.commit()
 
         view.defaultCameraController.target = focusCenter
         focusState = CameraFocusState(
             target: focusCenter,
-            cameraOffset: nextOffset,
+            cameraOffset: nextPosition - focusCenter,
             orthographicScale: desiredScale
         )
         stateLock.lock()
         activeFocusID = focusedBodyID
         stateLock.unlock()
+    }
+
+    private func clampedFocusOffset(
+        _ offset: SCNVector3,
+        idealOffset: SCNVector3,
+        minimumDistance: Float,
+        maximumDistance: Float,
+        shouldResetToIdeal: Bool
+    ) -> SCNVector3 {
+        if shouldResetToIdeal {
+            return idealOffset.normalizedOrDefault * min(max(idealOffset.length, minimumDistance), maximumDistance)
+        }
+
+        let distance = offset.length
+        if distance < minimumDistance {
+            return offset.normalizedOrDefault * minimumDistance
+        }
+        if distance > maximumDistance {
+            return offset.normalizedOrDefault * maximumDistance
+        }
+        return offset
+    }
+
+    private func clampedCameraPosition(
+        _ position: SCNVector3,
+        target: SCNVector3,
+        maximumDistance: Float
+    ) -> SCNVector3 {
+        let offset = position - target
+        let distance = offset.length
+        guard distance > maximumDistance, distance > 0 else {
+            return position
+        }
+
+        return target + offset.normalized * maximumDistance
+    }
+
+    private func widenFocusedClippingPlanes(
+        for camera: SCNCamera,
+        cameraPosition: SCNVector3,
+        focusCenter: SCNVector3,
+        focusScale: Double
+    ) {
+        let focusDistance = Double((cameraPosition - focusCenter).length)
+        camera.zNear = min(camera.zNear, 0.001)
+        camera.zFar = max(camera.zFar, focusDistance + focusScale * 8.0 + 80)
+    }
+
+    private func stopCameraAnimations(_ pointOfView: SCNNode) {
+        pointOfView.removeAllActions()
+        pointOfView.removeAllAnimations()
+        pointOfView.camera?.removeAllAnimations()
     }
 
     private func restoreCameraFocusIfNeeded(to view: SCNView) {
@@ -443,10 +553,24 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         let offset = SolarSystemSceneCameraMetrics.defaultCameraOffset(
             for: cameraLimit.preferredOrthographicScale
         )
+        stopCameraAnimations(pointOfView)
+        view.defaultCameraController.stopInertia()
+        view.defaultCameraController.automaticTarget = false
+        view.defaultCameraController.inertiaEnabled = false
+        view.defaultCameraController.target = restoreTarget
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0.22
         pointOfView.position = restoreTarget + offset
+        pointOfView.look(at: restoreTarget)
         pointOfView.camera?.orthographicScale = cameraLimit.preferredOrthographicScale
+        if let camera = pointOfView.camera {
+            SolarSystemSceneCameraMetrics.updateClippingPlanes(
+                for: camera,
+                snapshot: snapshot,
+                settings: settings,
+                cameraPosition: restoreTarget + offset
+            )
+        }
         SCNTransaction.commit()
 
         view.defaultCameraController.target = restoreTarget
@@ -458,6 +582,14 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
     private func focusedOrthographicScale(for bodyID: String) -> Double {
         SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: bodyID, in: snapshot)
+    }
+
+    private func focusTarget(for bodyID: String) -> SCNVector3? {
+        guard let node = bodyNodes[bodyID]?.presentation else { return nil }
+        if let visualNode = node.childNode(withName: "bodyVisual:\(bodyID)", recursively: true)?.presentation {
+            return visualNode.worldBoundingBoxCenter() ?? visualNode.convertPosition(SCNVector3Zero, to: nil)
+        }
+        return node.worldBoundingBoxCenter() ?? node.convertPosition(SCNVector3Zero, to: nil)
     }
 
     private func updateOrbitAndLabelScale(for renderer: any SCNSceneRenderer) {
@@ -512,7 +644,10 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     private func lockedState() -> (
         cameraLimit: SceneCameraLimit,
         activeFocusID: String?,
-        bodyNodes: [String: SCNNode]
+        bodyNodes: [String: SCNNode],
+        focusTargets: [String: SCNVector3],
+        snapshot: ExperienceSceneSnapshot,
+        settings: ExperienceSceneSettings
     ) {
         stateLock.lock()
         defer { stateLock.unlock() }
@@ -520,7 +655,15 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
         return (
             cameraLimit,
             activeFocusID,
-            bodyNodes
+            bodyNodes,
+            Dictionary(uniqueKeysWithValues: bodyNodes.map { id, node in
+                let presentationNode = node.presentation
+                let center = presentationNode.worldBoundingBoxCenter()
+                    ?? presentationNode.convertPosition(SCNVector3Zero, to: nil)
+                return (id, center)
+            }),
+            snapshot,
+            settings
         )
     }
 
@@ -901,13 +1044,29 @@ struct SolarSystemSceneFocusMetrics {
                 length(child.position - placement.position) + child.displayRadius
             }
             .max() ?? 0
-        let subjectRadius = max(placement.displayRadius, childEnvelope, placement.interactionRadius, 0.22)
-        return max(0.85, Double(subjectRadius * 4.8))
+        let cappedChildEnvelope = min(childEnvelope, placement.displayRadius * 1.05)
+        let cappedInteractionRadius = min(placement.interactionRadius * 0.45, placement.displayRadius * 1.05)
+        let subjectRadius = max(placement.displayRadius, cappedChildEnvelope, cappedInteractionRadius, 0.20)
+        return max(0.82, Double(subjectRadius * 4.3))
     }
 
     static func cameraOffset(for bodyID: String, in snapshot: ExperienceSceneSnapshot) -> SCNVector3 {
         let scale = Float(focusedOrthographicScale(for: bodyID, in: snapshot))
-        return SCNVector3(scale * 0.26, scale * 0.38, max(scale * 1.85, 2.4))
+        let bodyPosition = snapshot.bodies.first { $0.id == bodyID }?.position ?? .zero
+        let sunPosition = snapshot.bodies.first { $0.id == "sun" }?.position ?? .zero
+        var radial = bodyPosition - sunPosition
+        radial.y = 0
+        if simd_length_squared(radial) > 0.000_001 {
+            radial = simd_normalize(radial)
+        } else {
+            radial = SIMD3<Float>(1, 0, 0)
+        }
+
+        return SCNVector3(
+            radial.x * scale * 0.16,
+            max(scale * 0.58, 0.86),
+            max(scale * 1.18, 1.45) + radial.z * scale * 0.18
+        )
     }
 }
 
@@ -1069,12 +1228,29 @@ struct SolarSystemSceneCameraMetrics {
             : center + Self.defaultCameraOffset(for: orthographicScale, cameraDistance: cameraDistance)
     }
 
+    static func updateClippingPlanes(
+        for camera: SCNCamera,
+        snapshot: ExperienceSceneSnapshot,
+        settings: ExperienceSceneSettings,
+        cameraPosition: SCNVector3
+    ) {
+        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: settings)
+        let cameraDistanceFromCenter = Double((cameraPosition - metrics.subjectCenter).length)
+        let span = Double(max(snapshot.bounds.span, 1))
+        let objectSnapshot = isArtifactObjectSnapshot(snapshot)
+        let margin = objectSnapshot ? span * 8 + 40 : span * 7 + 220
+
+        camera.zNear = objectSnapshot ? 0.001 : 0.01
+        camera.zFar = max(metrics.zFar, cameraDistanceFromCenter + margin)
+    }
+
     static func defaultCameraOffset(for orthographicScale: Double, cameraDistance: Double? = nil) -> SCNVector3 {
-        let zDistance = Float(cameraDistance ?? max(22, orthographicScale * 1.8 + 28))
+        let distance = Float(cameraDistance ?? max(22, orthographicScale * 1.8 + 28))
+        let scale = Float(orthographicScale)
         return SCNVector3(
-            max(6, Float(orthographicScale) * 0.12),
-            max(9, Float(orthographicScale) * 0.18),
-            zDistance
+            max(3.5, scale * 0.18),
+            max(distance * 0.64, scale * 1.12),
+            max(distance * 0.52, scale * 0.82)
         )
     }
 
@@ -1098,9 +1274,9 @@ struct SolarSystemSceneCameraMetrics {
 
         switch settings.sceneScaleProfile {
         case .scaledRecommended:
-            return max(7, min(16, span * 0.78 + 2.2))
+            return max(7, min(19, span * 0.90 + 2.8))
         case .uniform:
-            return max(7, min(18, span * 0.86 + 2.4))
+            return max(7, min(21, span * 0.96 + 3.0))
         case .trueSize:
             return max(7, span + 2.6)
         case .custom:
@@ -1108,9 +1284,9 @@ struct SolarSystemSceneCameraMetrics {
             case .trueScale:
                 return max(7, span + 2.6)
             case .educational:
-                return max(7, min(18, span * 0.88 + 2.4))
+                return max(7, min(21, span * 0.98 + 3.0))
             case .compressed:
-                return max(7, min(22, span * 0.95 + 2.4))
+                return max(7, min(25, span * 1.05 + 3.2))
             }
         }
     }
@@ -1159,10 +1335,14 @@ struct SceneCameraLimit {
         let largestBodyRadius = placements.map(\.displayRadius).max() ?? 1
         let initialCameraDistance = (cameraMetrics.position - center).length
         let initialOrthographicScale = cameraMetrics.orthographicScale
+        let trueScaleScene = settings.distanceScaleMode == .trueScale || settings.sceneScaleProfile == .trueSize
+        let minimumOrthographicScale = trueScaleScene
+            ? max(0.12, min(Double(largestBodyRadius) * 0.55, initialOrthographicScale * 0.08))
+            : max(0.65, Double(largestBodyRadius) * 2.25)
 
         self.init(
             subjectCenter: center,
-            minimumOrthographicScale: max(0.65, Double(largestBodyRadius) * 2.25),
+            minimumOrthographicScale: minimumOrthographicScale,
             preferredOrthographicScale: initialOrthographicScale,
             maximumOrthographicScale: initialOrthographicScale * 2.1,
             maximumCameraDistance: max(initialCameraDistance * 2.5, subjectRadius * 7.0)
@@ -1181,6 +1361,63 @@ struct SceneCameraLimit {
         self.preferredOrthographicScale = preferredOrthographicScale
         self.maximumOrthographicScale = maximumOrthographicScale
         self.maximumCameraDistance = maximumCameraDistance
+    }
+}
+
+private extension SCNNode {
+    func worldBoundingBoxCenter() -> SCNVector3? {
+        var minimum: SCNVector3?
+        var maximum: SCNVector3?
+
+        func include(_ point: SCNVector3) {
+            if let currentMinimum = minimum, let currentMaximum = maximum {
+                minimum = SCNVector3(
+                    min(currentMinimum.x, point.x),
+                    min(currentMinimum.y, point.y),
+                    min(currentMinimum.z, point.z)
+                )
+                maximum = SCNVector3(
+                    max(currentMaximum.x, point.x),
+                    max(currentMaximum.y, point.y),
+                    max(currentMaximum.z, point.z)
+                )
+            } else {
+                minimum = point
+                maximum = point
+            }
+        }
+
+        func includeGeometry(from sourceNode: SCNNode) {
+            guard let geometry = sourceNode.geometry else { return }
+            let bounds = geometry.boundingBox
+            let minVector = bounds.min
+            let maxVector = bounds.max
+            let corners = [
+                SCNVector3(minVector.x, minVector.y, minVector.z),
+                SCNVector3(minVector.x, minVector.y, maxVector.z),
+                SCNVector3(minVector.x, maxVector.y, minVector.z),
+                SCNVector3(minVector.x, maxVector.y, maxVector.z),
+                SCNVector3(maxVector.x, minVector.y, minVector.z),
+                SCNVector3(maxVector.x, minVector.y, maxVector.z),
+                SCNVector3(maxVector.x, maxVector.y, minVector.z),
+                SCNVector3(maxVector.x, maxVector.y, maxVector.z)
+            ]
+            corners
+                .map { sourceNode.convertPosition($0, to: nil) }
+                .forEach(include)
+        }
+
+        includeGeometry(from: self)
+        enumerateChildNodes { node, _ in
+            includeGeometry(from: node.presentation)
+        }
+
+        guard let minimum, let maximum else { return nil }
+        return SCNVector3(
+            (minimum.x + maximum.x) / 2,
+            (minimum.y + maximum.y) / 2,
+            (minimum.z + maximum.z) / 2
+        )
     }
 }
 
@@ -1212,6 +1449,10 @@ private extension SCNVector3 {
 
     var normalizedOrDefault: SCNVector3 {
         length > 0 ? normalized : SCNVector3(0, 0, 1)
+    }
+
+    func distance(to other: SCNVector3) -> Float {
+        (self - other).length
     }
 }
 

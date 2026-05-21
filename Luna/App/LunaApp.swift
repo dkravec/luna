@@ -25,6 +25,7 @@ final class LunaAppState: ObservableObject {
 
     @Published var selectedTab: LunaTab = .home
     @Published private(set) var guidedTourStep: GuidedTourStep?
+    @Published private(set) var guidedTourCollectionID: String?
     @Published private(set) var guidedTourBodyID: String?
     @Published private(set) var guidedTourPresentationID = UUID()
     @Published private(set) var guidedTourDismissalID: UUID?
@@ -80,7 +81,7 @@ final class LunaAppState: ObservableObject {
         configureForUITestingIfNeeded()
 
         if userProfile.hasCompletedOnboarding && !userProfile.hasCompletedFirstRunTour {
-            startFirstRunTour()
+            restoreOrStartFirstRunTour()
         }
     }
 
@@ -263,6 +264,10 @@ final class LunaAppState: ObservableObject {
         defaultGuidedTourBody
     }
 
+    func defaultCollectionForGuidedTour() -> ExploreCollection? {
+        defaultGuidedTourBody?.exploreCollection ?? .solarSystem
+    }
+
     func resetOnboarding() {
         do {
             guidedTour.cancel()
@@ -359,6 +364,9 @@ final class LunaAppState: ObservableObject {
         guidedTour.routeHandler = { [weak self] route in
             self?.handleGuidedTourRoute(route)
         }
+        guidedTour.defaultCollectionIDProvider = { [weak self] in
+            self?.defaultCollectionForGuidedTour()?.id
+        }
         guidedTour.defaultBodyIDProvider = { [weak self] in
             self?.defaultGuidedTourBody?.id
         }
@@ -373,9 +381,11 @@ final class LunaAppState: ObservableObject {
 
     private func syncGuidedTourState() {
         guidedTourStep = guidedTour.currentStep
+        guidedTourCollectionID = guidedTour.pendingCollectionID
         guidedTourBodyID = guidedTour.pendingBodyID
         guidedTourPresentationID = guidedTour.presentationID
         guidedTourDismissalID = guidedTour.dismissalID
+        persistGuidedTourStep(guidedTour.currentStep)
     }
 
     private func handleGuidedTourRoute(_ route: GuidedTourRoute) {
@@ -395,6 +405,7 @@ final class LunaAppState: ObservableObject {
 
     private func completeGuidedTourPersistence() {
         userProfile.hasCompletedFirstRunTour = true
+        clearPersistedGuidedTourStep()
         saveUserProfile()
     }
 
@@ -403,4 +414,32 @@ final class LunaAppState: ObservableObject {
             ?? celestialBodies.first { $0.type == .planet }
             ?? celestialBodies.sorted { $0.displayOrder < $1.displayOrder }.first
     }
+
+    private func restoreOrStartFirstRunTour() {
+        let restoredStep = persistedGuidedTourStep()
+        guidedTour.start(at: restoredStep ?? .homeWelcome)
+    }
+
+    private func persistGuidedTourStep(_ step: GuidedTourStep?) {
+        guard let step else {
+            clearPersistedGuidedTourStep()
+            return
+        }
+
+        UserDefaults.standard.set(step.rawValue, forKey: Self.persistedGuidedTourStepKey)
+    }
+
+    private func persistedGuidedTourStep() -> GuidedTourStep? {
+        guard let rawValue = UserDefaults.standard.string(forKey: Self.persistedGuidedTourStepKey) else {
+            return nil
+        }
+
+        return GuidedTourStep(rawValue: rawValue)
+    }
+
+    private func clearPersistedGuidedTourStep() {
+        UserDefaults.standard.removeObject(forKey: Self.persistedGuidedTourStepKey)
+    }
+
+    private static let persistedGuidedTourStepKey = "Luna.guidedTour.currentStep"
 }

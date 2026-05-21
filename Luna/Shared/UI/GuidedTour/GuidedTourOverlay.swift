@@ -85,6 +85,10 @@ extension View {
 }
 
 private struct GuidedTourOverlayView: View {
+    @State private var allowsMissingTargetFallback = false
+    @State private var settledTargetFrame: CGRect?
+    @State private var targetFrameUpdateID = UUID()
+
     let step: GuidedTourStep
     let targetFrame: CGRect?
     let containerSize: CGSize
@@ -108,30 +112,36 @@ private struct GuidedTourOverlayView: View {
                 .accessibilityIdentifier("tour.overlay")
                 .allowsHitTesting(false)
 
-            GuidedTourDimShape(highlightFrame: highlightedFrame)
-                .fill(Color.black.opacity(0.58), style: FillStyle(eoFill: true))
-                .accessibilityHidden(true)
-                .allowsHitTesting(false)
+            if let highlightedFrame {
+                GuidedTourDimShape(highlightFrame: highlightedFrame)
+                    .fill(Color.black.opacity(0.58), style: FillStyle(eoFill: true))
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
 
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.white.opacity(0.95), lineWidth: 2)
-                .background {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color.white.opacity(0.08))
-                }
-                .shadow(color: Color.black.opacity(0.32), radius: 18, x: 0, y: 8)
-                .frame(width: highlightedFrame.width, height: highlightedFrame.height)
-                .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
-                .accessibilityIdentifier("tour.spotlight")
-                .accessibilityLabel("Tour spotlight")
-                .allowsHitTesting(false)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.white.opacity(0.95), lineWidth: 2)
+                    .background {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Color.white.opacity(0.08))
+                    }
+                    .shadow(color: Color.black.opacity(0.32), radius: 18, x: 0, y: 8)
+                    .frame(width: highlightedFrame.width, height: highlightedFrame.height)
+                    .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
+                    .accessibilityIdentifier("tour.spotlight")
+                    .accessibilityLabel("Tour spotlight")
+                    .allowsHitTesting(false)
 
-            Color.white.opacity(0.001)
-                .frame(width: highlightedFrame.width, height: highlightedFrame.height)
-                .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
-                .contentShape(Rectangle())
-                .onTapGesture(perform: onTargetTap)
-                .zIndex(1)
+                Color.white.opacity(0.001)
+                    .frame(width: highlightedFrame.width, height: highlightedFrame.height)
+                    .position(x: highlightedFrame.midX, y: highlightedFrame.midY)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onTargetTap)
+                    .zIndex(1)
+            } else {
+                Color.black.opacity(0.58)
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
+            }
 
         }
         .frame(width: containerSize.width, height: containerSize.height)
@@ -141,6 +151,20 @@ private struct GuidedTourOverlayView: View {
         .allowsHitTesting(true)
         .zIndex(200)
         .transition(.opacity)
+        .onAppear {
+            scheduleTargetFrameUpdate()
+            scheduleMissingTargetFallback()
+        }
+        .onChange(of: step) { _ in
+            allowsMissingTargetFallback = false
+            settledTargetFrame = nil
+            targetFrameUpdateID = UUID()
+            scheduleTargetFrameUpdate()
+            scheduleMissingTargetFallback()
+        }
+        .onChange(of: targetFrame) { _ in
+            scheduleTargetFrameUpdate()
+        }
     }
 
     static func calloutCard(
@@ -214,9 +238,9 @@ private struct GuidedTourOverlayView: View {
         .shadow(color: Color.black.opacity(0.24), radius: 24, x: 0, y: 12)
     }
 
-    private func highlightFrame(in size: CGSize) -> CGRect {
-        if let targetFrame, !targetFrame.isEmpty {
-            let alignedFrame = targetFrame.offsetBy(dx: 0, dy: -safeAreaInsets.top)
+    private func highlightFrame(in size: CGSize) -> CGRect? {
+        if let frame = effectiveTargetFrame, !frame.isEmpty {
+            let alignedFrame = frame.offsetBy(dx: 0, dy: -safeAreaInsets.top)
             let paddedFrame = alignedFrame.insetBy(dx: -6, dy: -6)
             let visibleBounds = CGRect(origin: .zero, size: size)
             let clippedFrame = paddedFrame.intersection(visibleBounds)
@@ -225,12 +249,44 @@ private struct GuidedTourOverlayView: View {
             }
         }
 
+        if step == .homeExplore {
+            return nil
+        }
+
+        guard allowsMissingTargetFallback else {
+            return nil
+        }
+
         return CGRect(
             x: 24,
             y: max(size.height * 0.18, safeAreaInsets.top + 72),
             width: max(80, size.width - 48),
             height: min(280, size.height * 0.34)
         )
+    }
+
+    private var effectiveTargetFrame: CGRect? {
+        if step == .homeExplore {
+            return settledTargetFrame
+        }
+
+        return targetFrame
+    }
+
+    private func scheduleMissingTargetFallback() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            allowsMissingTargetFallback = true
+        }
+    }
+
+    private func scheduleTargetFrameUpdate() {
+        let updateID = UUID()
+        targetFrameUpdateID = updateID
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
+            guard targetFrameUpdateID == updateID else { return }
+            settledTargetFrame = targetFrame
+        }
     }
 
     private var safeAreaDimStrips: some View {

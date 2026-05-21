@@ -38,7 +38,6 @@ struct ExperienceView: View {
         ZStack {
             sceneLayer
                 .ignoresSafeArea(edges: .bottom)
-                .guidedTourTarget(.experienceScene, when: appState.guidedTourStep == .experienceScene)
             experienceSceneTourTapArea
             topBar
                 .padding(.horizontal, 16)
@@ -89,7 +88,9 @@ struct ExperienceView: View {
     private var experienceSceneTourTapArea: some View {
         if appState.guidedTourStep == .experienceScene {
             Color.white.opacity(0.001)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
+                .guidedTourTarget(.experienceScene)
                 .accessibilityHidden(true)
                 .onTapGesture {
                     _ = appState.guidedTourTargetTapped(.experienceScene)
@@ -221,7 +222,7 @@ struct ExperienceView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isOrbitPlaybackEnabled ? "Pause orbits" : "Play orbits")
-                .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback)
+                .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback && !isAREnabled)
             }
         }
     }
@@ -277,7 +278,7 @@ struct ExperienceView: View {
             .disabled(!arPlacementState.isReady)
             .opacity(arPlacementState.isReady ? 1 : 0.62)
             .accessibilityLabel(arPlacementAccessibilityLabel)
-            .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback)
+            .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback && isAREnabled)
         }
 #endif
     }

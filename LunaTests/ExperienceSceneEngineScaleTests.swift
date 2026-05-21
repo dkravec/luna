@@ -254,6 +254,23 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertEqual(SceneScaleProfile.custom.defaultObjectScaleMode, .relative)
     }
 
+    func testUniformProfileOverrideIgnoresStoredExperienceScaleModes() {
+        var preferences = ExperiencePreferences.defaults
+        preferences.sceneScaleProfile = .trueSize
+        preferences.distanceScaleMode = .trueScale
+        preferences.objectScaleMode = .trueScale
+
+        let settings = ExperienceSceneSettings(
+            isAREnabled: false,
+            preferences: preferences,
+            sceneScaleProfileOverride: .uniform
+        )
+
+        XCTAssertEqual(settings.sceneScaleProfile, .uniform)
+        XCTAssertEqual(settings.distanceScaleMode, .compressed)
+        XCTAssertEqual(settings.objectScaleMode, .uniform)
+    }
+
     func testOrbitPathStoresOrientationAngles() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,
@@ -292,6 +309,22 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertEqual(Float(limit.subjectCenter.x), sun.position.x, accuracy: 0.0001)
     }
 
+    func testInitialSceneCameraUsesOverheadAngledView() {
+        let sceneSettings = settings(distance: .compressed, object: .relative)
+        let snapshot = ExperienceSceneEngine.snapshot(for: Self.bodies, settings: sceneSettings)
+        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: sceneSettings)
+        let offset = SCNVector3(
+            metrics.position.x - metrics.subjectCenter.x,
+            metrics.position.y - metrics.subjectCenter.y,
+            metrics.position.z - metrics.subjectCenter.z
+        )
+
+        XCTAssertGreaterThan(offset.y, offset.z * 1.05)
+        XCTAssertLessThan(offset.y, offset.z * 1.55)
+        XCTAssertGreaterThan(offset.z, 0)
+        XCTAssertGreaterThan(offset.x, 0)
+    }
+
     func testInitialSceneZoomUsesProfileSettings() {
         let recommendedSettings = settings(distance: .compressed, object: .relative, sceneScaleProfile: .scaledRecommended)
         let trueScaleSettings = settings(distance: .trueScale, object: .trueScale, sceneScaleProfile: .trueSize)
@@ -301,7 +334,8 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let recommendedMetrics = SolarSystemSceneCameraMetrics(snapshot: recommended, settings: recommendedSettings)
         let trueScaleMetrics = SolarSystemSceneCameraMetrics(snapshot: trueScale, settings: trueScaleSettings)
 
-        XCTAssertLessThanOrEqual(recommendedMetrics.orthographicScale, 16)
+        XCTAssertLessThanOrEqual(recommendedMetrics.orthographicScale, 19)
+        XCTAssertGreaterThan(recommendedMetrics.orthographicScale, Double(recommended.bounds.span) * 0.78 + 2.2)
         XCTAssertGreaterThan(trueScaleMetrics.orthographicScale, recommendedMetrics.orthographicScale)
         XCTAssertEqual(trueScaleMetrics.orthographicScale, Double(trueScale.bounds.span + 2.6), accuracy: 0.001)
     }
@@ -388,7 +422,7 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertLessThan(length(returnedEarth.position - initialEarth.position), 0.08)
     }
 
-    func testSelectedFocusScaleIncludesBodyAndChildEnvelope() throws {
+    func testSelectedFocusScaleStaysCloseToSelectedBody() throws {
         let snapshot = ExperienceSceneEngine.snapshot(
             for: Self.bodies,
             settings: settings(distance: .compressed, object: .relative)
@@ -397,23 +431,29 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         let moon = try body("moon", in: snapshot)
         let childEnvelope = length(moon.position - earth.position) + moon.displayRadius
 
-        let scale = SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: "earth", in: snapshot)
+        let earthScale = SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: "earth", in: snapshot)
+        let moonScale = SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: "moon", in: snapshot)
+        let earthVisibleDiameterRatio = Double(earth.displayRadius * 2) / earthScale
 
-        XCTAssertGreaterThanOrEqual(scale, Double(childEnvelope * 4.7))
+        XCTAssertLessThan(earthScale, Double(childEnvelope * 5.2))
+        XCTAssertGreaterThanOrEqual(earthScale, Double(earth.displayRadius * 4.0))
+        XCTAssertGreaterThanOrEqual(earthVisibleDiameterRatio, 0.40)
+        XCTAssertLessThanOrEqual(earthVisibleDiameterRatio, 0.50)
+        XCTAssertGreaterThanOrEqual(moonScale, 0.82)
+        XCTAssertLessThanOrEqual(moonScale, 0.88)
     }
 
     func testTrueScaleCameraMetricsAndLimitsCoverFullBounds() {
-        let snapshot = ExperienceSceneEngine.snapshot(
-            for: Self.bodies,
-            settings: settings(distance: .trueScale, object: .trueScale)
-        )
-        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot)
-        let limits = SceneCameraLimit(snapshot: snapshot)
+        let sceneSettings = settings(distance: .trueScale, object: .trueScale, sceneScaleProfile: .trueSize)
+        let snapshot = ExperienceSceneEngine.snapshot(for: Self.bodies, settings: sceneSettings)
+        let metrics = SolarSystemSceneCameraMetrics(snapshot: snapshot, settings: sceneSettings)
+        let limits = SceneCameraLimit(snapshot: snapshot, settings: sceneSettings)
 
         XCTAssertLessThanOrEqual(metrics.zNear, 0.001)
         XCTAssertGreaterThan(metrics.cameraDistance, Double(snapshot.bounds.span) * 1.5)
         XCTAssertGreaterThan(metrics.zFar, metrics.cameraDistance + Double(snapshot.bounds.span) * 3)
         XCTAssertGreaterThan(limits.maximumCameraDistance, snapshot.bounds.span * 2.5)
+        XCTAssertLessThan(limits.minimumOrthographicScale, metrics.orthographicScale * 0.10)
     }
 
     func testArtifactObjectCameraUsesCloseFramingWhilePlanetObjectDoesNot() {

@@ -227,7 +227,11 @@ struct ObjectExperienceView: View {
     }
 
     private var settings: ExperienceSceneSettings {
-        ExperienceSceneSettings(isAREnabled: isAREnabled, preferences: appState.experiencePreferences)
+        ExperienceSceneSettings(
+            isAREnabled: isAREnabled,
+            preferences: appState.experiencePreferences,
+            sceneScaleProfileOverride: .uniform
+        )
     }
 
 #if os(iOS)

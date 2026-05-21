@@ -68,6 +68,11 @@
 		7A6B110024D0000000000000 /* GuidedTourCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B110124D0000000000000 /* GuidedTourCoordinator.swift */; };
 		7A6B110224D0000000000000 /* GuidedTourCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B110324D0000000000000 /* GuidedTourCoordinatorTests.swift */; };
 		7A6B120124D1000000000000 /* LunaTourUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B120024D1000000000000 /* LunaTourUITests.swift */; };
+		7A6B130224D2000000000000 /* LunaWidgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B130124D2000000000000 /* LunaWidgetModels.swift */; };
+		7A6B130424D2000000000000 /* LunaWidgetTimelineProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B130324D2000000000000 /* LunaWidgetTimelineProviders.swift */; };
+		7A6B130624D2000000000000 /* LunaWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B130524D2000000000000 /* LunaWidgetViews.swift */; };
+		7A6B130824D2000000000000 /* TodayInLunaDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B130724D2000000000000 /* TodayInLunaDetailView.swift */; };
+		7A6B131024D3000000000000 /* WidgetAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B130F24D3000000000000 /* WidgetAssets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -178,6 +183,11 @@
 		7A6B110324D0000000000000 /* GuidedTourCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidedTourCoordinatorTests.swift; sourceTree = "<group>"; };
 		7A6B120024D1000000000000 /* LunaTourUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaTourUITests.swift; sourceTree = "<group>"; };
 		7A6B120224D1000000000000 /* LunaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LunaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A6B130124D2000000000000 /* LunaWidgetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaWidgetModels.swift; sourceTree = "<group>"; };
+		7A6B130324D2000000000000 /* LunaWidgetTimelineProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaWidgetTimelineProviders.swift; sourceTree = "<group>"; };
+		7A6B130524D2000000000000 /* LunaWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaWidgetViews.swift; sourceTree = "<group>"; };
+		7A6B130724D2000000000000 /* TodayInLunaDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayInLunaDetailView.swift; sourceTree = "<group>"; };
+		7A6B130F24D3000000000000 /* WidgetAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = WidgetAssets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -356,6 +366,10 @@
 			isa = PBXGroup;
 			children = (
 				7A6B091024B0000000000000 /* LunaImageOfTheDayWidget.swift */,
+				7A6B130124D2000000000000 /* LunaWidgetModels.swift */,
+				7A6B130324D2000000000000 /* LunaWidgetTimelineProviders.swift */,
+				7A6B130524D2000000000000 /* LunaWidgetViews.swift */,
+				7A6B130F24D3000000000000 /* WidgetAssets.xcassets */,
 				7A6B091224B0000000000000 /* Info.plist */,
 				7A6B092A24B1000000000000 /* LunaWidget.entitlements */,
 			);
@@ -565,6 +579,7 @@
 			children = (
 				7A6B02B624A317BC00535EA4 /* HomeView.swift */,
 				7A6B0B0124C1000000000000 /* HomeDailyContentProvider.swift */,
+				7A6B130724D2000000000000 /* TodayInLunaDetailView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -856,6 +871,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A6B131024D3000000000000 /* WidgetAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -908,6 +924,7 @@
 				7A6B032024A5000000000000 /* RemoteCelestialBodyRepository.swift in Sources */,
 				7A6B02B724A317BC00535EA4 /* HomeView.swift in Sources */,
 				7A6B0B0224C1000000000000 /* HomeDailyContentProvider.swift in Sources */,
+				7A6B130824D2000000000000 /* TodayInLunaDetailView.swift in Sources */,
 				7A6B02BA24A317C600535EA4 /* ExploreView.swift in Sources */,
 				7A6B02BE24A317C600535EA4 /* ExperienceView.swift in Sources */,
 				658130212FB9D1A0009C58AA /* AppIconSettingsView.swift in Sources */,
@@ -932,6 +949,9 @@
 			files = (
 				7A6B092724B1000000000000 /* NASAAPODSharedCache.swift in Sources */,
 				7A6B091124B0000000000000 /* LunaImageOfTheDayWidget.swift in Sources */,
+				7A6B130224D2000000000000 /* LunaWidgetModels.swift in Sources */,
+				7A6B130424D2000000000000 /* LunaWidgetTimelineProviders.swift in Sources */,
+				7A6B130624D2000000000000 /* LunaWidgetViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1096,14 +1116,14 @@
 		7A6B02A424A3156B00535EA4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = Luna;
 				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = LunaLegacy;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Luna;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = iOS/Luna.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = macOS/Luna.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 19;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -1135,14 +1155,14 @@
 		7A6B02A524A3156B00535EA4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = Luna;
 				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = LunaLegacy;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Luna;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = iOS/Luna.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = macOS/Luna.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 19;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -1178,7 +1198,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = LunaWidget/LunaWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 19;
 				DEVELOPMENT_TEAM = VHCWBN8GY3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1209,7 +1229,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = LunaWidget/LunaWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 19;
 				DEVELOPMENT_TEAM = VHCWBN8GY3;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LunaWidget/Info.plist;

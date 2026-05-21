@@ -185,12 +185,14 @@ enum GuidedTourStep: String, CaseIterable, Identifiable {
 
 final class GuidedTourCoordinator: ObservableObject {
     @Published private(set) var currentStep: GuidedTourStep?
+    @Published private(set) var pendingCollectionID: String?
     @Published private(set) var pendingBodyID: String?
     @Published private(set) var presentationID = UUID()
     @Published private(set) var dismissalID: UUID?
 
     var routeHandler: (GuidedTourRoute) -> Void = { _ in }
     var completionHandler: () -> Void = {}
+    var defaultCollectionIDProvider: () -> String? = { nil }
     var defaultBodyIDProvider: () -> String? = { nil }
     var stateDidChange: () -> Void = {}
 
@@ -205,13 +207,19 @@ final class GuidedTourCoordinator: ObservableObject {
         return previousStep(before: currentStep) != nil
     }
 
-    func start() {
+    func start(at step: GuidedTourStep = .homeWelcome) {
         isTransitionLocked = false
+        pendingCollectionID = nil
         pendingBodyID = nil
         presentationID = UUID()
         dismissalID = nil
-        routeHandler(.home)
-        currentStep = .homeWelcome
+        if step == .homeWelcome {
+            routeHandler(.home)
+            currentStep = .homeWelcome
+        } else {
+            setStep(step)
+            return
+        }
         stateDidChange()
     }
 
@@ -260,6 +268,7 @@ final class GuidedTourCoordinator: ObservableObject {
     func cancel() {
         isTransitionLocked = false
         currentStep = nil
+        pendingCollectionID = nil
         pendingBodyID = nil
         presentationID = UUID()
         dismissalID = UUID()
@@ -269,6 +278,7 @@ final class GuidedTourCoordinator: ObservableObject {
     func finish() {
         isTransitionLocked = false
         currentStep = nil
+        pendingCollectionID = nil
         pendingBodyID = nil
         presentationID = UUID()
         dismissalID = UUID()
@@ -278,6 +288,14 @@ final class GuidedTourCoordinator: ObservableObject {
 
     private func setStep(_ step: GuidedTourStep) {
         let bodyID = step == .bodyDetailExperience ? defaultBodyIDProvider() : nil
+        let collectionID: String? = switch step {
+        case .exploreBody, .bodyDetailExperience:
+            defaultCollectionIDProvider()
+        default:
+            nil
+        }
+
+        pendingCollectionID = collectionID
         pendingBodyID = bodyID
 
         switch step.route {
