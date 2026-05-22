@@ -27,51 +27,12 @@ struct NASAImageOfTheDayService: NASAImageOfTheDayProviding {
     }
 
     func fetchImageData(from url: URL) async throws -> Data {
-        let (data, response) = try await session.data(from: url)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode) else {
-            throw NASAImageOfTheDayError.unavailable
-        }
-
-        return data
+        try await NASAAPODClient.imageData(from: url, session: session)
     }
 
     private func fetchImageOfTheDay(for date: Date?) async throws -> NASAImageOfTheDay {
-        let (data, response) = try await session.data(from: Self.endpoint(date: date))
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode) else {
-            throw NASAImageOfTheDayError.unavailable
-        }
-
+        let data = try await NASAAPODClient.data(from: NASAAPODClient.endpoint(date: date), session: session)
         return try decoder.decode(NASAImageOfTheDay.self, from: data)
-    }
-
-    private static func endpoint(date: Date?) -> URL {
-        var components = URLComponents(string: "https://api.nasa.gov/planetary/apod")!
-        var queryItems = [
-            URLQueryItem(name: "api_key", value: apiKey),
-            URLQueryItem(name: "thumbs", value: "true")
-        ]
-
-        if let date {
-            queryItems.append(URLQueryItem(name: "date", value: dateFormatter.string(from: date)))
-        }
-
-        components.queryItems = queryItems
-        return components.url!
-    }
-
-    private static var apiKey: String {
-        let configuredKey = Bundle.main.object(forInfoDictionaryKey: "NASA_API_KEY") as? String
-        let trimmedKey = configuredKey?.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if let trimmedKey, !trimmedKey.isEmpty, trimmedKey != "$(NASA_API_KEY)" {
-            return trimmedKey
-        }
-
-        return "DEMO_KEY"
     }
 
     private static let dateFormatter: DateFormatter = {

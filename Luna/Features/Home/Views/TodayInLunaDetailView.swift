@@ -116,7 +116,8 @@ struct TodayInLunaDetailView: View {
             NavigationLink {
                 BodyDetailView(
                     celestialBody: body,
-                    childBodies: appState.celestialBodies.filter { $0.parentBodyId == body.id }
+                    childBodies: appState.celestialBodies.filter { $0.parentBodyId == body.id },
+                    allBodies: appState.celestialBodies
                 )
             } label: {
                 Label("Open in Explore", systemImage: "sun.max")

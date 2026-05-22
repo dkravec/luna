@@ -79,11 +79,10 @@ final class LunaTourUITests: XCTestCase {
     }
 
     func testReplayTourFromSettingsStartsAtHome() {
-        launchApp(arguments: ["-uiTesting", "-resetProfile", "-completeOnboarding", "-disableAnimations"])
+        launchApp(arguments: ["-uiTesting", "-resetProfile", "-completeOnboarding", "-suppressTour", "-openSettings", "-disableAnimations"])
         XCTAssertTrue(waitForTourToDisappear())
 
-        app.buttons["Settings"].tap()
-        let replay = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Replay App Tour")).firstMatch
+        let replay = app.descendants(matching: .any)["settings.replayTour"]
         XCTAssertTrue(replay.waitForExistence(timeout: 3))
         replay.tap()
 
@@ -107,6 +106,24 @@ final class LunaTourUITests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = arguments
         app.launch()
+    }
+
+    private func openSettings() {
+        let settingsTab = app.descendants(matching: .any)["tab.settings"]
+        if settingsTab.waitForExistence(timeout: 2) {
+            tapElement(settingsTab)
+            return
+        }
+
+        let settingsButton = app.buttons["Settings"]
+        if settingsButton.waitForExistence(timeout: 2) {
+            tapElement(settingsButton)
+            return
+        }
+
+        let settingsText = app.staticTexts["Settings"]
+        XCTAssertTrue(settingsText.waitForExistence(timeout: 3))
+        tapElement(settingsText)
     }
 
     private func tapNext() {

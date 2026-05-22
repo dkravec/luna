@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(iOS)
+import ARKit
+#endif
 
 struct SettingsView: View {
     @EnvironmentObject private var appState: LunaAppState
@@ -64,94 +67,23 @@ struct SettingsView: View {
                 .id(ScrollAnchor.replayTour)
 
                 CardDivider(leadingInset: 56)
-                
+
                 NavigationLink {
-                    SettingsViewingModeView(
-                        prefersARMode: Binding(
-                            get: { appState.experiencePreferences.prefersARMode },
-                            set: { appState.setPrefersARMode($0) }
-                        )
-                    )
+                    SettingsExperienceCustomizationView()
+                        .environmentObject(appState)
                     .appBackground()
                 } label: {
                     CardRow {
                         RowLabel(
-                            title: "View Mode",
-                            subtitle: currentViewModeSubtitle,
-                            systemImage: "arkit",
-                            value: currentViewModeTitle,
+                            title: "Customize Experience",
+                            subtitle: "Set view mode, scale, labels, orbits, and render detail",
+                            systemImage: "slider.horizontal.3",
                             showsChevron: true
                         )
                     }
                 }
                 .buttonStyle(.plain)
                 .hapticTap()
-
-                CardDivider(leadingInset: 56)
-
-                NavigationLink {
-                    SettingsScaleModeView(
-                        distanceScaleMode: Binding(
-                            get: { appState.experiencePreferences.distanceScaleMode },
-                            set: { appState.setDistanceScaleMode($0) }
-                        ),
-                        objectScaleMode: Binding(
-                            get: { appState.experiencePreferences.objectScaleMode },
-                            set: { appState.setObjectScaleMode($0) }
-                        ),
-                        distanceCompression: Binding(
-                            get: { appState.experiencePreferences.distanceCompression },
-                            set: { appState.setDistanceCompression($0) }
-                        )
-                    )
-                    .appBackground()
-                } label: {
-                    CardRow {
-                        RowLabel(
-                            title: "Scaling",
-                            subtitle: currentScaleModeSubtitle,
-                            systemImage: "scale.3d",
-                            value: appState.experiencePreferences.distanceScaleMode.title,
-                            showsChevron: true
-                        )
-                    }
-                }
-                .buttonStyle(.plain)
-                .hapticTap()
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    Toggle(
-                        isOn: Binding(
-                            get: { appState.experiencePreferences.showLabels },
-                            set: { setShowLabels($0) }
-                        )
-                    ) {
-                        RowLabel(
-                            title: "Labels",
-                            subtitle: "Show names and values in visual scenes",
-                            systemImage: "tag"
-                        )
-                    }
-                }
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    Toggle(
-                        isOn: Binding(
-                            get: { appState.experiencePreferences.showOrbits },
-                            set: { setShowOrbits($0) }
-                        )
-                    ) {
-                        RowLabel(
-                            title: "Orbits",
-                            subtitle: "Show orbit guides in visual scenes",
-                            systemImage: "circle.dashed"
-                        )
-                    }
-                }
             }
         }
     }
@@ -471,48 +403,96 @@ struct SettingsView: View {
     }
 }
 
-private struct SettingsViewingModeView: View {
-    @Binding var prefersARMode: Bool
+private struct SettingsExperienceCustomizationView: View {
+    @EnvironmentObject private var appState: LunaAppState
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Spacing.section) {
                 PageHeader(
-                    title: "Choose View Mode",
-                    subtitle: "Pick the experience Luna should prefer when opening space views."
+                    title: "Customize Experience",
+                    subtitle: "Choose how Luna opens, scales, and renders space views."
                 )
 
-                ViewingModeOptionsView(prefersARMode: $prefersARMode)
+                ExperienceCustomizationView(
+                    canUseAR: canUseAR,
+                    preferredARMode: prefersARModeBinding,
+                    sceneScaleProfile: sceneScaleProfileBinding,
+                    distanceScaleMode: distanceScaleMode,
+                    objectScaleMode: objectScaleMode,
+                    distanceCompression: distanceCompression,
+                    renderDetail: renderDetailBinding,
+                    showLabels: showLabelsBinding,
+                    showOrbits: showOrbitsBinding
+                )
             }
             .screenContentPadding()
         }
-        .navigationTitle("View Mode")
+        .navigationTitle("Customize Experience")
     }
-}
 
-private struct SettingsScaleModeView: View {
-    @Binding var distanceScaleMode: DistanceScaleMode
-    @Binding var objectScaleMode: ObjectScaleMode
-    @Binding var distanceCompression: Double
+    private var canUseAR: Bool {
+#if os(iOS)
+        ARWorldTrackingConfiguration.isSupported
+#else
+        false
+#endif
+    }
 
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                PageHeader(
-                    title: "Choose Scaling",
-                    subtitle: "Pick how Luna should balance accurate scale with readable space views."
-                )
+    private var prefersARModeBinding: Binding<Bool> {
+        Binding(
+            get: { appState.experiencePreferences.prefersARMode },
+            set: { appState.setPrefersARMode($0) }
+        )
+    }
 
-                DistanceScaleOptionsView(
-                    distanceScaleMode: $distanceScaleMode,
-                    distanceCompression: $distanceCompression
-                )
+    private var sceneScaleProfileBinding: Binding<SceneScaleProfile> {
+        Binding(
+            get: { appState.experiencePreferences.sceneScaleProfile },
+            set: { appState.setSceneScaleProfile($0) }
+        )
+    }
 
-                ObjectScaleOptionsView(objectScaleMode: $objectScaleMode)
-            }
-            .screenContentPadding()
-        }
-        .navigationTitle("Scaling")
+    private var distanceScaleMode: Binding<DistanceScaleMode> {
+        Binding(
+            get: { appState.experiencePreferences.distanceScaleMode },
+            set: { appState.setDistanceScaleMode($0) }
+        )
+    }
+
+    private var objectScaleMode: Binding<ObjectScaleMode> {
+        Binding(
+            get: { appState.experiencePreferences.objectScaleMode },
+            set: { appState.setObjectScaleMode($0) }
+        )
+    }
+
+    private var distanceCompression: Binding<Double> {
+        Binding(
+            get: { appState.experiencePreferences.distanceCompression },
+            set: { appState.setDistanceCompression($0) }
+        )
+    }
+
+    private var renderDetailBinding: Binding<SceneRenderDetail> {
+        Binding(
+            get: { appState.experiencePreferences.renderDetail },
+            set: { appState.setRenderDetail($0) }
+        )
+    }
+
+    private var showLabelsBinding: Binding<Bool> {
+        Binding(
+            get: { appState.experiencePreferences.showLabels },
+            set: { appState.setShowLabels($0) }
+        )
+    }
+
+    private var showOrbitsBinding: Binding<Bool> {
+        Binding(
+            get: { appState.experiencePreferences.showOrbits },
+            set: { appState.setShowOrbits($0) }
+        )
     }
 }
 

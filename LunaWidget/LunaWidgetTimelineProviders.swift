@@ -1,33 +1,79 @@
 import Foundation
 import os
 import WidgetKit
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 struct NASAImageTimelineProvider: TimelineProvider {
     private let sharedCache = NASAAPODSharedCache()
     private let logger = Logger(subsystem: "net.novapro.Luna.widget", category: "APOD")
 
     func placeholder(in context: Context) -> NASAImageEntry {
-        NASAImageEntry(
+        if context.isPreview {
+            return previewEntry()
+        }
+
+        return NASAImageEntry(
             date: Date(),
             title: "Astronomy Image",
             subtitle: "Astronomy Picture of the Day",
-            imageData: nil
+            imageFilename: nil
         )
     }
 
     func getSnapshot(in context: Context, completion: @escaping (NASAImageEntry) -> Void) {
         Task {
-            completion(await fetchEntry())
+            if context.isPreview {
+                completion(previewEntry())
+            } else {
+                completion(await fetchEntry())
+            }
         }
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<NASAImageEntry>) -> Void) {
         Task {
-            let entry = await fetchEntry()
+            let entry = context.isPreview ? previewEntry() : await fetchEntry()
             let nextUpdate = Calendar.current.date(byAdding: .hour, value: 6, to: Date()) ?? Date().addingTimeInterval(21_600)
             completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
         }
     }
+
+    private func previewEntry() -> NASAImageEntry {
+        NASAImageEntry(
+            date: Date(),
+            title: "A Spiral Galaxy In Moonlight",
+            subtitle: "Astronomy Picture of the Day",
+            imageFilename: nil
+        )
+    }
+
+    #if os(iOS)
+    private static func widgetSafeJPEGData(from data: Data, maxPixel: CGFloat = 600) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+
+        let maxDimension = max(image.size.width, image.size.height)
+        let scaleFactor = maxDimension > maxPixel ? maxPixel / maxDimension : 1
+
+        let targetSize = CGSize(
+            width: floor(image.size.width * scaleFactor),
+            height: floor(image.size.height * scaleFactor)
+        )
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+        let resized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+
+        return resized.jpegData(compressionQuality: 0.78)
+    }
+    #endif
 
     private func fetchEntry() async -> NASAImageEntry {
         if let cachedEntry = entryFromSharedCache() {
@@ -36,24 +82,28 @@ struct NASAImageTimelineProvider: TimelineProvider {
 
         do {
             let item = try await NASAImageFetcher.fetch()
-            let imageData: Data?
             var imageFilename: String?
 
             if let imageURL = item.imageURL {
                 do {
                     let fetchedImageData = try await NASAImageFetcher.fetchImageData(from: imageURL)
+
                     let imageFileURL = sharedCache.imageFileURL(forDateString: item.dateString)
                     try sharedCache.createCacheDirectoriesIfNeeded()
+
+                    #if os(iOS)
+                    let widgetImageData = Self.widgetSafeJPEGData(from: fetchedImageData) ?? fetchedImageData
+                    try widgetImageData.write(to: imageFileURL, options: .atomic)
+                    #else
                     try fetchedImageData.write(to: imageFileURL, options: .atomic)
-                    imageData = fetchedImageData
+                    #endif
+
                     imageFilename = imageFileURL.lastPathComponent
                 } catch {
                     logger.error("APOD widget image fetch/cache failed: \(error.localizedDescription, privacy: .public)")
-                    imageData = nil
                 }
             } else {
                 logger.notice("APOD widget payload did not include an image URL")
-                imageData = nil
             }
 
             let record = item.sharedRecord(imageFilename: imageFilename)
@@ -68,7 +118,7 @@ struct NASAImageTimelineProvider: TimelineProvider {
                 date: Date(),
                 title: item.title,
                 subtitle: item.subtitle,
-                imageData: imageData
+                imageFilename: imageFilename
             )
         } catch {
             logger.error("APOD widget timeline fetch failed: \(error.localizedDescription, privacy: .public)")
@@ -76,58 +126,71 @@ struct NASAImageTimelineProvider: TimelineProvider {
                 date: Date(),
                 title: "NASA Image",
                 subtitle: "Check back soon",
-                imageData: nil
+                imageFilename: nil
             )
         }
     }
 
     private func entryFromSharedCache() -> NASAImageEntry? {
         guard let record = sharedCache.readLatest() else { return nil }
-        let imageURL = sharedCache.imageFileURL(forDateString: record.dateString)
-        let imageData = try? Data(contentsOf: imageURL)
-        if record.imageFilename != nil, imageData == nil {
-            logger.notice("APOD widget shared cache metadata exists but cached image is missing")
-        }
+        // let imageURL = sharedCache.imageFileURL(forDateString: record.dateString)
+        // let imageData = try? Data(contentsOf: imageURL)
+        // if record.imageFilename != nil {
+        //     logger.notice("APOD widget shared cache metadata exists but cached image is missing")
+        // }
 
         return NASAImageEntry(
             date: NASAAPODSharedCache.dateFormatter.date(from: record.dateString) ?? Date(),
             title: record.title,
             subtitle: record.mediaType == "image" ? "Astronomy Picture of the Day" : "NASA Feature",
-            imageData: imageData
+            imageFilename: record.imageFilename
         )
     }
 }
 
 struct LunaFactTimelineProvider: TimelineProvider {
+    private let logger = Logger(subsystem: "net.novapro.Luna.widget", category: "FactTimeline")
+
     func placeholder(in context: Context) -> LunaFactEntry {
-        LunaFactEntry(
+        logger.notice("Placeholder requested; preview=\(context.isPreview, privacy: .public)")
+        return LunaFactEntry(
             date: Date(),
             bodyName: "Moon",
             bodyType: "Moon",
             fact: "The Moon averages 384,400 km from Earth.",
             textureAssetName: "WidgetMoon",
+            thumbnailName: nil,
             hasRings: false
         )
     }
 
     func getSnapshot(in context: Context, completion: @escaping (LunaFactEntry) -> Void) {
-        completion(entry(for: Date()))
+        logger.notice("Snapshot requested; preview=\(context.isPreview, privacy: .public)")
+        completion(latestEntry(source: "snapshot"))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<LunaFactEntry>) -> Void) {
-        let now = Date()
-        let nextUpdate = Calendar.current.startOfDay(for: now.addingTimeInterval(86_400))
-        completion(Timeline(entries: [entry(for: now)], policy: .after(nextUpdate)))
+        let entry = latestEntry(source: "timeline")
+        let nextUpdate = Calendar.current.date(byAdding: .day, value: 1, to: entry.date) ?? entry.date.addingTimeInterval(86_400)
+
+        logger.notice("Timeline requested; preview=\(context.isPreview, privacy: .public); generated 1 entry for body=\(entry.bodyName, privacy: .public) type=\(entry.bodyType, privacy: .public); next update scheduled for \(nextUpdate.formatted(date: .numeric, time: .standard), privacy: .public)")
+        completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
     }
 
-    private func entry(for date: Date) -> LunaFactEntry {
-        LunaWidgetDailyContentProvider().content(for: date)
+    private func latestEntry(source: String) -> LunaFactEntry {
+        let date = Calendar.current.startOfDay(for: Date())
+        logger.notice("Generating \(source, privacy: .public) entry for \(date.formatted(date: .numeric, time: .standard), privacy: .public)")
+        let entry = LunaWidgetDailyContentProvider().content(for: date)
+        logger.notice("Generated \(source, privacy: .public) entry for body=\(entry.bodyName, privacy: .public) type=\(entry.bodyType, privacy: .public)")
+        return entry
     }
 }
 
 struct LunaSolarOverviewTimelineProvider: TimelineProvider {
+    private let source = LunaWidgetContentSource()
+
     func placeholder(in context: Context) -> LunaSolarOverviewEntry {
-        LunaSolarOverviewEntry(date: Date(), bodies: LunaWidgetBody.defaults)
+        LunaSolarOverviewEntry(date: Date(), bodies: source.solarCelestialBodies())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (LunaSolarOverviewEntry) -> Void) {
@@ -141,49 +204,19 @@ struct LunaSolarOverviewTimelineProvider: TimelineProvider {
     }
 
     private func entry(for date: Date) -> LunaSolarOverviewEntry {
-        LunaSolarOverviewEntry(date: date, bodies: LunaWidgetBody.defaults)
+        LunaSolarOverviewEntry(date: date, bodies: source.solarCelestialBodies())
     }
 }
 
 private struct NASAImageFetcher {
     static func fetch() async throws -> NASAImagePayload {
-        var components = URLComponents(string: "https://api.nasa.gov/planetary/apod")!
-        components.queryItems = [
-            URLQueryItem(name: "api_key", value: apiKey),
-            URLQueryItem(name: "thumbs", value: "true")
-        ]
-
-        let (data, response) = try await URLSession.shared.data(from: components.url!)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode) else {
-            throw URLError(.badServerResponse)
-        }
-
+        let data = try await NASAAPODClient.data(from: NASAAPODClient.endpoint())
         let decoder = JSONDecoder()
         return try decoder.decode(NASAImagePayload.self, from: data)
     }
 
     static func fetchImageData(from url: URL) async throws -> Data {
-        let (data, response) = try await URLSession.shared.data(from: url)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode) else {
-            throw URLError(.badServerResponse)
-        }
-
-        return data
-    }
-
-    private static var apiKey: String {
-        let configuredKey = Bundle.main.object(forInfoDictionaryKey: "NASA_API_KEY") as? String
-        let trimmedKey = configuredKey?.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if let trimmedKey, !trimmedKey.isEmpty, trimmedKey != "$(NASA_API_KEY)" {
-            return trimmedKey
-        }
-
-        return "DEMO_KEY"
+        try await NASAAPODClient.imageData(from: url)
     }
 }
 

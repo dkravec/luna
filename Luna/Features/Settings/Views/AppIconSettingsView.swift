@@ -27,7 +27,7 @@ enum AppIconChoice: String, CaseIterable, Identifiable {
         case .current:
             return "The default Luna app icon"
         case .legacy2019:
-            return "The classic Luna icon from the existing resource set"
+            return "The classic Luna app icon"
         }
     }
 

@@ -20,7 +20,8 @@ struct HomeView: View {
     }
 
     var body: some View {
-        let offsetDate = Calendar.current.date(byAdding: .day, value: appState.dailyFactOffset, to: Date()) ?? Date()
+        let baseDate = ScreenshotMode.isEnabled ? ScreenshotMode.fixedDate : Date()
+        let offsetDate = Calendar.current.date(byAdding: .day, value: appState.dailyFactOffset, to: baseDate) ?? baseDate
         let dailyContent = dailyContentProvider.content(for: appState.celestialBodies, date: offsetDate)
 
         ScrollViewReader { proxy in
@@ -32,8 +33,6 @@ struct HomeView: View {
 
                     dailyContentSection(dailyContent)
 
-//                    overviewSection
-                    
                     primaryActions
                 }
                 .screenContentPadding()
@@ -62,18 +61,6 @@ struct HomeView: View {
                 .guidedTourTarget(.homeOverview, when: appState.guidedTourStep == .homeWelcome)
 
                 Spacer(minLength: 8)
-
-                // Button {
-                //     appState.selectedTab = .settings
-                // } label: {
-                //     Image(systemName: "gearshape")
-                //         .font(.headline.weight(.semibold))
-                //         .frame(width: 42, height: 42)
-                //         .background(Color.primary.opacity(0.08), in: Circle())
-                // }
-                // .buttonStyle(.plain)
-                // .accessibilityLabel("Open Settings")
-                // .hapticTap()
             }
 
             miniSolarSystemPreview
@@ -103,7 +90,7 @@ struct HomeView: View {
 
                 HomeSolarSystemPreview(
                     bodies: appState.celestialBodies,
-                    date: Date()
+                    date: ScreenshotMode.isEnabled ? ScreenshotMode.fixedDate : Date()
                 )
                 .frame(height: 240)
             }
@@ -178,85 +165,6 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder
-    private func featuredBodySection(_ body: CelestialBody?) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Featured Body")
-
-            if let body {
-                NavigationLink {
-                    BodyDetailView(
-                        celestialBody: body,
-                        childBodies: appState.celestialBodies.filter { $0.parentBodyId == body.id }
-                    )
-                } label: {
-                    Card {
-                        HStack(alignment: .center, spacing: 14) {
-                            BodyCardVisual(celestialBody: body, size: 82)
-
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack(spacing: 8) {
-                                    Text(body.name)
-                                        .font(.title3.weight(.bold))
-                                        .foregroundStyle(.primary)
-
-                                    Text(body.type.title)
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color.primary.opacity(0.06), in: Capsule(style: .continuous))
-                                }
-
-                                Text(body.summary.isEmpty ? body.subtitle : body.summary)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(3)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .hapticTap()
-            } else {
-                EmptyStateView(
-                    title: "No Featured Body",
-                    systemImage: "sparkles",
-                    message: "Luna could not load the local celestial body catalog."
-                )
-            }
-        }
-    }
-
-    private func factOfTheDaySection(_ fact: HomeDailyFact, featuredBody: CelestialBody?) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: fact.title)
-
-            Card {
-                HStack(alignment: .top, spacing: 12) {
-                    if let body = featuredBody {
-                        BodyCardVisual(celestialBody: body, size: 72)
-                    } else {
-                        IconBadge(systemImage: fact.systemImage)
-                    }
-
-                    Text(fact.message)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .accessibilityElement(children: .combine)
-        }
-    }
-
     private var primaryActions: some View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Explore")
@@ -302,46 +210,32 @@ struct HomeView: View {
         }
     }
 
-    private var overviewSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Status")
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                MetricTile(
-                    title: "Viewing Mode",
-                    value: appState.experiencePreferences.prefersARMode ? "AR First" : "Visual First",
-                    systemImage: "viewfinder"
-                )
-                MetricTile(
-                    title: "Bodies Loaded",
-                    value: "\(appState.celestialBodies.count)",
-                    systemImage: "circle.grid.cross"
-                )
-            }
-        }
-    }
-
     private func scrollForGuidedTourStep(_ step: GuidedTourStep?, proxy: ScrollViewProxy) {
         guard let step else { return }
 
-        let delays: [TimeInterval] = step == .homeExplore ? [0, 0.18, 0.45] : [0]
+        let anchor: UnitPoint?
 
-        for delay in delays {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                performGuidedTourScroll(for: step, proxy: proxy)
-            }
+        switch step {
+        case .homeWelcome:
+            anchor = .top
+        case .homeExplore:
+            anchor = .center
+        default:
+            anchor = nil
         }
-    }
 
-    private func performGuidedTourScroll(for step: GuidedTourStep, proxy: ScrollViewProxy) {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            switch step {
-            case .homeWelcome:
-                proxy.scrollTo(ScrollAnchor.overview, anchor: .top)
-            case .homeExplore:
-                proxy.scrollTo(ScrollAnchor.exploreAction, anchor: .center)
-            default:
-                break
+        guard let anchor else { return }
+
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                switch step {
+                case .homeWelcome:
+                    proxy.scrollTo(ScrollAnchor.overview, anchor: anchor)
+                case .homeExplore:
+                    proxy.scrollTo(ScrollAnchor.exploreAction, anchor: anchor)
+                default:
+                    break
+                }
             }
         }
     }
@@ -385,7 +279,7 @@ private struct HomeSolarSystemPreview: View {
                     settings: Self.previewSettings,
                     simulationDate: date
                 )
-                let layout = HomeSolarSystemPreviewLayout(snapshot: snapshot, size: proxy.size)
+                let layout = LunaSolarPreviewLayout(snapshot: snapshot, size: proxy.size)
 
                 ZStack {
                     LinearGradient(
@@ -410,12 +304,12 @@ private struct HomeSolarSystemPreview: View {
                     }
 
                     ForEach(layout.placements) { placement in
-                        BodyVisual(celestialBody: placement.body, size: placement.bodySize)
+                        HomeSolarBodyVisual(celestialBody: placement.body, size: placement.bodySize)
                             .position(placement.position)
                     }
 
                     if let sun = layout.sun {
-                        BodyVisual(celestialBody: sun.body, size: sun.bodySize)
+                        HomeSolarBodyVisual(celestialBody: sun.body, size: sun.bodySize)
                             .position(sun.position)
                     }
                 }
@@ -441,136 +335,40 @@ private struct HomeSolarSystemPreview: View {
 
 }
 
-private struct HomeOrbitPlacement: Identifiable {
-    let id: String
-    let body: CelestialBody
-    let bodySize: CGFloat
-    let position: CGPoint
+private struct HomeSolarBodyVisual: View {
+    let celestialBody: CelestialBody
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            if celestialBody.id == "saturn" {
+                HomeSaturnRingVisual(size: size)
+            }
+
+            BodyVisual(celestialBody: celestialBody, size: size)
+        }
+        .frame(
+            width: celestialBody.id == "saturn" ? size * LunaSaturnRingMetrics.outerRadiusRatio : size,
+            height: max(size, celestialBody.id == "saturn" ? size * LunaSaturnRingMetrics.outerRadiusRatio * LunaSaturnRingMetrics.ellipseHeightRatio : size)
+        )
+    }
 }
 
-private struct HomeOrbitPathPlacement: Identifiable {
-    let id: String
-    let points: [CGPoint]
-}
+private struct HomeSaturnRingVisual: View {
+    let size: CGFloat
 
-private struct HomeSolarSystemPreviewLayout {
-    let placements: [HomeOrbitPlacement]
-    let orbits: [HomeOrbitPathPlacement]
-    let sun: HomeOrbitPlacement?
-
-    init(snapshot: ExperienceSceneSnapshot, size: CGSize) {
-        let bounds = snapshot.bounds
-        let margin = max(min(size.width, size.height) * 0.08, 14)
-        let availableWidth = max(size.width - margin * 2, 1)
-        let availableHeight = max(size.height - margin * 2, 1)
-        let projectedBounds = Self.projectedBounds(for: snapshot, bounds: bounds)
-        let scale = min(
-            availableWidth / CGFloat(max(projectedBounds.width, 0.001)),
-            availableHeight / CGFloat(max(projectedBounds.height, 0.001))
-        )
-        let center = CGPoint(x: size.width / 2, y: size.height / 2)
-
-        func project(_ point: SIMD3<Float>) -> CGPoint {
-            let projectedPoint = Self.expandedProjection(point, bounds: bounds, projectedBounds: projectedBounds)
-            return CGPoint(
-                x: center.x + CGFloat(projectedPoint.x - projectedBounds.midX) * scale,
-                y: center.y + CGFloat(projectedPoint.y - projectedBounds.midY) * scale
-            )
+    var body: some View {
+        ZStack {
+            ForEach(Array(LunaSaturnRingMetrics.bands.enumerated()), id: \.offset) { _, band in
+                Ellipse()
+                    .stroke(.white.opacity(band.opacity), lineWidth: max(0.6, size * band.lineWidthRatio))
+                    .frame(
+                        width: size * band.diameterRatio,
+                        height: size * band.diameterRatio * LunaSaturnRingMetrics.ellipseHeightRatio
+                    )
+            }
         }
-
-        let bodyPlacements = snapshot.bodies.map { body in
-            HomeOrbitPlacement(
-                id: body.id,
-                body: body.body,
-                bodySize: Self.bodySize(for: body, canvasSize: min(size.width, size.height)),
-                position: project(body.position)
-            )
-        }
-
-        placements = bodyPlacements.filter { $0.body.type != .star }
-        sun = bodyPlacements.first { $0.body.type == .star }
-        orbits = snapshot.orbitPaths.map { path in
-            HomeOrbitPathPlacement(
-                id: path.id,
-                points: path.points.map(project)
-            )
-        }
-    }
-
-    private static func bodySize(for body: ExperienceSceneBody, canvasSize: CGFloat) -> CGFloat {
-        if body.body.type == .star {
-            return max(10, min(16, canvasSize * 0.6))
-        }
-
-        if body.body.type == .moon {
-            return max(5, min(8, canvasSize * 0.035))
-        }
-
-        let sourceSize = CGFloat(log10(max(body.body.radiusKm, 1))) * 4.2
-        return max(7, min(14, sourceSize))
-    }
-
-    private static func projectedY(_ point: SIMD3<Float>) -> Float {
-        point.z * tiltCosine - point.y * tiltSine
-    }
-
-    private static func rawProjection(_ point: SIMD3<Float>, bounds: ExperienceSceneBounds) -> SIMD2<Float> {
-        SIMD2<Float>(
-            point.x - bounds.center.x,
-            projectedY(point) - projectedY(bounds.center)
-        )
-    }
-
-    private static func expandedProjection(
-        _ point: SIMD3<Float>,
-        bounds: ExperienceSceneBounds,
-        projectedBounds: ProjectedBounds
-    ) -> SIMD2<Float> {
-        let rawPoint = rawProjection(point, bounds: bounds)
-        let radius = max(length(rawPoint), 0.000_001)
-        let normalizedRadius = min(max(radius / projectedBounds.rawRadius, 0), 1)
-        let expandedRadius = pow(normalizedRadius, 0.72) * projectedBounds.rawRadius
-        return rawPoint * (expandedRadius / radius)
-    }
-
-    private static func projectedBounds(for snapshot: ExperienceSceneSnapshot, bounds: ExperienceSceneBounds) -> ProjectedBounds {
-        let points = snapshot.bodies.map(\.position) + snapshot.orbitPaths.flatMap(\.points)
-        let rawPoints = points.map { rawProjection($0, bounds: bounds) }
-        let rawRadius = max(rawPoints.map(length).max() ?? 0.001, 0.001)
-        let expandedPoints = rawPoints.map { point -> SIMD2<Float> in
-            let radius = max(length(point), 0.000_001)
-            let normalizedRadius = min(max(radius / rawRadius, 0), 1)
-            let expandedRadius = pow(normalizedRadius, 0.72) * rawRadius
-            return point * (expandedRadius / radius)
-        }
-
-        guard
-            let minX = expandedPoints.map(\.x).min(),
-            let maxX = expandedPoints.map(\.x).max(),
-            let minY = expandedPoints.map(\.y).min(),
-            let maxY = expandedPoints.map(\.y).max()
-        else {
-            return ProjectedBounds(midX: 0, midY: 0, width: 1, height: 1, rawRadius: rawRadius)
-        }
-
-        return ProjectedBounds(
-            midX: (minX + maxX) / 2,
-            midY: (minY + maxY) / 2,
-            width: max(maxX - minX, 0.001),
-            height: max(maxY - minY, 0.001),
-            rawRadius: rawRadius
-        )
-    }
-
-    private static let tiltAngle = Double.pi * 0.32
-    private static let tiltCosine = Float(cos(tiltAngle))
-    private static let tiltSine = Float(sin(tiltAngle))
-
-    private struct ProjectedBounds {
-        let midX: Float
-        let midY: Float
-        let width: Float
-        let height: Float
-        let rawRadius: Float
+        .rotationEffect(.degrees(-12))
+        .allowsHitTesting(false)
     }
 }

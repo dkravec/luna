@@ -14,6 +14,27 @@ enum LunaDebug {
     }
 }
 
+struct ExperienceSceneReadiness: Equatable {
+    private(set) var readyMode: SceneMode?
+
+    var isReady: Bool {
+        readyMode != nil
+    }
+
+    mutating func reset() {
+        readyMode = nil
+    }
+
+    mutating func markReady(for mode: SceneMode) {
+        readyMode = mode
+    }
+
+    enum SceneMode: Equatable {
+        case ar
+        case visual
+    }
+}
+
 struct ExperienceView: View {
     private static let playbackTimer = Timer
         .publish(every: 1.0 / 24.0, on: .main, in: .common)
@@ -24,7 +45,7 @@ struct ExperienceView: View {
     @State private var isAREnabled = false
     @State private var hasInitializedMode = false
     @State private var isControlsPresented = false
-    @State private var isSceneReady = false
+    @State private var sceneReadiness = ExperienceSceneReadiness()
     @State private var recenterTrigger = 0
     @State private var isOrbitPlaybackEnabled = false
     @State private var playbackStartDate = Date()
@@ -60,8 +81,10 @@ struct ExperienceView: View {
             if appState.celestialBodies.isEmpty {
                 appState.loadCelestialBodies()
             }
+            if ScreenshotMode.isEnabled {
+                currentSimulationDate = ScreenshotMode.fixedDate
+            }
             initializePreferredModeIfNeeded()
-            prepareSceneAfterInitialRender()
         }
         .onDisappear {
             pauseOrbitPlaybackIfNeeded()
@@ -69,6 +92,11 @@ struct ExperienceView: View {
         .onChange(of: appState.selectedTab) { selectedTab in
             if selectedTab != .arExperience {
                 pauseOrbitPlaybackIfNeeded()
+            }
+        }
+        .onChange(of: appState.celestialBodies) { bodies in
+            if bodies.isEmpty {
+                sceneReadiness.reset()
             }
         }
         .onReceive(Self.playbackTimer) { date in
@@ -106,9 +134,7 @@ struct ExperienceView: View {
 
     @ViewBuilder
     private var sceneLayer: some View {
-        if !isSceneReady {
-            ExperienceLoadingView()
-        } else if appState.celestialBodies.isEmpty {
+        if appState.celestialBodies.isEmpty {
             EmptyStateView(
                 title: "No Bodies Loaded",
                 systemImage: "sparkles",
@@ -117,14 +143,30 @@ struct ExperienceView: View {
             .padding()
         } else {
             sceneContent(simulationDate: currentSimulationDate)
+                .overlay {
+                    if !sceneReadiness.isReady {
+                        ExperienceLoadingView()
+                    }
+                }
         }
     }
 
     @ViewBuilder
     private func sceneContent(simulationDate: Date) -> some View {
 #if os(iOS)
-        
-        if isAREnabled, canUseAR {
+
+        if ScreenshotMode.screen == .arPlacement {
+            ScreenshotARPreviewView(
+                bodies: appState.celestialBodies,
+                settings: ExperienceSceneSettings(isAREnabled: true, preferences: appState.experiencePreferences),
+                simulationDate: simulationDate
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onAppear {
+                arPlacementState = .ready
+                markSceneReady(for: .ar)
+            }
+        } else if isAREnabled, canUseAR {
             LunaARSceneView(
                 bodies: appState.celestialBodies,
                 settings: settings,
@@ -133,6 +175,7 @@ struct ExperienceView: View {
                 recenterTrigger: recenterTrigger,
                 showsDebugSurfaces: showsARDebugSurfaces,
                 onPlacementStateChange: { arPlacementState = $0 },
+                onSceneReady: { markSceneReady(for: .ar) },
                 onSelectBody: showQuickDetails(for:)
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -143,6 +186,7 @@ struct ExperienceView: View {
                 content: .solarSystem,
                 simulationDate: simulationDate,
                 focusedBodyID: selectedQuickDetailsBody?.id,
+                onSceneReady: { markSceneReady(for: .visual) },
                 onSelectBody: showQuickDetails(for:)
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -154,6 +198,7 @@ struct ExperienceView: View {
             content: .solarSystem,
             simulationDate: simulationDate,
             focusedBodyID: selectedQuickDetailsBody?.id,
+            onSceneReady: { markSceneReady(for: .visual) },
             onSelectBody: showQuickDetails(for:)
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -222,7 +267,7 @@ struct ExperienceView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isOrbitPlaybackEnabled ? "Pause orbits" : "Play orbits")
-                .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback && !isAREnabled)
+                .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback)
             }
         }
     }
@@ -231,7 +276,7 @@ struct ExperienceView: View {
     @ViewBuilder
     private var arPlacementReticle: some View {
 #if os(iOS)
-        if isSceneReady, isAREnabled, canUseAR, !appState.celestialBodies.isEmpty {
+        if sceneReadiness.isReady, isAREnabled, canUseAR, !appState.celestialBodies.isEmpty {
             ZStack {
                 Circle()
                     .stroke(arPlacementColor.opacity(0.88), lineWidth: 2)
@@ -256,7 +301,7 @@ struct ExperienceView: View {
     @ViewBuilder
     private var arPlacementButton: some View {
 #if os(iOS)
-        if isSceneReady, isAREnabled, canUseAR, !appState.celestialBodies.isEmpty {
+        if sceneReadiness.isReady, isAREnabled, canUseAR, !appState.celestialBodies.isEmpty {
             Button {
                 if !appState.guidedTourTargetTapped(.experiencePlayback) {
                     placeARScene()
@@ -278,7 +323,6 @@ struct ExperienceView: View {
             .disabled(!arPlacementState.isReady)
             .opacity(arPlacementState.isReady ? 1 : 0.62)
             .accessibilityLabel(arPlacementAccessibilityLabel)
-            .guidedTourTarget(.experiencePlayback, when: appState.guidedTourStep == .experiencePlayback && isAREnabled)
         }
 #endif
     }
@@ -336,19 +380,26 @@ struct ExperienceView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                    viewModeSection
-                    SceneScaleProfileOptionsView(sceneScaleProfile: sceneScaleProfileBinding)
-                    if appState.experiencePreferences.sceneScaleProfile == .custom {
-                        DistanceScaleOptionsView(
-                            distanceScaleMode: distanceScaleModeBinding,
-                            distanceCompression: distanceCompressionBinding
-                        )
-                        ObjectScaleOptionsView(objectScaleMode: objectScaleModeBinding)
-                    }
+                    ExperienceCustomizationView(
+                        canUseAR: canUseAR,
+                        liveMode: Binding(get: { isAREnabled }, set: { setSceneMode(isAR: $0) }),
+                        sceneScaleProfile: sceneScaleProfileBinding,
+                        distanceScaleMode: distanceScaleModeBinding,
+                        objectScaleMode: objectScaleModeBinding,
+                        distanceCompression: distanceCompressionBinding,
+                        renderDetail: renderDetailBinding,
+                        showLabels: showLabelsBinding,
+                        showOrbits: showOrbitsBinding,
+                        setSceneMode: setSceneMode
+                    )
                     simulationDateSection
                     orbitPlaybackSection
                     objectRotationSection
-                    sceneOptionsSection
+#if os(iOS)
+                    if LunaDebug.isEnabled, !ScreenshotMode.isEnabled, isAREnabled, canUseAR {
+                        arDebugSection
+                    }
+#endif
                 }
                 .padding(.horizontal, Spacing.screenHorizontal)
                 .padding(.top, 12)
@@ -369,102 +420,25 @@ struct ExperienceView: View {
         }
     }
 
-    private var viewModeSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "View Mode")
-
-            CardSection {
-                SelectionRow(
-                    title: "AR",
-                    subtitle: canUseAR ? "Place scaled bodies in your space." : "AR is not available on this device.",
-                    systemImage: "arkit",
-                    value: canUseAR ? nil : "Unavailable",
-                    isSelected: isAREnabled
-                ) {
-                    setSceneMode(isAR: true)
-                }
-                .disabled(!canUseAR)
-
-                CardDivider(leadingInset: 56)
-
-                SelectionRow(
-                    title: "Visual",
-                    subtitle: "Use the same scene controls without AR.",
-                    systemImage: "cube.transparent",
-                    isSelected: !isAREnabled
-                ) {
-                    setSceneMode(isAR: false)
-                }
-            }
-        }
-    }
-
-    private var sceneOptionsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Scene")
-
-            CardSection {
-                CardRow {
-                    Toggle(
-                        isOn: Binding(
-                            get: { appState.experiencePreferences.showLabels },
-                            set: { setShowLabels($0) }
-                        )
-                    ) {
-                        RowLabel(
-                            title: "Labels",
-                            subtitle: "Show body names in visual scenes.",
-                            systemImage: "tag"
-                        )
-                    }
-                }
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    Toggle(
-                        isOn: Binding(
-                            get: { appState.experiencePreferences.showOrbits },
-                            set: { setShowOrbits($0) }
-                        )
-                    ) {
-                        RowLabel(
-                            title: "Orbit Guides",
-                            subtitle: "Show subtle distance guides in visual mode.",
-                            systemImage: "circle.dashed"
-                        )
-                    }
-                }
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    Picker("Render Detail", selection: renderDetailBinding) {
-                        ForEach(SceneRenderDetail.allCases) { detail in
-                            Text(detail.title).tag(detail)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-
 #if os(iOS)
-                if LunaDebug.isEnabled, isAREnabled, canUseAR {
-                    CardDivider(leadingInset: 56)
+    private var arDebugSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Debug")
 
-                    CardRow {
-                        Toggle(isOn: $showsARDebugSurfaces) {
-                            RowLabel(
-                                title: "AR Surface Debug",
-                                subtitle: "Show detected planes, anchor origins, and feature points.",
-                                systemImage: "viewfinder"
-                            )
-                        }
+            CardSection {
+                CardRow {
+                    Toggle(isOn: $showsARDebugSurfaces) {
+                        RowLabel(
+                            title: "AR Surface Debug",
+                            subtitle: "Show detected planes, anchor origins, and feature points.",
+                            systemImage: "viewfinder"
+                        )
                     }
                 }
-#endif
             }
         }
     }
+#endif
 
     private var orbitPlaybackSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -606,7 +580,8 @@ struct ExperienceView: View {
         if let selectedQuickDetailsBody {
             InSceneBodyQuickDetailsCard(
                 celestialBody: selectedQuickDetailsBody,
-                childBodies: childBodies(for: selectedQuickDetailsBody)
+                childBodies: childBodies(for: selectedQuickDetailsBody),
+                allBodies: appState.celestialBodies
             ) {
                 Haptics.selection()
                 self.selectedQuickDetailsBody = nil
@@ -626,25 +601,21 @@ struct ExperienceView: View {
     private func initializePreferredModeIfNeeded() {
         guard !hasInitializedMode else { return }
 
-        isAREnabled = canUseAR && appState.experiencePreferences.prefersARMode
+        isAREnabled = ScreenshotMode.screen == .arPlacement || (canUseAR && appState.experiencePreferences.prefersARMode)
         hasInitializedMode = true
     }
 
-    private func prepareSceneAfterInitialRender() {
-        guard !isSceneReady else { return }
-
-        Task {
-            try? await Task.sleep(nanoseconds: 140_000_000)
-
-            await MainActor.run {
-                isSceneReady = true
-            }
+    private func setSceneMode(isAR: Bool) {
+        let nextMode = isAR && canUseAR
+        if isAREnabled != nextMode {
+            sceneReadiness.reset()
         }
+        isAREnabled = nextMode
+        appState.setPrefersARMode(isAREnabled)
     }
 
-    private func setSceneMode(isAR: Bool) {
-        isAREnabled = isAR && canUseAR
-        appState.setPrefersARMode(isAREnabled)
+    private func markSceneReady(for mode: ExperienceSceneReadiness.SceneMode) {
+        sceneReadiness.markReady(for: mode)
     }
 
     private func toggleOrbitPlayback() {
@@ -746,6 +717,20 @@ struct ExperienceView: View {
             set: { appState.setRenderDetail($0) }
         )
     }
+
+    private var showLabelsBinding: Binding<Bool> {
+        Binding(
+            get: { appState.experiencePreferences.showLabels },
+            set: { setShowLabels($0) }
+        )
+    }
+
+    private var showOrbitsBinding: Binding<Bool> {
+        Binding(
+            get: { appState.experiencePreferences.showOrbits },
+            set: { setShowOrbits($0) }
+        )
+    }
 }
 
 private struct ExperienceLoadingView: View {
@@ -776,6 +761,7 @@ private struct ExperienceLoadingView: View {
 struct InSceneBodyQuickDetailsCard: View {
     let celestialBody: CelestialBody
     let childBodies: [CelestialBody]
+    let allBodies: [CelestialBody]
     let onDismiss: () -> Void
 
     var body: some View {
@@ -794,7 +780,11 @@ struct InSceneBodyQuickDetailsCard: View {
                 Spacer(minLength: 8)
 
                 NavigationLink {
-                    BodyDetailView(celestialBody: celestialBody, childBodies: childBodies)
+                    BodyDetailView(
+                        celestialBody: celestialBody,
+                        childBodies: childBodies,
+                        allBodies: allBodies
+                    )
                 } label: {
                     Image(systemName: "info.circle")
                         .font(.title3.weight(.semibold))

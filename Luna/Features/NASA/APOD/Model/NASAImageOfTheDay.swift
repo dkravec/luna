@@ -1,7 +1,6 @@
 import Foundation
 
 struct NASAImageOfTheDay: Decodable, Hashable, Identifiable {
-    let id = UUID()
     let title: String
     let date: Date
     let explanation: String
@@ -22,6 +21,10 @@ struct NASAImageOfTheDay: Decodable, Hashable, Identifiable {
 
     var isImage: Bool {
         mediaType == "image"
+    }
+
+    var id: String {
+        NASAAPODSharedCache.dateFormatter.string(from: date)
     }
 
     init(

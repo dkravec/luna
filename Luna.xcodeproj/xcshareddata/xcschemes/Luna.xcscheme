@@ -21,6 +21,20 @@
                ReferencedContainer = "container:Luna.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "7A6B120424D1000000000000"
+               BuildableName = "LunaUITests.xctest"
+               BlueprintName = "LunaUITests"
+               ReferencedContainer = "container:Luna.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -37,6 +51,16 @@
                BlueprintIdentifier = "7A6B0A0524C0000000000000"
                BuildableName = "LunaTests.xctest"
                BlueprintName = "LunaTests"
+               ReferencedContainer = "container:Luna.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "7A6B120424D1000000000000"
+               BuildableName = "LunaUITests.xctest"
+               BlueprintName = "LunaUITests"
                ReferencedContainer = "container:Luna.xcodeproj">
             </BuildableReference>
          </TestableReference>

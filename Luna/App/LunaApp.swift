@@ -1,8 +1,12 @@
 import SwiftUI
+import os
+import WidgetKit
 #if os(iOS)
 import ARKit
 import UIKit
 #endif
+
+private let lunaAppWidgetLogger = Logger(subsystem: "net.novapro.Luna", category: "WidgetReload")
 
 @main
 struct LunaApp: App {
@@ -50,6 +54,10 @@ final class LunaAppState: ObservableObject {
         celestialBodyRepository: CelestialBodyRepository = LocalCelestialBodyRepository(),
         guidedTour: GuidedTourCoordinator = GuidedTourCoordinator()
     ) {
+        // Task {
+        //     try? NASAAPODSharedCache().clear()
+        //     WidgetCenter.shared.reloadAllTimelines()
+        // }
         self.userProfileRepository = userProfileRepository
         self.experiencePreferencesRepository = experiencePreferencesRepository
         self.celestialBodyRepository = celestialBodyRepository
@@ -79,6 +87,9 @@ final class LunaAppState: ObservableObject {
         configureGuidedTour()
         loadCelestialBodies()
         configureForUITestingIfNeeded()
+        configureForScreenshotModeIfNeeded()
+        reloadWidgetTimelines(reason: "app launch")
+        primeAPODWidgetCacheIfNeeded()
 
         if userProfile.hasCompletedOnboarding && !userProfile.hasCompletedFirstRunTour {
             restoreOrStartFirstRunTour()
@@ -303,6 +314,33 @@ final class LunaAppState: ObservableObject {
         }
     }
 
+    private func reloadWidgetTimelines(reason: String) {
+        lunaAppWidgetLogger.notice("Reloading widget timelines due to \(reason, privacy: .public)")
+        WidgetCenter.shared.reloadTimelines(ofKind: "LunaFactOfTheDayWidget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "LunaImageOfTheDayWidget")
+    }
+
+    private func primeAPODWidgetCacheIfNeeded() {
+#if os(iOS)
+        guard !ScreenshotMode.isEnabled else { return }
+
+        Task { @MainActor in
+            let repository = NASAImageOfTheDayRepository()
+
+            do {
+                let cachedItem = try repository.cachedLatest()
+
+                if cachedItem?.cachedImageURL == nil {
+                    _ = try await repository.refreshLatest()
+                    lunaAppWidgetLogger.notice("Primed APOD cache on app launch")
+                }
+            } catch {
+                lunaAppWidgetLogger.error("Failed to prime APOD cache: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+#endif
+    }
+
     private func configureForUITestingIfNeeded() {
         let arguments = ProcessInfo.processInfo.arguments
         guard arguments.contains("-uiTesting") else { return }
@@ -336,9 +374,52 @@ final class LunaAppState: ObservableObject {
                 saveUserProfile()
             }
 
+            if arguments.contains("-suppressTour") {
+                guidedTour.cancel()
+                userProfile.hasCompletedFirstRunTour = true
+                clearPersistedGuidedTourStep()
+                saveUserProfile()
+            }
+
+            if arguments.contains("-openSettings") {
+                selectedTab = .settings
+            }
+
             lastRepositoryError = nil
         } catch {
             lastRepositoryError = error.localizedDescription
+        }
+    }
+
+    private func configureForScreenshotModeIfNeeded() {
+        guard ScreenshotMode.isEnabled else { return }
+
+        guidedTour.cancel()
+        userProfile.displayName = "Luna"
+        userProfile.hasCompletedOnboarding = true
+        userProfile.hasCompletedFirstRunTour = true
+        appearancePreference = .dark
+        userProfile.appearancePreference = .dark
+        dailyFactOffset = 0
+
+        experiencePreferences.prefersARMode = ScreenshotMode.screen == .arPlacement
+        experiencePreferences.sceneScaleProfile = .scaledRecommended
+        experiencePreferences.distanceScaleMode = .compressed
+        experiencePreferences.objectScaleMode = .relative
+        experiencePreferences.distanceCompression = 18
+        experiencePreferences.renderDetail = .balanced
+        experiencePreferences.orbitPlaybackSpeed = .standard
+        experiencePreferences.objectRotationSpeed = .slow
+        experiencePreferences.showLabels = true
+        experiencePreferences.showOrbits = true
+
+        switch ScreenshotMode.screen {
+        case .exploreLibrary:
+            selectedTab = .solarSystem
+        case .arPlacement, .sceneExperience, .scaleControls:
+            selectedTab = .arExperience
+        case .home, .apod, .objectDetail, .macMainWindow, .none:
+            selectedTab = .home
         }
     }
 

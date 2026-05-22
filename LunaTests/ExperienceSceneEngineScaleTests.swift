@@ -443,6 +443,122 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertLessThanOrEqual(moonScale, 0.88)
     }
 
+    func testTrueScaleSelectedFocusZoomsToInspectablePlanet() throws {
+        let sceneSettings = settings(distance: .trueScale, object: .trueScale)
+        let snapshot = ExperienceSceneEngine.snapshot(for: Self.bodies, settings: sceneSettings)
+        let earth = try body("earth", in: snapshot)
+
+        let earthScale = SolarSystemSceneFocusMetrics.focusedOrthographicScale(
+            for: "earth",
+            in: snapshot,
+            settings: sceneSettings
+        )
+        let visibleDiameterRatio = Double(earth.displayRadius * 2) / earthScale
+
+        XCTAssertLessThan(earthScale, 0.02)
+        XCTAssertGreaterThanOrEqual(visibleDiameterRatio, 0.12)
+    }
+
+    func testSelectedCameraAllowsNearFreePitchAndMoreOrbitDistance() {
+        let limit = VisualSceneSelectedCameraLimit(focusedScale: 2)
+
+        XCTAssertGreaterThan(VisualSceneSelectedCameraMath.clampedPitch(2), 1.5)
+        XCTAssertGreaterThan(limit.maximumDistance, 8)
+    }
+
+    func testInspectionZoomUsesSmallerLabelScale() {
+        XCTAssertLessThan(SolarSystemSceneLabelScale.scale(for: 0.01), 0.01)
+    }
+
+    func testSelectedCameraFastTargetUpdatesKeepStableOffset() {
+        let limit = VisualSceneSelectedCameraLimit(focusedScale: 2)
+        var state = VisualSceneSelectedCameraState(
+            bodyID: "venus",
+            target: SCNVector3Zero,
+            offset: SCNVector3(1.5, 1.2, 2.8),
+            orthographicScale: 2,
+            limit: limit
+        )
+        let initialOffset = state.cameraOffset
+
+        for index in 1...180 {
+            let nextTarget = SCNVector3(Float(index) * 0.55, Float(index % 9) * 0.11, Float(index) * -0.43)
+            state = state.following(target: nextTarget, limit: limit)
+        }
+
+        XCTAssertEqual(Float(state.cameraOffset.x), Float(initialOffset.x), accuracy: 0.0001)
+        XCTAssertEqual(Float(state.cameraOffset.y), Float(initialOffset.y), accuracy: 0.0001)
+        XCTAssertEqual(Float(state.cameraOffset.z), Float(initialOffset.z), accuracy: 0.0001)
+    }
+
+    func testSelectedCameraInputOrbitsAndZoomsWithoutMovingTarget() {
+        let limit = VisualSceneSelectedCameraLimit(focusedScale: 2)
+        var state = VisualSceneSelectedCameraState(
+            bodyID: "moon",
+            target: SCNVector3(4, 2, -3),
+            offset: SCNVector3(0.4, 1.5, 2.2),
+            orthographicScale: 2,
+            limit: limit
+        )
+        let originalTarget = state.target
+        let originalOffset = state.cameraOffset
+
+        state.applyInput(yawDelta: 0.35, pitchDelta: -0.2, scaleMultiplier: 0.7, limit: limit)
+
+        XCTAssertEqual(Float(state.target.x), Float(originalTarget.x), accuracy: 0.0001)
+        XCTAssertEqual(Float(state.target.y), Float(originalTarget.y), accuracy: 0.0001)
+        XCTAssertEqual(Float(state.target.z), Float(originalTarget.z), accuracy: 0.0001)
+        XCTAssertNotEqual(Float(state.cameraOffset.x), Float(originalOffset.x), accuracy: 0.0001)
+        XCTAssertLessThan(state.orthographicScale, 2)
+    }
+
+    func testSelectedCameraFollowingDoesNotResetUserZoomForSameSelection() {
+        let limit = VisualSceneSelectedCameraLimit(focusedScale: 2)
+        var state = VisualSceneSelectedCameraState(
+            bodyID: "moon",
+            target: SCNVector3Zero,
+            offset: SCNVector3(0, 1.3, 2.3),
+            orthographicScale: 2,
+            limit: limit
+        )
+        state.applyInput(yawDelta: 0, pitchDelta: 0, scaleMultiplier: 0.6, limit: limit)
+        let userScale = state.orthographicScale
+
+        let followed = state.following(target: SCNVector3(3, 0, -4), limit: limit)
+
+        XCTAssertEqual(followed.orthographicScale, userScale, accuracy: 0.0001)
+    }
+
+    func testSelectedCameraFocusChangeDetectionDistinguishesSameChangeAndClear() {
+        let state = VisualSceneSelectedCameraState(
+            bodyID: "moon",
+            target: SCNVector3Zero,
+            offset: SCNVector3(0, 0, 1),
+            orthographicScale: 1,
+            limit: VisualSceneSelectedCameraLimit(focusedScale: 1)
+        )
+
+        XCTAssertFalse(VisualSceneSelectedCameraMath.selectionDidChange(current: state, nextBodyID: "moon"))
+        XCTAssertTrue(VisualSceneSelectedCameraMath.selectionDidChange(current: state, nextBodyID: "earth"))
+        XCTAssertTrue(VisualSceneSelectedCameraMath.selectionDidChange(current: state, nextBodyID: nil))
+        XCTAssertFalse(VisualSceneSelectedCameraMath.selectionDidChange(current: nil, nextBodyID: nil))
+    }
+
+    func testSelectedCameraClippingCoversFocusedBodyAtCloseRange() {
+        let range = VisualSceneSelectedCameraMath.focusedClippingRange(
+            baseNear: 0.01,
+            baseFar: 40,
+            cameraPosition: SCNVector3(0, 0.8, 1.2),
+            focusCenter: SCNVector3Zero,
+            focusScale: 0.82,
+            focusRadius: 0.45,
+            sceneSpan: 12
+        )
+
+        XCTAssertLessThanOrEqual(range.zNear, 0.001)
+        XCTAssertGreaterThan(range.zFar, 130)
+    }
+
     func testTrueScaleCameraMetricsAndLimitsCoverFullBounds() {
         let sceneSettings = settings(distance: .trueScale, object: .trueScale, sceneScaleProfile: .trueSize)
         let snapshot = ExperienceSceneEngine.snapshot(for: Self.bodies, settings: sceneSettings)
@@ -962,6 +1078,95 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertEqual(Double(length(mercury.position)), expectedSceneDistance("mercury", distance: .educational), accuracy: 0.02)
         XCTAssertEqual(Double(length(venus.position)), expectedSceneDistance("venus", distance: .educational), accuracy: 0.02)
         XCTAssertEqual(Double(length(earth.position)), expectedSceneDistance("earth", distance: .educational), accuracy: 0.02)
+    }
+
+    func testRemoteCelestialBodyRepositoryThrowsNotImplemented() {
+        let repository = RemoteCelestialBodyRepository()
+
+        XCTAssertThrowsError(try repository.fetchBodies()) { error in
+            guard case CelestialBodyRepositoryError.notImplemented(let repositoryName) = error else {
+                return XCTFail("Expected notImplemented, got \(error)")
+            }
+            XCTAssertEqual(repositoryName, "RemoteCelestialBodyRepository")
+        }
+
+        XCTAssertThrowsError(try repository.body(id: "earth")) { error in
+            guard case CelestialBodyRepositoryError.notImplemented = error else {
+                return XCTFail("Expected notImplemented, got \(error)")
+            }
+        }
+    }
+
+    func testNASAImageOfTheDayIdentityIsStableForSameSource() throws {
+        let date = try XCTUnwrap(NASAAPODSharedCache.dateFormatter.date(from: "2026-05-21"))
+        let url = try XCTUnwrap(URL(string: "https://example.com/apod.jpg"))
+        let first = NASAImageOfTheDay(
+            title: "APOD",
+            date: date,
+            explanation: "A picture",
+            mediaType: "image",
+            url: url,
+            hdurl: nil,
+            thumbnailURL: nil,
+            copyright: nil
+        )
+        let second = NASAImageOfTheDay(
+            title: "APOD",
+            date: date,
+            explanation: "A picture",
+            mediaType: "image",
+            url: url,
+            hdurl: nil,
+            thumbnailURL: nil,
+            copyright: nil
+        )
+
+        XCTAssertEqual(first.id, second.id)
+    }
+
+    func testNASAAPODClientEndpointIncludesSharedQueryItems() throws {
+        let date = try XCTUnwrap(NASAAPODSharedCache.dateFormatter.date(from: "2026-05-21"))
+        let components = try XCTUnwrap(URLComponents(url: NASAAPODClient.endpoint(date: date), resolvingAgainstBaseURL: false))
+        let query = Dictionary(uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value) })
+
+        XCTAssertEqual(components.scheme, "https")
+        XCTAssertEqual(components.host, "api.nasa.gov")
+        XCTAssertEqual(components.path, "/planetary/apod")
+        XCTAssertEqual(query["api_key"], NASAAPODClient.apiKey)
+        XCTAssertEqual(query["thumbs"], "true")
+        XCTAssertEqual(query["date"], "2026-05-21")
+    }
+
+    func testBodyDetailComputesNestedRelatedBodiesFromFullCatalog() throws {
+        let earth = try XCTUnwrap(Self.bodies.first { $0.id == "earth" })
+        let moon = try XCTUnwrap(Self.bodies.first { $0.id == "moon" })
+        let crater = Self.makeBody(
+            id: "crater",
+            name: "Crater",
+            type: .asteroid,
+            radiusKm: 1,
+            parentBodyId: "moon",
+            displayOrder: 99
+        )
+        let allBodies = Self.bodies + [crater]
+        let view = BodyDetailView(
+            celestialBody: earth,
+            childBodies: [moon],
+            allBodies: allBodies
+        )
+
+        XCTAssertEqual(view.children(of: moon).map(\.id), ["crater"])
+    }
+
+    func testExperienceSceneReadinessOnlyBecomesReadyAfterCallback() {
+        var readiness = ExperienceSceneReadiness()
+
+        XCTAssertFalse(readiness.isReady)
+        readiness.markReady(for: .visual)
+        XCTAssertTrue(readiness.isReady)
+        XCTAssertEqual(readiness.readyMode, .visual)
+        readiness.reset()
+        XCTAssertFalse(readiness.isReady)
     }
 
     private static let bodies: [CelestialBody] = [

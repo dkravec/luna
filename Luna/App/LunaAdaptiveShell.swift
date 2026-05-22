@@ -9,12 +9,10 @@ struct LunaAdaptiveShell: View {
 #else
         if horizontalSizeClass == .regular {
             LunaSidebarShell()
+        } else if #unavailable(iOS 26.0) {
+            LunaCustomTabShell()
         } else {
-            if #available(iOS 26.0, *) {
-                LunaNativeTabShell()
-            } else {
-                LunaCustomTabShell()
-            }
+            LunaNativeTabShell()
         }
 #endif
     }
@@ -33,6 +31,7 @@ private struct LunaNativeTabShell: View {
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
                 }
+                .accessibilityIdentifier("tab.\(tab.rawValue)")
                 .tag(tab)
             }
         }
@@ -49,17 +48,11 @@ private struct LunaCustomTabShell: View {
     @State private var isTabBarExpanded = true
 
     var body: some View {
-        TabView(selection: $appState.selectedTab) {
-            ForEach(LunaTab.allCases) { tab in
-                NavigationStack {
-                    tab.destination
-                }
-                .tabItem {
-                    Label(tab.title, systemImage: tab.systemImage)
-                }
-                .tag(tab)
-                .toolbar(.hidden, for: .tabBar)
-            }
+        ZStack {
+            tabContent(for: .home)
+            tabContent(for: .solarSystem)
+            tabContent(for: .arExperience)
+            tabContent(for: .settings)
         }
         .lunaCustomTabBarBottomReserve()
         .overlay(alignment: .bottom) {
@@ -71,6 +64,27 @@ private struct LunaCustomTabShell: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .guidedTourOverlay(appState: appState)
+    }
+
+    @ViewBuilder
+    private func tabContent(for tab: LunaTab) -> some View {
+        NavigationStack {
+            switch tab {
+            case .home:
+                HomeView()
+            case .solarSystem:
+                ExploreView()
+            case .arExperience:
+                ExperienceView()
+            case .settings:
+                SettingsView()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .opacity(appState.selectedTab == tab ? 1 : 0)
+        .allowsHitTesting(appState.selectedTab == tab)
+        .accessibilityHidden(appState.selectedTab != tab)
+        .accessibilityIdentifier("tab.\(tab.rawValue)")
     }
 }
 #endif
@@ -110,11 +124,32 @@ struct LunaSidebarShell: View {
             .navigationTitle("Luna")
 #endif
         } detail: {
+            sidebarDetail
+        }
+        .id(appState.selectedTab)
+        .guidedTourOverlay(appState: appState)
+    }
+
+    @ViewBuilder
+    private var sidebarDetail: some View {
+        switch appState.selectedTab {
+        case .home:
             NavigationStack {
-                appState.selectedTab.destination
+                HomeView()
+            }
+        case .solarSystem:
+            NavigationStack {
+                ExploreView()
+            }
+        case .arExperience:
+            NavigationStack {
+                ExperienceView()
+            }
+        case .settings:
+            NavigationStack {
+                SettingsView()
             }
         }
-        .guidedTourOverlay(appState: appState)
     }
 }
 
@@ -131,6 +166,7 @@ private struct LunaSidebarButton: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("tab.\(tab.rawValue)")
         .foregroundStyle(selection == tab ? Color.accentColor : Color.primary)
     }
 }
@@ -161,6 +197,7 @@ private struct LunaFloatingTabBar: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(tab.title)
+                    .accessibilityIdentifier("tab.\(tab.rawValue)")
                     .accessibilityAddTraits(selection == tab ? .isSelected : [])
                 }
 
