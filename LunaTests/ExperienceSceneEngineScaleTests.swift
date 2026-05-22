@@ -443,6 +443,33 @@ final class ExperienceSceneEngineScaleTests: XCTestCase {
         XCTAssertLessThanOrEqual(moonScale, 0.88)
     }
 
+    func testTrueScaleSelectedFocusZoomsToInspectablePlanet() throws {
+        let sceneSettings = settings(distance: .trueScale, object: .trueScale)
+        let snapshot = ExperienceSceneEngine.snapshot(for: Self.bodies, settings: sceneSettings)
+        let earth = try body("earth", in: snapshot)
+
+        let earthScale = SolarSystemSceneFocusMetrics.focusedOrthographicScale(
+            for: "earth",
+            in: snapshot,
+            settings: sceneSettings
+        )
+        let visibleDiameterRatio = Double(earth.displayRadius * 2) / earthScale
+
+        XCTAssertLessThan(earthScale, 0.02)
+        XCTAssertGreaterThanOrEqual(visibleDiameterRatio, 0.12)
+    }
+
+    func testSelectedCameraAllowsNearFreePitchAndMoreOrbitDistance() {
+        let limit = VisualSceneSelectedCameraLimit(focusedScale: 2)
+
+        XCTAssertGreaterThan(VisualSceneSelectedCameraMath.clampedPitch(2), 1.5)
+        XCTAssertGreaterThan(limit.maximumDistance, 8)
+    }
+
+    func testInspectionZoomUsesSmallerLabelScale() {
+        XCTAssertLessThan(SolarSystemSceneLabelScale.scale(for: 0.01), 0.01)
+    }
+
     func testSelectedCameraFastTargetUpdatesKeepStableOffset() {
         let limit = VisualSceneSelectedCameraLimit(focusedScale: 2)
         var state = VisualSceneSelectedCameraState(

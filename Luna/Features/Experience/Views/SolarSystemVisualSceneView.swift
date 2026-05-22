@@ -567,7 +567,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
 
         var nextState: VisualSceneSelectedCameraState
         if focusChanged {
-            let idealOffset = SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot)
+            let idealOffset = SolarSystemSceneFocusMetrics.cameraOffset(for: focusedBodyID, in: snapshot, settings: settings)
             nextState = VisualSceneSelectedCameraState(
                 bodyID: focusedBodyID,
                 target: focusCenter,
@@ -770,7 +770,7 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
     }
 
     private func focusedOrthographicScale(for bodyID: String) -> Double {
-        SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: bodyID, in: snapshot)
+        SolarSystemSceneFocusMetrics.focusedOrthographicScale(for: bodyID, in: snapshot, settings: settings)
     }
 
     private func selectedFocusRadius(for bodyID: String) -> Float {
@@ -927,10 +927,11 @@ struct VisualSceneSelectedCameraLimit {
     let maximumDistance: Float
 
     init(focusedScale: Double) {
-        minimumScale = max(0.22, focusedScale * 0.38)
-        maximumScale = max(focusedScale * 3.2, focusedScale + 2.2)
-        minimumDistance = max(Float(focusedScale * 0.62), 0.7)
-        maximumDistance = max(Float(focusedScale * 2.4), minimumDistance + 0.4)
+        let trueScaleInspection = focusedScale < 0.12
+        minimumScale = trueScaleInspection ? max(0.000_45, focusedScale * 0.42) : max(0.22, focusedScale * 0.38)
+        maximumScale = trueScaleInspection ? max(focusedScale * 7.0, focusedScale + 0.03) : max(focusedScale * 3.2, focusedScale + 2.2)
+        minimumDistance = trueScaleInspection ? max(Float(focusedScale * 1.1), 0.006) : max(Float(focusedScale * 0.62), 0.7)
+        maximumDistance = trueScaleInspection ? max(Float(focusedScale * 18.0), minimumDistance + 0.08) : max(Float(focusedScale * 4.2), minimumDistance + 0.9)
     }
 }
 
@@ -1039,7 +1040,7 @@ enum VisualSceneSelectedCameraMath {
     }
 
     static func clampedPitch(_ pitch: Float) -> Float {
-        min(max(pitch, -1.32), 1.32)
+        min(max(pitch, -1.535), 1.535)
     }
 
     static func clampedScale(_ scale: Double, limit: VisualSceneSelectedCameraLimit) -> Double {
@@ -1429,6 +1430,29 @@ struct SolarSystemSceneFocusMetrics {
         return max(0.82, Double(subjectRadius * 4.3))
     }
 
+    static func focusedOrthographicScale(
+        for bodyID: String,
+        in snapshot: ExperienceSceneSnapshot,
+        settings: ExperienceSceneSettings
+    ) -> Double {
+        guard settings.objectScaleMode == .trueScale,
+              let placement = snapshot.bodies.first(where: { $0.id == bodyID }) else {
+            return focusedOrthographicScale(for: bodyID, in: snapshot)
+        }
+
+        let radius = max(Double(placement.displayRadius), 0.000_08)
+        switch placement.body.type {
+        case .star:
+            return max(0.05, radius * 5.8)
+        case .planet:
+            return max(0.0012, radius * 8.4)
+        case .moon, .asteroid, .dwarfPlanet:
+            return max(0.0009, radius * 10.0)
+        case .satellite, .rocket, .spacecraft, .station, .astronaut:
+            return max(0.001, radius * 9.0)
+        }
+    }
+
     static func cameraOffset(for bodyID: String, in snapshot: ExperienceSceneSnapshot) -> SCNVector3 {
         let scale = Float(focusedOrthographicScale(for: bodyID, in: snapshot))
         let bodyPosition = snapshot.bodies.first { $0.id == bodyID }?.position ?? .zero
@@ -1445,6 +1469,34 @@ struct SolarSystemSceneFocusMetrics {
             radial.x * scale * 0.16,
             max(scale * 0.58, 0.86),
             max(scale * 1.18, 1.45) + radial.z * scale * 0.18
+        )
+    }
+
+    static func cameraOffset(
+        for bodyID: String,
+        in snapshot: ExperienceSceneSnapshot,
+        settings: ExperienceSceneSettings
+    ) -> SCNVector3 {
+        guard settings.objectScaleMode == .trueScale else {
+            return cameraOffset(for: bodyID, in: snapshot)
+        }
+
+        let scale = Float(focusedOrthographicScale(for: bodyID, in: snapshot, settings: settings))
+        let bodyPosition = snapshot.bodies.first { $0.id == bodyID }?.position ?? .zero
+        let sunPosition = snapshot.bodies.first { $0.id == "sun" }?.position ?? .zero
+        var radial = bodyPosition - sunPosition
+        radial.y = 0
+        if simd_length_squared(radial) > 0.000_001 {
+            radial = simd_normalize(radial)
+        } else {
+            radial = SIMD3<Float>(1, 0, 0)
+        }
+
+        let minimumDistance = max(scale * 1.4, 0.012)
+        return SCNVector3(
+            radial.x * scale * 0.22,
+            max(scale * 0.66, minimumDistance * 0.46),
+            max(scale * 1.35, minimumDistance) + radial.z * scale * 0.22
         )
     }
 }
@@ -1553,7 +1605,8 @@ struct SolarSystemSceneOrbitRibbon {
 struct SolarSystemSceneLabelScale {
     static func scale(for cameraScale: Double) -> Float {
         let scale = cameraScale * 0.028
-        return Float(min(max(scale, 0.055), 0.28))
+        let minimumScale = cameraScale < 0.12 ? max(cameraScale * 0.08, 0.002) : 0.055
+        return Float(min(max(scale, minimumScale), 0.28))
     }
 
     static func scaleVector(for cameraScale: Double) -> SCNVector3 {
