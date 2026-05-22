@@ -12,6 +12,7 @@ struct LunaImageOfTheDayWidget: Widget {
         .description("See NASA's astronomy picture of the day.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .contentMarginsDisabled()
+        .containerBackgroundRemovable(false)
     }
 }
 
@@ -26,6 +27,7 @@ struct LunaFactOfTheDayWidget: Widget {
         .description("See Luna's daily featured body and space fact.")
         .supportedFamilies([.systemSmall, .systemMedium])
         .contentMarginsDisabled()
+        .containerBackgroundRemovable(false)
     }
 }
 
@@ -40,6 +42,7 @@ struct LunaSolarSystemOverviewWidget: Widget {
         .description("A daily Luna overview of the inner solar system.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .contentMarginsDisabled()
+        .containerBackgroundRemovable(false)
     }
 }
 

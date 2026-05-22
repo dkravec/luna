@@ -77,6 +77,12 @@
 		7A6B140324D4000000000000 /* ExperienceCustomizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B140224D4000000000000 /* ExperienceCustomizationView.swift */; };
 		7A6B140524D4000000000000 /* ScreenshotARPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B140424D4000000000000 /* ScreenshotARPreviewView.swift */; };
 		7A6B140724D4000000000000 /* LunaAppStoreScreenshotUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B140624D4000000000000 /* LunaAppStoreScreenshotUITests.swift */; };
+		7A6B150224D5000000000000 /* LunaWidgetSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B150124D5000000000000 /* LunaWidgetSupport.swift */; };
+		7A6B150324D5000000000000 /* LunaWidgetSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B150124D5000000000000 /* LunaWidgetSupport.swift */; };
+		7A6B150424D5000000000000 /* CelestialBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030224A5000000000000 /* CelestialBody.swift */; };
+		7A6B150524D5000000000000 /* HomeDailyContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B0B0124C1000000000000 /* HomeDailyContentProvider.swift */; };
+		7A6B150624D5000000000000 /* celestial_bodies.json in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B030924A5000000000000 /* celestial_bodies.json */; };
+		7A6B150824D5000000000000 /* LunaWidgetSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B150724D5000000000000 /* LunaWidgetSupportTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -197,6 +203,8 @@
 		7A6B140224D4000000000000 /* ExperienceCustomizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceCustomizationView.swift; sourceTree = "<group>"; };
 		7A6B140424D4000000000000 /* ScreenshotARPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotARPreviewView.swift; sourceTree = "<group>"; };
 		7A6B140624D4000000000000 /* LunaAppStoreScreenshotUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaAppStoreScreenshotUITests.swift; sourceTree = "<group>"; };
+		7A6B150124D5000000000000 /* LunaWidgetSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaWidgetSupport.swift; sourceTree = "<group>"; };
+		7A6B150724D5000000000000 /* LunaWidgetSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaWidgetSupportTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -391,6 +399,7 @@
 				7A6B0A0124C0000000000000 /* ExperienceSceneEngineScaleTests.swift */,
 				7A6B0B0324C1000000000000 /* HomeDailyContentProviderTests.swift */,
 				7A6B110324D0000000000000 /* GuidedTourCoordinatorTests.swift */,
+				7A6B150724D5000000000000 /* LunaWidgetSupportTests.swift */,
 			);
 			path = LunaTests;
 			sourceTree = "<group>";
@@ -555,6 +564,7 @@
 			isa = PBXGroup;
 			children = (
 				7A6B102224A6000000000000 /* UI */,
+				7A6B150024D5000000000000 /* WidgetSupport */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -574,6 +584,14 @@
 				7A6B02B024A3176B00535EA4 /* DesignSystem.swift */,
 			);
 			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		7A6B150024D5000000000000 /* WidgetSupport */ = {
+			isa = PBXGroup;
+			children = (
+				7A6B150124D5000000000000 /* LunaWidgetSupport.swift */,
+			);
+			path = WidgetSupport;
 			sourceTree = "<group>";
 		};
 		7A6B102424A6000000000000 /* Views */ = {
@@ -885,6 +903,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A6B131024D3000000000000 /* WidgetAssets.xcassets in Resources */,
+				7A6B150624D5000000000000 /* celestial_bodies.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -924,6 +943,7 @@
 				7A6B092924B1000000000000 /* NASAImageOfTheDayRepository.swift in Sources */,
 				7A6B090324B0000000000000 /* NASAImageOfTheDayService.swift in Sources */,
 				7A6B090824B0000000000000 /* NASAImageOfTheDayView.swift in Sources */,
+				7A6B150224D5000000000000 /* LunaWidgetSupport.swift in Sources */,
 				7A6B031024A5000000000000 /* AppAppearancePreference.swift in Sources */,
 				7A6B031224A5000000000000 /* UserProfile.swift in Sources */,
 				7A6B031424A5000000000000 /* CelestialBody.swift in Sources */,
@@ -965,6 +985,9 @@
 			files = (
 				7A6B092724B1000000000000 /* NASAAPODSharedCache.swift in Sources */,
 				7A6B091124B0000000000000 /* LunaImageOfTheDayWidget.swift in Sources */,
+				7A6B150424D5000000000000 /* CelestialBody.swift in Sources */,
+				7A6B150524D5000000000000 /* HomeDailyContentProvider.swift in Sources */,
+				7A6B150324D5000000000000 /* LunaWidgetSupport.swift in Sources */,
 				7A6B130224D2000000000000 /* LunaWidgetModels.swift in Sources */,
 				7A6B130424D2000000000000 /* LunaWidgetTimelineProviders.swift in Sources */,
 				7A6B130624D2000000000000 /* LunaWidgetViews.swift in Sources */,
@@ -978,6 +1001,7 @@
 				7A6B0A0224C0000000000000 /* ExperienceSceneEngineScaleTests.swift in Sources */,
 				7A6B0B0424C1000000000000 /* HomeDailyContentProviderTests.swift in Sources */,
 				7A6B110224D0000000000000 /* GuidedTourCoordinatorTests.swift in Sources */,
+				7A6B150824D5000000000000 /* LunaWidgetSupportTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -99,6 +99,8 @@ struct NASAImageTimelineProvider: TimelineProvider {
 }
 
 struct LunaFactTimelineProvider: TimelineProvider {
+    private let logger = Logger(subsystem: "net.novapro.Luna.widget", category: "FactTimeline")
+
     func placeholder(in context: Context) -> LunaFactEntry {
         LunaFactEntry(
             date: Date(),
@@ -111,13 +113,21 @@ struct LunaFactTimelineProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (LunaFactEntry) -> Void) {
-        completion(entry(for: Date()))
+        completion(entry(for: Calendar.current.startOfDay(for: Date())))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<LunaFactEntry>) -> Void) {
-        let now = Date()
-        let nextUpdate = Calendar.current.startOfDay(for: now.addingTimeInterval(86_400))
-        completion(Timeline(entries: [entry(for: now)], policy: .after(nextUpdate)))
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let dayOffsets = [0, 1, 2]
+        let entries = dayOffsets.compactMap { offset -> LunaFactEntry? in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: today) else { return nil }
+            return entry(for: date)
+        }
+        let nextUpdate = calendar.date(byAdding: .day, value: dayOffsets.count, to: today) ?? today.addingTimeInterval(86_400 * 3)
+
+        logger.notice("Fact timeline generated with \(entries.count) entries; next update scheduled for \(nextUpdate.formatted(date: .numeric, time: .standard))")
+        completion(Timeline(entries: entries, policy: .after(nextUpdate)))
     }
 
     private func entry(for date: Date) -> LunaFactEntry {
@@ -126,8 +136,10 @@ struct LunaFactTimelineProvider: TimelineProvider {
 }
 
 struct LunaSolarOverviewTimelineProvider: TimelineProvider {
+    private let source = LunaWidgetContentSource()
+
     func placeholder(in context: Context) -> LunaSolarOverviewEntry {
-        LunaSolarOverviewEntry(date: Date(), bodies: LunaWidgetBody.defaults)
+        LunaSolarOverviewEntry(date: Date(), bodies: source.solarBodies())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (LunaSolarOverviewEntry) -> Void) {
@@ -141,7 +153,7 @@ struct LunaSolarOverviewTimelineProvider: TimelineProvider {
     }
 
     private func entry(for date: Date) -> LunaSolarOverviewEntry {
-        LunaSolarOverviewEntry(date: date, bodies: LunaWidgetBody.defaults)
+        LunaSolarOverviewEntry(date: date, bodies: source.solarBodies())
     }
 }
 
