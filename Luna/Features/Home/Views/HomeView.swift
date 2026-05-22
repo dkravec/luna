@@ -20,7 +20,8 @@ struct HomeView: View {
     }
 
     var body: some View {
-        let offsetDate = Calendar.current.date(byAdding: .day, value: appState.dailyFactOffset, to: Date()) ?? Date()
+        let baseDate = ScreenshotMode.isEnabled ? ScreenshotMode.fixedDate : Date()
+        let offsetDate = Calendar.current.date(byAdding: .day, value: appState.dailyFactOffset, to: baseDate) ?? baseDate
         let dailyContent = dailyContentProvider.content(for: appState.celestialBodies, date: offsetDate)
 
         ScrollViewReader { proxy in
@@ -89,7 +90,7 @@ struct HomeView: View {
 
                 HomeSolarSystemPreview(
                     bodies: appState.celestialBodies,
-                    date: Date()
+                    date: ScreenshotMode.isEnabled ? ScreenshotMode.fixedDate : Date()
                 )
                 .frame(height: 240)
             }
@@ -212,17 +213,17 @@ struct HomeView: View {
     private func scrollForGuidedTourStep(_ step: GuidedTourStep?, proxy: ScrollViewProxy) {
         guard let step else { return }
 
-        let delays: [TimeInterval] = step == .homeExplore ? [0, 0.18, 0.45] : [0]
+        let delays: [TimeInterval] = step == .homeExplore ? [0, 0.05, 0.18, 0.45] : [0]
 
-        for delay in delays {
+        for (index, delay) in delays.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                performGuidedTourScroll(for: step, proxy: proxy)
+                performGuidedTourScroll(for: step, proxy: proxy, animated: index != 0)
             }
         }
     }
 
-    private func performGuidedTourScroll(for step: GuidedTourStep, proxy: ScrollViewProxy) {
-        withAnimation(.easeInOut(duration: 0.25)) {
+    private func performGuidedTourScroll(for step: GuidedTourStep, proxy: ScrollViewProxy, animated: Bool) {
+        let scroll = {
             switch step {
             case .homeWelcome:
                 proxy.scrollTo(ScrollAnchor.overview, anchor: .top)
@@ -231,6 +232,14 @@ struct HomeView: View {
             default:
                 break
             }
+        }
+
+        if animated {
+            withAnimation(.easeInOut(duration: 0.25), scroll)
+        } else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction, scroll)
         }
     }
 

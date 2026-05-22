@@ -33,6 +33,7 @@ private struct LunaNativeTabShell: View {
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
                 }
+                .accessibilityIdentifier("tab.\(tab.rawValue)")
                 .tag(tab)
             }
         }
@@ -57,6 +58,7 @@ private struct LunaCustomTabShell: View {
                 .tabItem {
                     Label(tab.title, systemImage: tab.systemImage)
                 }
+                .accessibilityIdentifier("tab.\(tab.rawValue)")
                 .tag(tab)
                 .toolbar(.hidden, for: .tabBar)
             }
@@ -131,6 +133,7 @@ private struct LunaSidebarButton: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("tab.\(tab.rawValue)")
         .foregroundStyle(selection == tab ? Color.accentColor : Color.primary)
     }
 }
@@ -161,6 +164,7 @@ private struct LunaFloatingTabBar: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(tab.title)
+                    .accessibilityIdentifier("tab.\(tab.rawValue)")
                     .accessibilityAddTraits(selection == tab ? .isSelected : [])
                 }
 

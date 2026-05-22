@@ -19,6 +19,14 @@
           "licenseNote": "Downscaled from Luna's tone-mapped NASA SVS OpenEXR conversion for compact preview scenes. Credit NASA/Goddard SVS and Gaia DR2: ESA/Gaia/DPAC; do not imply NASA endorsement.",
           "sourceURL": "https://svs.gsfc.nasa.gov/4851/",
           "usageURL": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+        },
+        {
+          "name": "Screenshot AR room background",
+          "path": "Assets.xcassets/ScreenshotRoom.imageset/screenshot-room.png",
+          "credit": "Generated for Luna screenshot-safe AR previews.",
+          "licenseNote": "Original generated app asset for DEBUG screenshot mode. Not used as a live camera substitute outside screenshot launch arguments.",
+          "sourceURL": "https://novapro.net",
+          "usageURL": "https://developer.apple.com/help/app-store-connect/manage-app-information/upload-app-previews-and-screenshots/"
         }
       ]
     },

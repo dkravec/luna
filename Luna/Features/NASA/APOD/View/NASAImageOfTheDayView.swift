@@ -44,6 +44,11 @@ struct NASAImageOfTheDayView: View {
 
     @MainActor
     private func loadImageOfTheDay() async {
+        if ScreenshotMode.isEnabled {
+            imageOfTheDayState = .loaded(ScreenshotMode.demoAPOD)
+            return
+        }
+
         do {
             if let cachedItem = try imageOfTheDayRepository.cachedLatest() {
                 imageOfTheDayState = .loaded(cachedItem)
@@ -163,7 +168,7 @@ private struct NASAImageOfTheDayCard: View {
     }
 }
 
-private struct NASAImageOfTheDayDetailView: View {
+struct NASAImageOfTheDayDetailView: View {
     @Environment(\.openURL) private var openURL
 
     let item: NASAImageOfTheDay

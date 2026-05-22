@@ -73,6 +73,10 @@
 		7A6B130624D2000000000000 /* LunaWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B130524D2000000000000 /* LunaWidgetViews.swift */; };
 		7A6B130824D2000000000000 /* TodayInLunaDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B130724D2000000000000 /* TodayInLunaDetailView.swift */; };
 		7A6B131024D3000000000000 /* WidgetAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B130F24D3000000000000 /* WidgetAssets.xcassets */; };
+		7A6B140124D4000000000000 /* ScreenshotMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B140024D4000000000000 /* ScreenshotMode.swift */; };
+		7A6B140324D4000000000000 /* ExperienceCustomizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B140224D4000000000000 /* ExperienceCustomizationView.swift */; };
+		7A6B140524D4000000000000 /* ScreenshotARPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B140424D4000000000000 /* ScreenshotARPreviewView.swift */; };
+		7A6B140724D4000000000000 /* LunaAppStoreScreenshotUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B140624D4000000000000 /* LunaAppStoreScreenshotUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -188,6 +192,10 @@
 		7A6B130524D2000000000000 /* LunaWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaWidgetViews.swift; sourceTree = "<group>"; };
 		7A6B130724D2000000000000 /* TodayInLunaDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayInLunaDetailView.swift; sourceTree = "<group>"; };
 		7A6B130F24D3000000000000 /* WidgetAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = WidgetAssets.xcassets; sourceTree = "<group>"; };
+		7A6B140024D4000000000000 /* ScreenshotMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotMode.swift; sourceTree = "<group>"; };
+		7A6B140224D4000000000000 /* ExperienceCustomizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceCustomizationView.swift; sourceTree = "<group>"; };
+		7A6B140424D4000000000000 /* ScreenshotARPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotARPreviewView.swift; sourceTree = "<group>"; };
+		7A6B140624D4000000000000 /* LunaAppStoreScreenshotUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunaAppStoreScreenshotUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -426,6 +434,7 @@
 		7A6B100924A4000000000000 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				7A6B140024D4000000000000 /* ScreenshotMode.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -607,8 +616,10 @@
 			isa = PBXGroup;
 			children = (
 				7A6B02BC24A317C600535EA4 /* ExperienceView.swift */,
+				7A6B140224D4000000000000 /* ExperienceCustomizationView.swift */,
 				7A6B050324AC000000000000 /* SolarSystemVisualSceneView.swift */,
 				7A6B050624AC000000000000 /* LunaARSceneView.swift */,
+				7A6B140424D4000000000000 /* ScreenshotARPreviewView.swift */,
 				7A6B060924AD000000000000 /* ObjectExperienceView.swift */,
 			);
 			path = Views;
@@ -722,6 +733,7 @@
 			isa = PBXGroup;
 			children = (
 				7A6B120024D1000000000000 /* LunaTourUITests.swift */,
+				7A6B140624D4000000000000 /* LunaAppStoreScreenshotUITests.swift */,
 			);
 			path = LunaUITests;
 			sourceTree = "<group>";
@@ -903,6 +915,7 @@
 				7A6B02B124A3176C00535EA4 /* DesignSystem.swift in Sources */,
 				7A6B02B224A3176C00535EA4 /* GuidedTourOverlay.swift in Sources */,
 				7A6B110024D0000000000000 /* GuidedTourCoordinator.swift in Sources */,
+				7A6B140124D4000000000000 /* ScreenshotMode.swift in Sources */,
 				7A6B02B424A317B100535EA4 /* LunaPersistenceController.swift in Sources */,
 				7A6B080124AF000000000000 /* SceneBackgroundTexture.swift in Sources */,
 				7A6B090124B0000000000000 /* NASAImageOfTheDay.swift in Sources */,
@@ -927,6 +940,7 @@
 				7A6B130824D2000000000000 /* TodayInLunaDetailView.swift in Sources */,
 				7A6B02BA24A317C600535EA4 /* ExploreView.swift in Sources */,
 				7A6B02BE24A317C600535EA4 /* ExperienceView.swift in Sources */,
+				7A6B140324D4000000000000 /* ExperienceCustomizationView.swift in Sources */,
 				658130212FB9D1A0009C58AA /* AppIconSettingsView.swift in Sources */,
 				7A6B02C024A317C600535EA4 /* SettingsView.swift in Sources */,
 				7A6B033224A7000000000000 /* OnboardingViewModel.swift in Sources */,
@@ -937,6 +951,7 @@
 				7A6B050224AC000000000000 /* BundledSceneModelLoader.swift in Sources */,
 				7A6B050424AC000000000000 /* SolarSystemVisualSceneView.swift in Sources */,
 				7A6B050724AC000000000000 /* LunaARSceneView.swift in Sources */,
+				7A6B140524D4000000000000 /* ScreenshotARPreviewView.swift in Sources */,
 				7A6B060A24AD000000000000 /* ObjectExperienceView.swift in Sources */,
 				7A6B060D24AD000000000000 /* ExperienceScaleAudit.swift in Sources */,
 				7A6B051124AC100000000000 /* BodyPreviewSceneView.swift in Sources */,
@@ -970,6 +985,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7A6B120124D1000000000000 /* LunaTourUITests.swift in Sources */,
+				7A6B140724D4000000000000 /* LunaAppStoreScreenshotUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

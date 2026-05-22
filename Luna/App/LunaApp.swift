@@ -79,6 +79,7 @@ final class LunaAppState: ObservableObject {
         configureGuidedTour()
         loadCelestialBodies()
         configureForUITestingIfNeeded()
+        configureForScreenshotModeIfNeeded()
 
         if userProfile.hasCompletedOnboarding && !userProfile.hasCompletedFirstRunTour {
             restoreOrStartFirstRunTour()
@@ -336,9 +337,52 @@ final class LunaAppState: ObservableObject {
                 saveUserProfile()
             }
 
+            if arguments.contains("-suppressTour") {
+                guidedTour.cancel()
+                userProfile.hasCompletedFirstRunTour = true
+                clearPersistedGuidedTourStep()
+                saveUserProfile()
+            }
+
+            if arguments.contains("-openSettings") {
+                selectedTab = .settings
+            }
+
             lastRepositoryError = nil
         } catch {
             lastRepositoryError = error.localizedDescription
+        }
+    }
+
+    private func configureForScreenshotModeIfNeeded() {
+        guard ScreenshotMode.isEnabled else { return }
+
+        guidedTour.cancel()
+        userProfile.displayName = "Luna"
+        userProfile.hasCompletedOnboarding = true
+        userProfile.hasCompletedFirstRunTour = true
+        appearancePreference = .dark
+        userProfile.appearancePreference = .dark
+        dailyFactOffset = 0
+
+        experiencePreferences.prefersARMode = ScreenshotMode.screen == .arPlacement
+        experiencePreferences.sceneScaleProfile = .scaledRecommended
+        experiencePreferences.distanceScaleMode = .compressed
+        experiencePreferences.objectScaleMode = .relative
+        experiencePreferences.distanceCompression = 18
+        experiencePreferences.renderDetail = .balanced
+        experiencePreferences.orbitPlaybackSpeed = .standard
+        experiencePreferences.objectRotationSpeed = .slow
+        experiencePreferences.showLabels = true
+        experiencePreferences.showOrbits = true
+
+        switch ScreenshotMode.screen {
+        case .exploreLibrary:
+            selectedTab = .solarSystem
+        case .arPlacement, .sceneExperience, .scaleControls:
+            selectedTab = .arExperience
+        case .home, .apod, .objectDetail, .macMainWindow, .none:
+            selectedTab = .home
         }
     }
 

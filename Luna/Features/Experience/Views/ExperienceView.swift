@@ -81,6 +81,9 @@ struct ExperienceView: View {
             if appState.celestialBodies.isEmpty {
                 appState.loadCelestialBodies()
             }
+            if ScreenshotMode.isEnabled {
+                currentSimulationDate = ScreenshotMode.fixedDate
+            }
             initializePreferredModeIfNeeded()
         }
         .onDisappear {
@@ -151,8 +154,19 @@ struct ExperienceView: View {
     @ViewBuilder
     private func sceneContent(simulationDate: Date) -> some View {
 #if os(iOS)
-        
-        if isAREnabled, canUseAR {
+
+        if ScreenshotMode.screen == .arPlacement {
+            ScreenshotARPreviewView(
+                bodies: appState.celestialBodies,
+                settings: ExperienceSceneSettings(isAREnabled: true, preferences: appState.experiencePreferences),
+                simulationDate: simulationDate
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onAppear {
+                arPlacementState = .ready
+                markSceneReady(for: .ar)
+            }
+        } else if isAREnabled, canUseAR {
             LunaARSceneView(
                 bodies: appState.celestialBodies,
                 settings: settings,
@@ -367,19 +381,26 @@ struct ExperienceView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                    viewModeSection
-                    SceneScaleProfileOptionsView(sceneScaleProfile: sceneScaleProfileBinding)
-                    if appState.experiencePreferences.sceneScaleProfile == .custom {
-                        DistanceScaleOptionsView(
-                            distanceScaleMode: distanceScaleModeBinding,
-                            distanceCompression: distanceCompressionBinding
-                        )
-                        ObjectScaleOptionsView(objectScaleMode: objectScaleModeBinding)
-                    }
+                    ExperienceCustomizationView(
+                        canUseAR: canUseAR,
+                        liveMode: Binding(get: { isAREnabled }, set: { setSceneMode(isAR: $0) }),
+                        sceneScaleProfile: sceneScaleProfileBinding,
+                        distanceScaleMode: distanceScaleModeBinding,
+                        objectScaleMode: objectScaleModeBinding,
+                        distanceCompression: distanceCompressionBinding,
+                        renderDetail: renderDetailBinding,
+                        showLabels: showLabelsBinding,
+                        showOrbits: showOrbitsBinding,
+                        setSceneMode: setSceneMode
+                    )
                     simulationDateSection
                     orbitPlaybackSection
                     objectRotationSection
-                    sceneOptionsSection
+#if os(iOS)
+                    if LunaDebug.isEnabled, !ScreenshotMode.isEnabled, isAREnabled, canUseAR {
+                        arDebugSection
+                    }
+#endif
                 }
                 .padding(.horizontal, Spacing.screenHorizontal)
                 .padding(.top, 12)
@@ -400,102 +421,25 @@ struct ExperienceView: View {
         }
     }
 
-    private var viewModeSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "View Mode")
-
-            CardSection {
-                SelectionRow(
-                    title: "AR",
-                    subtitle: canUseAR ? "Place scaled bodies in your space." : "AR is not available on this device.",
-                    systemImage: "arkit",
-                    value: canUseAR ? nil : "Unavailable",
-                    isSelected: isAREnabled
-                ) {
-                    setSceneMode(isAR: true)
-                }
-                .disabled(!canUseAR)
-
-                CardDivider(leadingInset: 56)
-
-                SelectionRow(
-                    title: "Visual",
-                    subtitle: "Use the same scene controls without AR.",
-                    systemImage: "cube.transparent",
-                    isSelected: !isAREnabled
-                ) {
-                    setSceneMode(isAR: false)
-                }
-            }
-        }
-    }
-
-    private var sceneOptionsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Scene")
-
-            CardSection {
-                CardRow {
-                    Toggle(
-                        isOn: Binding(
-                            get: { appState.experiencePreferences.showLabels },
-                            set: { setShowLabels($0) }
-                        )
-                    ) {
-                        RowLabel(
-                            title: "Labels",
-                            subtitle: "Show body names in visual scenes.",
-                            systemImage: "tag"
-                        )
-                    }
-                }
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    Toggle(
-                        isOn: Binding(
-                            get: { appState.experiencePreferences.showOrbits },
-                            set: { setShowOrbits($0) }
-                        )
-                    ) {
-                        RowLabel(
-                            title: "Orbit Guides",
-                            subtitle: "Show subtle distance guides in visual mode.",
-                            systemImage: "circle.dashed"
-                        )
-                    }
-                }
-
-                CardDivider(leadingInset: 56)
-
-                CardRow {
-                    Picker("Render Detail", selection: renderDetailBinding) {
-                        ForEach(SceneRenderDetail.allCases) { detail in
-                            Text(detail.title).tag(detail)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-
 #if os(iOS)
-                if LunaDebug.isEnabled, isAREnabled, canUseAR {
-                    CardDivider(leadingInset: 56)
+    private var arDebugSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "Debug")
 
-                    CardRow {
-                        Toggle(isOn: $showsARDebugSurfaces) {
-                            RowLabel(
-                                title: "AR Surface Debug",
-                                subtitle: "Show detected planes, anchor origins, and feature points.",
-                                systemImage: "viewfinder"
-                            )
-                        }
+            CardSection {
+                CardRow {
+                    Toggle(isOn: $showsARDebugSurfaces) {
+                        RowLabel(
+                            title: "AR Surface Debug",
+                            subtitle: "Show detected planes, anchor origins, and feature points.",
+                            systemImage: "viewfinder"
+                        )
                     }
                 }
-#endif
             }
         }
     }
+#endif
 
     private var orbitPlaybackSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -658,7 +602,7 @@ struct ExperienceView: View {
     private func initializePreferredModeIfNeeded() {
         guard !hasInitializedMode else { return }
 
-        isAREnabled = canUseAR && appState.experiencePreferences.prefersARMode
+        isAREnabled = ScreenshotMode.screen == .arPlacement || (canUseAR && appState.experiencePreferences.prefersARMode)
         hasInitializedMode = true
     }
 
@@ -772,6 +716,20 @@ struct ExperienceView: View {
         Binding(
             get: { appState.experiencePreferences.renderDetail },
             set: { appState.setRenderDetail($0) }
+        )
+    }
+
+    private var showLabelsBinding: Binding<Bool> {
+        Binding(
+            get: { appState.experiencePreferences.showLabels },
+            set: { setShowLabels($0) }
+        )
+    }
+
+    private var showOrbitsBinding: Binding<Bool> {
+        Binding(
+            get: { appState.experiencePreferences.showOrbits },
+            set: { setShowOrbits($0) }
         )
     }
 }
