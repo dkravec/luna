@@ -2,3 +2,6 @@
 /AppStoreScreenshots/raw
 /AppStoreScreenshots/results
 /Configuration/NASAAPIKey.local.xcconfig
+
+*.xcuserstate
+xcuserdata/

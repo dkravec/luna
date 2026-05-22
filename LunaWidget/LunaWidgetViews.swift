@@ -100,33 +100,41 @@ struct NASAImageWidgetView: View {
 
     @ViewBuilder
     private var image: some View {
-        if let imageData = entry.imageData {
+        if let image = cachedImage() {
 #if os(iOS)
-            if let image = UIImage(data: imageData) {
-                Image(uiImage: image)
-                    .resizable()
-                    .lunaWidgetFullColorImage()
-                    .scaledToFill()
-            } else {
-                placeholder
-            }
+            Image(uiImage: image)
+                .resizable()
+                .lunaWidgetFullColorImage()
+                .scaledToFill()
 #elseif os(macOS)
-            if let image = NSImage(data: imageData) {
-                Image(nsImage: image)
-                    .resizable()
-                    .lunaWidgetFullColorImage()
-                    .scaledToFill()
-            } else {
-                placeholder
-            }
+            Image(nsImage: image)
+                .resizable()
+                .lunaWidgetFullColorImage()
+                .scaledToFill()
 #else
             placeholder
 #endif
+
         } else {
             placeholder
         }
     }
 
+    private func cachedImage() -> PlatformWidgetImage? {
+        guard let imageFilename = entry.imageFilename else {
+            return nil
+        }
+
+        let cache = NASAAPODSharedCache()
+        let imageURL = cache.imageFileURL(forFilename: imageFilename)
+
+    #if os(iOS)
+        return UIImage(contentsOfFile: imageURL.path)
+    #elseif os(macOS)
+        return NSImage(contentsOf: imageURL)
+    #endif
+    }
+    
     private var placeholder: some View {
         ZStack {
             LunaWidgetSpaceBackground()

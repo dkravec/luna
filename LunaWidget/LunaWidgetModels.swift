@@ -10,7 +10,7 @@ struct NASAImageEntry: TimelineEntry {
     let date: Date
     let title: String
     let subtitle: String
-    let imageData: Data?
+    let imageFilename: String?
 }
 
 struct LunaFactEntry: TimelineEntry {

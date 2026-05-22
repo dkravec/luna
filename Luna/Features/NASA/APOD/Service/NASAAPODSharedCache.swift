@@ -148,6 +148,10 @@ struct NASAAPODSharedCache {
         return fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
     }
 
+    func imageFileURL(forFilename filename: String) -> URL {
+        imagesDirectoryURL.appendingPathComponent(filename)
+    }
+    
     static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)

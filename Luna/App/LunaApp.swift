@@ -54,6 +54,10 @@ final class LunaAppState: ObservableObject {
         celestialBodyRepository: CelestialBodyRepository = LocalCelestialBodyRepository(),
         guidedTour: GuidedTourCoordinator = GuidedTourCoordinator()
     ) {
+        // Task {
+        //     try? NASAAPODSharedCache().clear()
+        //     WidgetCenter.shared.reloadAllTimelines()
+        // }
         self.userProfileRepository = userProfileRepository
         self.experiencePreferencesRepository = experiencePreferencesRepository
         self.celestialBodyRepository = celestialBodyRepository

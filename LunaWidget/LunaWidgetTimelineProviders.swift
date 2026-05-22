@@ -20,7 +20,7 @@ struct NASAImageTimelineProvider: TimelineProvider {
             date: Date(),
             title: "Astronomy Image",
             subtitle: "Astronomy Picture of the Day",
-            imageData: nil
+            imageFilename: nil
         )
     }
 
@@ -47,24 +47,33 @@ struct NASAImageTimelineProvider: TimelineProvider {
             date: Date(),
             title: "A Spiral Galaxy In Moonlight",
             subtitle: "Astronomy Picture of the Day",
-            imageData: previewImageData()
+            imageFilename: nil
         )
     }
 
-    private func previewImageData() -> Data? {
-#if os(iOS)
-        if let image = UIImage(named: "WidgetStarfield") {
-            return image.pngData()
+    #if os(iOS)
+    private static func widgetSafeJPEGData(from data: Data, maxPixel: CGFloat = 600) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+
+        let maxDimension = max(image.size.width, image.size.height)
+        let scaleFactor = maxDimension > maxPixel ? maxPixel / maxDimension : 1
+
+        let targetSize = CGSize(
+            width: floor(image.size.width * scaleFactor),
+            height: floor(image.size.height * scaleFactor)
+        )
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+        let resized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
-#elseif os(macOS)
-        if let image = NSImage(named: "WidgetStarfield"),
-           let tiffData = image.tiffRepresentation,
-           let bitmap = NSBitmapImageRep(data: tiffData) {
-            return bitmap.representation(using: .png, properties: [:])
-        }
-#endif
-        return nil
+
+        return resized.jpegData(compressionQuality: 0.78)
     }
+    #endif
 
     private func fetchEntry() async -> NASAImageEntry {
         if let cachedEntry = entryFromSharedCache() {
@@ -73,24 +82,28 @@ struct NASAImageTimelineProvider: TimelineProvider {
 
         do {
             let item = try await NASAImageFetcher.fetch()
-            let imageData: Data?
             var imageFilename: String?
 
             if let imageURL = item.imageURL {
                 do {
                     let fetchedImageData = try await NASAImageFetcher.fetchImageData(from: imageURL)
+
                     let imageFileURL = sharedCache.imageFileURL(forDateString: item.dateString)
                     try sharedCache.createCacheDirectoriesIfNeeded()
+
+                    #if os(iOS)
+                    let widgetImageData = Self.widgetSafeJPEGData(from: fetchedImageData) ?? fetchedImageData
+                    try widgetImageData.write(to: imageFileURL, options: .atomic)
+                    #else
                     try fetchedImageData.write(to: imageFileURL, options: .atomic)
-                    imageData = fetchedImageData
+                    #endif
+
                     imageFilename = imageFileURL.lastPathComponent
                 } catch {
                     logger.error("APOD widget image fetch/cache failed: \(error.localizedDescription, privacy: .public)")
-                    imageData = nil
                 }
             } else {
                 logger.notice("APOD widget payload did not include an image URL")
-                imageData = nil
             }
 
             let record = item.sharedRecord(imageFilename: imageFilename)
@@ -105,7 +118,7 @@ struct NASAImageTimelineProvider: TimelineProvider {
                 date: Date(),
                 title: item.title,
                 subtitle: item.subtitle,
-                imageData: imageData
+                imageFilename: imageFilename
             )
         } catch {
             logger.error("APOD widget timeline fetch failed: \(error.localizedDescription, privacy: .public)")
@@ -113,24 +126,24 @@ struct NASAImageTimelineProvider: TimelineProvider {
                 date: Date(),
                 title: "NASA Image",
                 subtitle: "Check back soon",
-                imageData: nil
+                imageFilename: nil
             )
         }
     }
 
     private func entryFromSharedCache() -> NASAImageEntry? {
         guard let record = sharedCache.readLatest() else { return nil }
-        let imageURL = sharedCache.imageFileURL(forDateString: record.dateString)
-        let imageData = try? Data(contentsOf: imageURL)
-        if record.imageFilename != nil, imageData == nil {
-            logger.notice("APOD widget shared cache metadata exists but cached image is missing")
-        }
+        // let imageURL = sharedCache.imageFileURL(forDateString: record.dateString)
+        // let imageData = try? Data(contentsOf: imageURL)
+        // if record.imageFilename != nil {
+        //     logger.notice("APOD widget shared cache metadata exists but cached image is missing")
+        // }
 
         return NASAImageEntry(
             date: NASAAPODSharedCache.dateFormatter.date(from: record.dateString) ?? Date(),
             title: record.title,
             subtitle: record.mediaType == "image" ? "Astronomy Picture of the Day" : "NASA Feature",
-            imageData: imageData
+            imageFilename: record.imageFilename
         )
     }
 }
