@@ -112,11 +112,32 @@ struct LunaSidebarShell: View {
             .navigationTitle("Luna")
 #endif
         } detail: {
+            sidebarDetail
+        }
+        .id(appState.selectedTab)
+        .guidedTourOverlay(appState: appState)
+    }
+
+    @ViewBuilder
+    private var sidebarDetail: some View {
+        switch appState.selectedTab {
+        case .home:
             NavigationStack {
-                appState.selectedTab.destination
+                HomeView()
+            }
+        case .solarSystem:
+            NavigationStack {
+                ExploreView()
+            }
+        case .arExperience:
+            NavigationStack {
+                ExperienceView()
+            }
+        case .settings:
+            NavigationStack {
+                SettingsView()
             }
         }
-        .guidedTourOverlay(appState: appState)
     }
 }
 

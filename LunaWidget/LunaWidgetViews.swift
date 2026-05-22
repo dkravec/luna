@@ -19,11 +19,11 @@ struct NASAImageWidgetView: View {
                         .frame(width: proxy.size.width, height: proxy.size.height)
                         .clipped()
 
-                    LinearGradient(
-                        colors: [.clear, .black.opacity(0.2), .black.opacity(0.86)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+                    // LinearGradient(
+                    //     // colors: [.clear, .black.opacity(0.2), .black.opacity(0.86)],
+                    //     startPoint: .top,
+                    //     endPoint: .bottom
+                    // )
 
                     textBlock
                         .padding(.horizontal, horizontalPadding)
@@ -147,26 +147,53 @@ struct LunaFactWidgetView: View {
             ZStack(alignment: .topLeading) {
                 LunaWidgetSpaceBackground()
 
-                VStack(alignment: .leading, spacing: family == .systemSmall ? 8 : 12) {
-                    HStack(alignment: .center, spacing: 10) {
-                        LunaWidgetBodyVisual(
-                            textureAssetName: entry.textureAssetName,
-                            fallbackName: entry.bodyName,
-                            hasRings: entry.hasRings,
-                            size: family == .systemSmall ? 36 : 44
-                        )
+                VStack(alignment: .leading, spacing: family == .systemSmall ? 10 : 12) {
+                    if family == .systemSmall {
+                        VStack(alignment: .leading, spacing: 8) {
+                            LunaWidgetBodyVisual(
+                                textureAssetName: entry.textureAssetName,
+                                fallbackName: entry.bodyName,
+                                hasRings: entry.hasRings,
+                                size: 34
+                            )
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.bodyName)
-                                .font(family == .systemSmall ? .headline.weight(.bold) : .title3.weight(.bold))
-                                .foregroundStyle(.white.opacity(0.92))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.78)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(entry.bodyName)
+                                    .font(.headline.weight(.bold))
+                                    .foregroundStyle(.white.opacity(0.92))
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
 
-                            Text(entry.bodyType)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.58))
-                                .lineLimit(1)
+                                Text(entry.bodyType)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white.opacity(0.58))
+                                    .lineLimit(1)
+                            }
+                        }
+                    } else {
+                        HStack(alignment: .top, spacing: 10) {
+                            LunaWidgetBodyVisual(
+                                textureAssetName: entry.textureAssetName,
+                                fallbackName: entry.bodyName,
+                                hasRings: entry.hasRings,
+                                size: 44
+                            )
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(entry.bodyName)
+                                    .font(.title3.weight(.bold))
+                                    .foregroundStyle(.white.opacity(0.92))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.78)
+
+                                Text(entry.bodyType)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white.opacity(0.58))
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .layoutPriority(1)
                         }
                     }
 
@@ -174,7 +201,8 @@ struct LunaFactWidgetView: View {
                         .font(family == .systemSmall ? .caption.weight(.semibold) : .headline.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.82))
                         .lineLimit(family == .systemSmall ? 4 : 5)
-                        .minimumScaleFactor(0.78)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(family == .systemSmall ? 14 : 18)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -191,22 +219,28 @@ struct LunaSolarOverviewWidgetView: View {
     var body: some View {
         LunaWidgetContainer {
             GeometryReader { proxy in
-                ZStack(alignment: .bottomLeading) {
+                ZStack(alignment: .topLeading) {
                     LunaWidgetSpaceBackground()
 
                     LunaWidgetOrbitView(bodies: entry.bodies)
-                        .padding(family == .systemSmall ? 14 : 22)
+                        .padding(.top, family == .systemSmall ? 34 : 40)
+                        .padding(.horizontal, family == .systemSmall ? 14 : 22)
+                        .padding(.bottom, family == .systemSmall ? 14 : 22)
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Solar System")
                             .font(family == .systemSmall ? .caption.weight(.bold) : .headline.weight(.bold))
                             .foregroundStyle(.white.opacity(0.90))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
 
                         Text(entry.date, format: .dateTime.month(.abbreviated).day())
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.58))
+                            .lineLimit(1)
                     }
-                    .padding(family == .systemSmall ? 12 : 16)
+                    .padding(.horizontal, family == .systemSmall ? 12 : 16)
+                    .padding(.top, family == .systemSmall ? 12 : 16)
                     .frame(width: proxy.size.width, alignment: .leading)
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
@@ -275,7 +309,7 @@ private struct LunaWidgetOrbitView: View {
 struct LunaWidgetSpaceBackground: View {
     var body: some View {
         ZStack {
-            Color(red: 0.012, green: 0.013, blue: 0.020)
+            // Color(red: 0.012, green: 0.013, blue: 0.020)
 
             Image("WidgetStarfield")
                 .resizable()
@@ -424,9 +458,9 @@ private struct LunaWidgetContainer<Content: View>: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(red: 0.012, green: 0.013, blue: 0.020))
             .widgetAccentable(false)
             .lunaWidgetBackground()
+
     }
 }
 
@@ -435,10 +469,10 @@ private extension View {
     func lunaWidgetBackground() -> some View {
         if #available(iOSApplicationExtension 17.0, macOSApplicationExtension 14.0, *) {
             containerBackground(for: .widget) {
-                Color(red: 0.012, green: 0.013, blue: 0.020)
+                Color.clear
             }
         } else {
-            background(Color.black)
+            background(Color.clear)
         }
     }
 
