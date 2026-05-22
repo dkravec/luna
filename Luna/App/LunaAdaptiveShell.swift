@@ -9,12 +9,10 @@ struct LunaAdaptiveShell: View {
 #else
         if horizontalSizeClass == .regular {
             LunaSidebarShell()
+        } else if #unavailable(iOS 26.0) {
+            LunaCustomTabShell()
         } else {
-            if #available(iOS 26.0, *) {
-                LunaNativeTabShell()
-            } else {
-                LunaCustomTabShell()
-            }
+            LunaNativeTabShell()
         }
 #endif
     }
@@ -50,18 +48,11 @@ private struct LunaCustomTabShell: View {
     @State private var isTabBarExpanded = true
 
     var body: some View {
-        TabView(selection: $appState.selectedTab) {
-            ForEach(LunaTab.allCases) { tab in
-                NavigationStack {
-                    tab.destination
-                }
-                .tabItem {
-                    Label(tab.title, systemImage: tab.systemImage)
-                }
-                .accessibilityIdentifier("tab.\(tab.rawValue)")
-                .tag(tab)
-                .toolbar(.hidden, for: .tabBar)
-            }
+        ZStack {
+            tabContent(for: .home)
+            tabContent(for: .solarSystem)
+            tabContent(for: .arExperience)
+            tabContent(for: .settings)
         }
         .lunaCustomTabBarBottomReserve()
         .overlay(alignment: .bottom) {
@@ -73,6 +64,27 @@ private struct LunaCustomTabShell: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .guidedTourOverlay(appState: appState)
+    }
+
+    @ViewBuilder
+    private func tabContent(for tab: LunaTab) -> some View {
+        NavigationStack {
+            switch tab {
+            case .home:
+                HomeView()
+            case .solarSystem:
+                ExploreView()
+            case .arExperience:
+                ExperienceView()
+            case .settings:
+                SettingsView()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .opacity(appState.selectedTab == tab ? 1 : 0)
+        .allowsHitTesting(appState.selectedTab == tab)
+        .accessibilityHidden(appState.selectedTab != tab)
+        .accessibilityIdentifier("tab.\(tab.rawValue)")
     }
 }
 #endif

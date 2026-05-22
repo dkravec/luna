@@ -1,6 +1,9 @@
 import CoreGraphics
 import Foundation
+import os
 import simd
+
+private let widgetSupportLogger = Logger(subsystem: "net.novapro.Luna.widget", category: "FactSupport")
 
 struct LunaWidgetFactContent: Equatable {
     let date: Date
@@ -203,11 +206,25 @@ struct LunaWidgetCatalogLoader {
     var decoder = JSONDecoder()
 
     func loadBodies() -> [CelestialBody] {
-        guard let url = bundle.url(forResource: resourceName, withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let bodies = try? decoder.decode([CelestialBody].self, from: data) else {
+        let bundleIdentifier = bundle.bundleIdentifier ?? "unknown"
+        let bundlePath = bundle.bundleURL.path
+
+        guard let url = bundle.url(forResource: resourceName, withExtension: "json") else {
+            widgetSupportLogger.error("Missing catalog resource in bundle \(bundleIdentifier, privacy: .public) at \(bundlePath, privacy: .public)")
             return []
         }
+
+        guard let data = try? Data(contentsOf: url) else {
+            widgetSupportLogger.error("Unable to read catalog data from \(url.path, privacy: .public)")
+            return []
+        }
+
+        guard let bodies = try? decoder.decode([CelestialBody].self, from: data) else {
+            widgetSupportLogger.error("Unable to decode catalog JSON from \(url.lastPathComponent, privacy: .public) in \(bundleIdentifier, privacy: .public)")
+            return []
+        }
+
+        widgetSupportLogger.notice("Loaded \(bodies.count, privacy: .public) bodies from \(url.lastPathComponent, privacy: .public) in \(bundleIdentifier, privacy: .public)")
 
         return bodies.sorted { lhs, rhs in
             if lhs.displayOrder == rhs.displayOrder {
@@ -227,7 +244,10 @@ struct LunaWidgetContentSource {
         let bodies = catalogLoader.loadBodies()
         let provider = HomeDailyContentProvider(calendar: calendar)
 
+        widgetSupportLogger.notice("Building fact content for \(date.formatted(date: .numeric, time: .standard), privacy: .public) with \(bodies.count, privacy: .public) catalog bodies")
+
         guard let featuredBody = provider.featuredBody(from: bodies, date: date) else {
+            widgetSupportLogger.error("No featured body could be selected; using Moon fallback content")
             return LunaWidgetFactContent(
                 date: date,
                 body: Self.fallbackBody,
@@ -236,6 +256,7 @@ struct LunaWidgetContentSource {
         }
 
         let fact = provider.dailyFact(featuredBody: featuredBody, bodies: bodies, date: date)
+        widgetSupportLogger.notice("Selected featured body \(featuredBody.id, privacy: .public) / \(featuredBody.name, privacy: .public); fact=\(fact.message, privacy: .public)")
         return LunaWidgetFactContent(
             date: date,
             body: LunaWidgetBodySnapshot(body: featuredBody),
@@ -248,7 +269,10 @@ struct LunaWidgetContentSource {
     }
 
     func solarCelestialBodies() -> [CelestialBody] {
-        catalogLoader.loadBodies()
+        let bodies = catalogLoader.loadBodies()
+        widgetSupportLogger.notice("Loaded \(bodies.count, privacy: .public) solar bodies for widget overview")
+
+        return bodies
             .filter { body in
                 switch body.type {
                 case .star, .planet, .moon, .asteroid, .dwarfPlanet:

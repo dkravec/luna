@@ -1,13 +1,22 @@
 import Foundation
 import os
 import WidgetKit
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 struct NASAImageTimelineProvider: TimelineProvider {
     private let sharedCache = NASAAPODSharedCache()
     private let logger = Logger(subsystem: "net.novapro.Luna.widget", category: "APOD")
 
     func placeholder(in context: Context) -> NASAImageEntry {
-        NASAImageEntry(
+        if context.isPreview {
+            return previewEntry()
+        }
+
+        return NASAImageEntry(
             date: Date(),
             title: "Astronomy Image",
             subtitle: "Astronomy Picture of the Day",
@@ -17,16 +26,44 @@ struct NASAImageTimelineProvider: TimelineProvider {
 
     func getSnapshot(in context: Context, completion: @escaping (NASAImageEntry) -> Void) {
         Task {
-            completion(await fetchEntry())
+            if context.isPreview {
+                completion(previewEntry())
+            } else {
+                completion(await fetchEntry())
+            }
         }
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<NASAImageEntry>) -> Void) {
         Task {
-            let entry = await fetchEntry()
+            let entry = context.isPreview ? previewEntry() : await fetchEntry()
             let nextUpdate = Calendar.current.date(byAdding: .hour, value: 6, to: Date()) ?? Date().addingTimeInterval(21_600)
             completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
         }
+    }
+
+    private func previewEntry() -> NASAImageEntry {
+        NASAImageEntry(
+            date: Date(),
+            title: "A Spiral Galaxy In Moonlight",
+            subtitle: "Astronomy Picture of the Day",
+            imageData: previewImageData()
+        )
+    }
+
+    private func previewImageData() -> Data? {
+#if os(iOS)
+        if let image = UIImage(named: "WidgetStarfield") {
+            return image.pngData()
+        }
+#elseif os(macOS)
+        if let image = NSImage(named: "WidgetStarfield"),
+           let tiffData = image.tiffRepresentation,
+           let bitmap = NSBitmapImageRep(data: tiffData) {
+            return bitmap.representation(using: .png, properties: [:])
+        }
+#endif
+        return nil
     }
 
     private func fetchEntry() async -> NASAImageEntry {
@@ -102,7 +139,8 @@ struct LunaFactTimelineProvider: TimelineProvider {
     private let logger = Logger(subsystem: "net.novapro.Luna.widget", category: "FactTimeline")
 
     func placeholder(in context: Context) -> LunaFactEntry {
-        LunaFactEntry(
+        logger.notice("Placeholder requested; preview=\(context.isPreview, privacy: .public)")
+        return LunaFactEntry(
             date: Date(),
             bodyName: "Moon",
             bodyType: "Moon",
@@ -114,25 +152,24 @@ struct LunaFactTimelineProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (LunaFactEntry) -> Void) {
-        completion(entry(for: Calendar.current.startOfDay(for: Date())))
+        logger.notice("Snapshot requested; preview=\(context.isPreview, privacy: .public)")
+        completion(latestEntry(source: "snapshot"))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<LunaFactEntry>) -> Void) {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let dayOffsets = [0, 1, 2]
-        let entries = dayOffsets.compactMap { offset -> LunaFactEntry? in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: today) else { return nil }
-            return entry(for: date)
-        }
-        let nextUpdate = calendar.date(byAdding: .day, value: dayOffsets.count, to: today) ?? today.addingTimeInterval(86_400 * 3)
+        let entry = latestEntry(source: "timeline")
+        let nextUpdate = Calendar.current.date(byAdding: .day, value: 1, to: entry.date) ?? entry.date.addingTimeInterval(86_400)
 
-        logger.notice("Fact timeline generated with \(entries.count) entries; next update scheduled for \(nextUpdate.formatted(date: .numeric, time: .standard))")
-        completion(Timeline(entries: entries, policy: .after(nextUpdate)))
+        logger.notice("Timeline requested; preview=\(context.isPreview, privacy: .public); generated 1 entry for body=\(entry.bodyName, privacy: .public) type=\(entry.bodyType, privacy: .public); next update scheduled for \(nextUpdate.formatted(date: .numeric, time: .standard), privacy: .public)")
+        completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
     }
 
-    private func entry(for date: Date) -> LunaFactEntry {
-        LunaWidgetDailyContentProvider().content(for: date)
+    private func latestEntry(source: String) -> LunaFactEntry {
+        let date = Calendar.current.startOfDay(for: Date())
+        logger.notice("Generating \(source, privacy: .public) entry for \(date.formatted(date: .numeric, time: .standard), privacy: .public)")
+        let entry = LunaWidgetDailyContentProvider().content(for: date)
+        logger.notice("Generated \(source, privacy: .public) entry for body=\(entry.bodyName, privacy: .public) type=\(entry.bodyType, privacy: .public)")
+        return entry
     }
 }
 

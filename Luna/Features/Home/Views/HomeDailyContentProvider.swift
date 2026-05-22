@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let todayInLunaLogger = Logger(subsystem: "net.novapro.Luna", category: "TodayInLuna")
 
 struct HomeDailyContent: Equatable {
     let date: Date
@@ -13,14 +16,52 @@ struct HomeDailyFact: Equatable {
     let systemImage: String
 }
 
+private struct FeaturedBodySelection {
+    let pool: TodayInLunaFeaturedPool
+    let body: CelestialBody
+    let reason: String
+}
+
+private enum TodayInLunaFeaturedPool: String, CaseIterable {
+    case educational
+    case special
+
+    var selectionWeight: Int {
+        switch self {
+        case .educational:
+            return 4
+        case .special:
+            return 1
+        }
+    }
+
+    var selectionSalt: Int {
+        switch self {
+        case .educational:
+            return 17
+        case .special:
+            return 53
+        }
+    }
+}
+
 struct HomeDailyContentProvider {
     var calendar: Calendar = .current
 
     func content(for bodies: [CelestialBody], date: Date = Date()) -> HomeDailyContent {
         let eligibleBodies = eligibleBodies(from: bodies)
-        let featuredBody = featuredBody(from: eligibleBodies, date: date)
+        let selection = featuredBodySelection(from: eligibleBodies, date: date)
+        let featuredBody = selection?.body
         let relatedFacts = factCandidates(featuredBody: featuredBody, bodies: eligibleBodies)
         let fact = dailyFact(from: relatedFacts, eligibleBodyCount: eligibleBodies.count, date: date)
+
+        if let selection {
+            let educationalCount = eligibleBodies.filter { $0.type.isEducationalFeaturedBody }.count
+            let specialCount = eligibleBodies.filter { $0.type.isSpecialFeaturedBody }.count
+            todayInLunaLogger.notice(
+                "Today in Luna selection date=\(date.formatted(date: .numeric, time: .standard), privacy: .public) pool=\(selection.pool.rawValue, privacy: .public) body=\(selection.body.id, privacy: .public) reason=\(selection.reason, privacy: .public) candidates educational=\(educationalCount, privacy: .public) special=\(specialCount, privacy: .public) total=\(eligibleBodies.count, privacy: .public)"
+            )
+        }
 
         return HomeDailyContent(
             date: date,
@@ -43,11 +84,7 @@ struct HomeDailyContentProvider {
     }
 
     func featuredBody(from bodies: [CelestialBody], date: Date = Date()) -> CelestialBody? {
-        let eligibleBodies = eligibleBodies(from: bodies)
-        guard !eligibleBodies.isEmpty else { return nil }
-
-        let seed = dailySeed(for: date)
-        return eligibleBodies[seed % eligibleBodies.count]
+        featuredBodySelection(from: bodies, date: date)?.body
     }
 
     func dailyFact(featuredBody: CelestialBody?, bodies: [CelestialBody], date: Date = Date()) -> HomeDailyFact {
@@ -59,6 +96,65 @@ struct HomeDailyContentProvider {
     func relatedFacts(featuredBody: CelestialBody?, bodies: [CelestialBody]) -> [HomeDailyFact] {
         let eligibleBodies = eligibleBodies(from: bodies)
         return factCandidates(featuredBody: featuredBody, bodies: eligibleBodies)
+    }
+
+    private func featuredBodySelection(from bodies: [CelestialBody], date: Date) -> FeaturedBodySelection? {
+        let eligibleBodies = eligibleBodies(from: bodies)
+        let educationalBodies = eligibleBodies.filter { $0.type.isEducationalFeaturedBody }
+        let specialBodies = eligibleBodies.filter { $0.type.isSpecialFeaturedBody }
+
+        let availablePools: [(pool: TodayInLunaFeaturedPool, bodies: [CelestialBody])] = [
+            (.educational, educationalBodies),
+            (.special, specialBodies)
+        ]
+        .filter { !$0.bodies.isEmpty }
+
+        guard !availablePools.isEmpty else { return nil }
+
+        let selectedPool = weightedPool(for: date, availablePools: availablePools)
+        let poolBodies = featuredBodies(in: selectedPool, from: eligibleBodies)
+        guard !poolBodies.isEmpty else { return nil }
+
+        let bodySeed = dailySeed(for: date, salt: selectedPool.selectionSalt)
+        let selectedBody = poolBodies[bodySeed % poolBodies.count]
+        let reason = availablePools.count == 1
+            ? "only available pool"
+            : "weighted roll across educational and special pools"
+
+        return FeaturedBodySelection(pool: selectedPool, body: selectedBody, reason: reason)
+    }
+
+    private func weightedPool(
+        for date: Date,
+        availablePools: [(pool: TodayInLunaFeaturedPool, bodies: [CelestialBody])]
+    ) -> TodayInLunaFeaturedPool {
+        if availablePools.count == 1, let onlyPool = availablePools.first?.pool {
+            return onlyPool
+        }
+
+        let totalWeight = availablePools.reduce(0) { $0 + $1.pool.selectionWeight }
+        let roll = dailySeed(for: date, salt: 29) % totalWeight
+        var runningTotal = 0
+
+        for pool in availablePools {
+            runningTotal += pool.pool.selectionWeight
+            if roll < runningTotal {
+                return pool.pool
+            }
+        }
+
+        return availablePools[0].pool
+    }
+
+    private func featuredBodies(in pool: TodayInLunaFeaturedPool, from bodies: [CelestialBody]) -> [CelestialBody] {
+        bodies.filter { body in
+            switch pool {
+            case .educational:
+                return body.type.isEducationalFeaturedBody
+            case .special:
+                return body.type.isSpecialFeaturedBody
+            }
+        }
     }
 
     private func dailyFact(from candidates: [HomeDailyFact], eligibleBodyCount: Int, date: Date) -> HomeDailyFact {
@@ -102,6 +198,10 @@ struct HomeDailyContentProvider {
     }
 
     private func factCandidates(for body: CelestialBody, bodies: [CelestialBody]) -> [HomeDailyFact] {
+        if body.type.isSpecialFeaturedBody {
+            return specialFactCandidates(for: body)
+        }
+
         var facts: [HomeDailyFact] = []
 
         if let earth = bodies.first(where: { $0.id == "earth" }), earth.id != body.id, earth.radiusKm > 0 {
@@ -173,6 +273,41 @@ struct HomeDailyContentProvider {
         return facts
     }
 
+    private func specialFactCandidates(for body: CelestialBody) -> [HomeDailyFact] {
+        var facts: [HomeDailyFact] = []
+        let trimmedSummary = body.summary.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDescription = body.description.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if !trimmedSummary.isEmpty {
+            facts.append(HomeDailyFact(
+                title: "Fact of the Day",
+                message: trimmedSummary,
+                systemImage: body.type.todayInLunaSystemImage
+            ))
+        }
+
+        if !trimmedDescription.isEmpty {
+            let excerpt = Self.excerpt(from: trimmedDescription)
+            if excerpt != trimmedSummary {
+                facts.append(HomeDailyFact(
+                    title: "Fact of the Day",
+                    message: excerpt,
+                    systemImage: body.type.todayInLunaSystemImage
+                ))
+            }
+        }
+
+        if facts.isEmpty {
+            facts.append(HomeDailyFact(
+                title: "Fact of the Day",
+                message: "\(body.name) is one of Luna's special mission bodies.",
+                systemImage: body.type.todayInLunaSystemImage
+            ))
+        }
+
+        return facts
+    }
+
     private func dailySeed(for date: Date, salt: Int = 0) -> Int {
         let components = calendar.dateComponents([.era, .year, .month, .day], from: date)
         var value = components.era ?? 1
@@ -188,6 +323,19 @@ struct HomeDailyContentProvider {
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = value >= 10 ? 1 : 2
         return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    private static func excerpt(from text: String, maximumLength: Int = 140) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > maximumLength else { return trimmed }
+
+        let endIndex = trimmed.index(trimmed.startIndex, offsetBy: maximumLength)
+        let prefix = String(trimmed[..<endIndex])
+        if let sentenceEnd = prefix.lastIndex(of: ".") {
+            return String(prefix[..<sentenceEnd]).trimmingCharacters(in: .whitespacesAndNewlines) + "."
+        }
+
+        return prefix.trimmingCharacters(in: .whitespacesAndNewlines) + "…"
     }
 
     private static func distance(_ value: Double) -> String {
@@ -216,5 +364,45 @@ struct HomeDailyContentProvider {
         }
 
         return "\(shortNumber(value)) hours"
+    }
+}
+
+private extension CelestialBodyType {
+    var isEducationalFeaturedBody: Bool {
+        switch self {
+        case .star, .planet, .moon, .asteroid, .dwarfPlanet:
+            return true
+        case .satellite, .rocket, .spacecraft, .station, .astronaut:
+            return false
+        }
+    }
+
+    var isSpecialFeaturedBody: Bool {
+        !isEducationalFeaturedBody
+    }
+
+    var todayInLunaSystemImage: String {
+        switch self {
+        case .star:
+            return "sun.max"
+        case .planet:
+            return "circle"
+        case .moon:
+            return "moon"
+        case .satellite:
+            return "dot.radiowaves.left.and.right"
+        case .rocket:
+            return "airplane.departure"
+        case .spacecraft:
+            return "sparkles"
+        case .station:
+            return "rectangle.connected.to.line.below"
+        case .astronaut:
+            return "person"
+        case .asteroid:
+            return "seal"
+        case .dwarfPlanet:
+            return "circle.dotted"
+        }
     }
 }

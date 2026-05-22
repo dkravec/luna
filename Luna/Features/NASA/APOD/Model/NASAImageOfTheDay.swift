@@ -24,9 +24,7 @@ struct NASAImageOfTheDay: Decodable, Hashable, Identifiable {
     }
 
     var id: String {
-        let dateString = NASAAPODSharedCache.dateFormatter.string(from: date)
-        let source = sourceURL?.absoluteString ?? previewURL?.absoluteString ?? title
-        return "\(dateString)-\(mediaType)-\(source)"
+        NASAAPODSharedCache.dateFormatter.string(from: date)
     }
 
     init(
