@@ -83,6 +83,10 @@
 		7A6B150524D5000000000000 /* HomeDailyContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B0B0124C1000000000000 /* HomeDailyContentProvider.swift */; };
 		7A6B150624D5000000000000 /* celestial_bodies.json in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B030924A5000000000000 /* celestial_bodies.json */; };
 		7A6B150824D5000000000000 /* LunaWidgetSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B150724D5000000000000 /* LunaWidgetSupportTests.swift */; };
+		7A6B150924D5000000000000 /* Thumbnails in Resources */ = {isa = PBXBuildFile; fileRef = 7A6B041724AB000000000000 /* Thumbnails */; };
+		7A6B151024D6000000000000 /* ExperienceSceneSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B030324A5000000000000 /* ExperienceSceneSettings.swift */; };
+		7A6B151124D6000000000000 /* ExperiencePreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B060024AD000000000000 /* ExperiencePreferences.swift */; };
+		7A6B151224D6000000000000 /* ExperienceSceneEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6B050024AC000000000000 /* ExperienceSceneEngine.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -904,6 +908,7 @@
 			files = (
 				7A6B131024D3000000000000 /* WidgetAssets.xcassets in Resources */,
 				7A6B150624D5000000000000 /* celestial_bodies.json in Resources */,
+				7A6B150924D5000000000000 /* Thumbnails in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -987,6 +992,9 @@
 				7A6B091124B0000000000000 /* LunaImageOfTheDayWidget.swift in Sources */,
 				7A6B150424D5000000000000 /* CelestialBody.swift in Sources */,
 				7A6B150524D5000000000000 /* HomeDailyContentProvider.swift in Sources */,
+				7A6B151024D6000000000000 /* ExperienceSceneSettings.swift in Sources */,
+				7A6B151124D6000000000000 /* ExperiencePreferences.swift in Sources */,
+				7A6B151224D6000000000000 /* ExperienceSceneEngine.swift in Sources */,
 				7A6B150324D5000000000000 /* LunaWidgetSupport.swift in Sources */,
 				7A6B130224D2000000000000 /* LunaWidgetModels.swift in Sources */,
 				7A6B130424D2000000000000 /* LunaWidgetTimelineProviders.swift in Sources */,

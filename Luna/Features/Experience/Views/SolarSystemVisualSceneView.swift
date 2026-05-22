@@ -778,7 +778,10 @@ private final class VisualSceneCameraCoordinator: NSObject, SCNSceneRendererDele
             return 0.2
         }
 
-        return max(placement.displayRadius, placement.interactionRadius * 0.35, 0.2)
+        let ringRadius = placement.body.id == "saturn"
+            ? placement.displayRadius * SaturnRingGeometry.outerRadiusRatio
+            : placement.displayRadius
+        return max(ringRadius, placement.interactionRadius * 0.35, 0.2)
     }
 
     private func focusTarget(for bodyID: String) -> SCNVector3? {
@@ -1076,6 +1079,17 @@ enum VisualSceneSelectedCameraMath {
     }
 }
 
+private enum SaturnRingGeometry {
+    static let outerRadiusRatio: Float = 2.33
+
+    static let bands: [(innerRadiusRatio: Float, outerRadiusRatio: Float, alpha: CGFloat)] = [
+        (1.24, 1.50, 0.34),
+        (1.52, 1.95, 0.56),
+        (2.03, 2.27, 0.42),
+        (2.31, outerRadiusRatio, 0.30)
+    ]
+}
+
 private enum SolarSystemSceneFactory {
     static func scene(for snapshot: ExperienceSceneSnapshot, settings: ExperienceSceneSettings, showsLabels: Bool) -> SCNScene {
         let scene = SCNScene()
@@ -1156,6 +1170,9 @@ private enum SolarSystemSceneFactory {
 
         visualNode.name = "bodyVisual:\(placement.id)"
         spinNode.addChildNode(visualNode)
+        if placement.body.id == "saturn" {
+            spinNode.addChildNode(saturnRingNode(for: placement.displayRadius))
+        }
         tiltNode.addChildNode(spinNode)
         root.addChildNode(tiltNode)
 
@@ -1240,6 +1257,65 @@ private enum SolarSystemSceneFactory {
         root.addChildNode(rightNode)
 
         return root
+    }
+
+    private static func saturnRingNode(for radius: Float) -> SCNNode {
+        let root = SCNNode()
+        root.name = "saturnRings"
+
+        for band in SaturnRingGeometry.bands {
+            let node = SCNNode(geometry: ringGeometry(
+                innerRadius: CGFloat(radius * band.innerRadiusRatio),
+                outerRadius: CGFloat(radius * band.outerRadiusRatio)
+            ))
+            node.geometry?.firstMaterial = ringMaterial(alpha: band.alpha)
+            node.renderingOrder = -1
+            root.addChildNode(node)
+        }
+
+        return root
+    }
+
+    private static func ringGeometry(innerRadius: CGFloat, outerRadius: CGFloat) -> SCNGeometry {
+        let segments = 144
+        var vertices: [SCNVector3] = []
+        var indices: [Int32] = []
+
+        for index in 0...segments {
+            let angle = CGFloat(index) / CGFloat(segments) * .pi * 2
+            let x = cos(angle)
+            let z = sin(angle)
+            vertices.append(SCNVector3(x * innerRadius, 0, z * innerRadius))
+            vertices.append(SCNVector3(x * outerRadius, 0, z * outerRadius))
+        }
+
+        for index in 0..<segments {
+            let innerCurrent = Int32(index * 2)
+            let outerCurrent = innerCurrent + 1
+            let innerNext = innerCurrent + 2
+            let outerNext = innerCurrent + 3
+            indices.append(contentsOf: [
+                innerCurrent, outerCurrent, innerNext,
+                outerCurrent, outerNext, innerNext
+            ])
+        }
+
+        let source = SCNGeometrySource(vertices: vertices)
+        let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        return SCNGeometry(sources: [source], elements: [element])
+    }
+
+    private static func ringMaterial(alpha: CGFloat) -> SCNMaterial {
+        let material = SCNMaterial()
+        let color = platformColor(red: 0.86, green: 0.78, blue: 0.58, alpha: alpha)
+        material.diffuse.contents = color
+        material.emission.contents = platformColor(red: 0.22, green: 0.18, blue: 0.11, alpha: alpha * 0.42)
+        material.lightingModel = .constant
+        material.isDoubleSided = true
+        material.transparency = alpha
+        material.readsFromDepthBuffer = true
+        material.writesToDepthBuffer = false
+        return material
     }
 
     private static func material(for body: CelestialBody) -> SCNMaterial {
@@ -1426,7 +1502,10 @@ struct SolarSystemSceneFocusMetrics {
             .max() ?? 0
         let cappedChildEnvelope = min(childEnvelope, placement.displayRadius * 1.05)
         let cappedInteractionRadius = min(placement.interactionRadius * 0.45, placement.displayRadius * 1.05)
-        let subjectRadius = max(placement.displayRadius, cappedChildEnvelope, cappedInteractionRadius, 0.20)
+        let ringRadius = placement.body.id == "saturn"
+            ? placement.displayRadius * SaturnRingGeometry.outerRadiusRatio
+            : placement.displayRadius
+        let subjectRadius = max(ringRadius, cappedChildEnvelope, cappedInteractionRadius, 0.20)
         return max(0.82, Double(subjectRadius * 4.3))
     }
 
@@ -1440,7 +1519,10 @@ struct SolarSystemSceneFocusMetrics {
             return focusedOrthographicScale(for: bodyID, in: snapshot)
         }
 
-        let radius = max(Double(placement.displayRadius), 0.000_08)
+        let visibleRadius = placement.body.id == "saturn"
+            ? placement.displayRadius * SaturnRingGeometry.outerRadiusRatio
+            : placement.displayRadius
+        let radius = max(Double(visibleRadius), 0.000_08)
         switch placement.body.type {
         case .star:
             return max(0.05, radius * 5.8)

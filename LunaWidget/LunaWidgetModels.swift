@@ -19,12 +19,13 @@ struct LunaFactEntry: TimelineEntry {
     let bodyType: String
     let fact: String
     let textureAssetName: String?
+    let thumbnailName: String?
     let hasRings: Bool
 }
 
 struct LunaSolarOverviewEntry: TimelineEntry {
     let date: Date
-    let bodies: [LunaWidgetBodySnapshot]
+    let bodies: [CelestialBody]
 }
 
 struct LunaWidgetDailyContentProvider {
@@ -38,6 +39,7 @@ struct LunaWidgetDailyContentProvider {
             bodyType: content.body.typeTitle,
             fact: content.fact,
             textureAssetName: content.body.textureAssetName,
+            thumbnailName: content.body.thumbnailName,
             hasRings: content.body.hasRings
         )
     }

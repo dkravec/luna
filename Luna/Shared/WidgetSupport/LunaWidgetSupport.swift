@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import simd
 
 struct LunaWidgetFactContent: Equatable {
     let date: Date
@@ -18,6 +19,7 @@ struct LunaWidgetBodySnapshot: Identifiable, Equatable {
     let parentBodyId: String?
     let displayOrder: Int
     let textureAssetName: String?
+    let thumbnailName: String?
     let hasRings: Bool
     let displaySize: CGFloat
 
@@ -32,6 +34,7 @@ struct LunaWidgetBodySnapshot: Identifiable, Equatable {
         parentBodyId = body.parentBodyId
         displayOrder = body.displayOrder
         textureAssetName = Self.textureAssetName(for: body.id)
+        thumbnailName = body.thumbnailName
         hasRings = body.id == "saturn"
         displaySize = Self.displaySize(for: body)
     }
@@ -134,6 +137,66 @@ struct LunaWidgetBodySnapshot: Identifiable, Equatable {
     }
 }
 
+enum LunaSaturnRingMetrics {
+    static let outerRadiusRatio: CGFloat = 2.33
+    static let ellipseHeightRatio: CGFloat = 0.36
+
+    static let bands: [(diameterRatio: CGFloat, opacity: Double, lineWidthRatio: CGFloat)] = [
+        (1.24, 0.22, 0.035),
+        (1.52, 0.34, 0.040),
+        (1.95, 0.28, 0.038),
+        (2.27, 0.22, 0.032),
+        (outerRadiusRatio, 0.18, 0.025)
+    ]
+}
+
+enum LunaWidgetThumbnailResourceResolver {
+    private final class BundleToken {}
+
+    static func url(named thumbnailName: String?, bundle: Bundle = .main) -> URL? {
+        guard let thumbnailName, !thumbnailName.isEmpty else { return nil }
+
+        let resourceName = (thumbnailName as NSString).deletingPathExtension
+        let resourceExtension = (thumbnailName as NSString).pathExtension.isEmpty
+            ? "png"
+            : (thumbnailName as NSString).pathExtension
+        let subdirectories = [
+            "Thumbnails/NASA",
+            "NASA"
+        ]
+
+        for candidateBundle in candidateBundles(primary: bundle) {
+            for subdirectory in subdirectories {
+                if let url = candidateBundle.url(
+                    forResource: resourceName,
+                    withExtension: resourceExtension,
+                    subdirectory: subdirectory
+                ) {
+                    return url
+                }
+            }
+
+            if let url = candidateBundle.url(forResource: resourceName, withExtension: resourceExtension) {
+                return url
+            }
+        }
+
+        return nil
+    }
+
+    private static func candidateBundles(primary: Bundle) -> [Bundle] {
+        let bundles = [
+            primary,
+            Bundle.main,
+            Bundle(for: BundleToken.self)
+        ] + Bundle.allBundles + Bundle.allFrameworks
+        return bundles.reduce(into: []) { result, bundle in
+            guard !result.contains(bundle) else { return }
+            result.append(bundle)
+        }
+    }
+}
+
 struct LunaWidgetCatalogLoader {
     var bundle: Bundle = .main
     var resourceName = "celestial_bodies"
@@ -181,11 +244,19 @@ struct LunaWidgetContentSource {
     }
 
     func solarBodies() -> [LunaWidgetBodySnapshot] {
+        solarCelestialBodies().map(LunaWidgetBodySnapshot.init(body:))
+    }
+
+    func solarCelestialBodies() -> [CelestialBody] {
         catalogLoader.loadBodies()
             .filter { body in
-                body.parentBodyId == "sun" && body.type == .planet
+                switch body.type {
+                case .star, .planet, .moon, .asteroid, .dwarfPlanet:
+                    return true
+                case .satellite, .rocket, .spacecraft, .station, .astronaut:
+                    return false
+                }
             }
-            .map(LunaWidgetBodySnapshot.init(body:))
     }
 
     private static var fallbackBody: LunaWidgetBodySnapshot {
@@ -217,86 +288,169 @@ struct LunaWidgetContentSource {
     }
 }
 
-struct LunaWidgetSolarLayoutModel {
+struct LunaSolarPreviewLayout {
+    struct Placement: Identifiable, Equatable {
+        let id: String
+        let body: CelestialBody
+        let bodySize: CGFloat
+        let position: CGPoint
+    }
+
     struct Orbit: Identifiable, Equatable {
         let id: String
+        let bodyId: String
         let radius: CGFloat
         let points: [CGPoint]
         let isInner: Bool
     }
 
-    struct Placement: Identifiable, Equatable {
-        let id: String
-        let body: LunaWidgetBodySnapshot
-        let position: CGPoint
-        let size: CGFloat
-        let radius: CGFloat
-    }
-
+    let placements: [Placement]
+    let orbits: [Orbit]
+    let sun: Placement?
     let center: CGPoint
     let sunSize: CGFloat
-    let orbits: [Orbit]
-    let placements: [Placement]
 
-    init(bodies: [LunaWidgetBodySnapshot], size: CGSize, date: Date) {
-        let canvas = max(min(size.width, size.height), 1)
-        let maxBodySize = max(bodies.map { max($0.displaySize, $0.hasRings ? 10 : 6) }.max() ?? 10, 10)
-        let centerPoint = CGPoint(x: size.width / 2, y: size.height / 2)
-        let computedSunSize = max(9, min(18, canvas * 0.095))
-        let margin = max(canvas * 0.06, 6) + maxBodySize / 2
-        let minRadius = computedSunSize / 2 + max(canvas * 0.055, 6)
-        let maxRadius = max(min(size.width, size.height) / 2 - margin, minRadius + 1)
-        let solarBodies = bodies
-            .filter { ($0.averageDistanceFromSunKm ?? 0) > 0 }
-            .sorted { lhs, rhs in
-                if lhs.displayOrder == rhs.displayOrder {
-                    return lhs.id < rhs.id
-                }
+    init(
+        snapshot: ExperienceSceneSnapshot,
+        size: CGSize,
+        bodySize: (ExperienceSceneBody, CGFloat) -> CGFloat = LunaSolarPreviewLayout.defaultBodySize(for:canvasSize:)
+    ) {
+        let bounds = snapshot.bounds
+        let margin = max(min(size.width, size.height) * 0.08, 14)
+        let availableWidth = max(size.width - margin * 2, 1)
+        let availableHeight = max(size.height - margin * 2, 1)
+        let projectedBounds = Self.projectedBounds(for: snapshot, bounds: bounds)
+        let scale = min(
+            availableWidth / CGFloat(max(projectedBounds.width, 0.001)),
+            availableHeight / CGFloat(max(projectedBounds.height, 0.001))
+        )
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
 
-                return lhs.displayOrder < rhs.displayOrder
-            }
-        let maxEducationalIndex = max(CGFloat(max(solarBodies.count - 1, 1)), 1)
-
-        func radius(for index: Int) -> CGFloat {
-            let normalized = CGFloat(index) / maxEducationalIndex
-            return minRadius + normalized * (maxRadius - minRadius)
-        }
-
-        func project(radius: CGFloat, angle: Double) -> CGPoint {
-            CGPoint(
-                x: centerPoint.x + cos(angle) * radius,
-                y: centerPoint.y + sin(angle) * radius * Self.tiltScale
+        func project(_ point: SIMD3<Float>) -> CGPoint {
+            let projectedPoint = Self.expandedProjection(point, bounds: bounds, projectedBounds: projectedBounds)
+            return CGPoint(
+                x: center.x + CGFloat(projectedPoint.x - projectedBounds.midX) * scale,
+                y: center.y + CGFloat(projectedPoint.y - projectedBounds.midY) * scale
             )
         }
 
-        let computedOrbits = solarBodies.enumerated().map { index, body in
-            let radius = radius(for: index)
-            let points = stride(from: 0, to: Self.pathSegments, by: 1).map { pointIndex in
-                project(
-                    radius: radius,
-                    angle: Double(pointIndex) / Double(Self.pathSegments) * .pi * 2
-                )
-            }
-            return Orbit(id: body.id, radius: radius, points: points, isInner: index <= 3)
-        }
-
-        let computedPlacements = solarBodies.enumerated().map { index, body in
-            let radius = radius(for: index)
-            return Placement(
+        let canvasSize = min(size.width, size.height)
+        let bodyPlacements = snapshot.bodies.map { body in
+            Placement(
                 id: body.id,
-                body: body,
-                position: project(radius: radius, angle: body.angleRadians(on: date)),
-                size: max(body.displaySize, body.hasRings ? 10 : 6),
-                radius: radius
+                body: body.body,
+                bodySize: bodySize(body, canvasSize),
+                position: project(body.position)
             )
         }
 
-        center = centerPoint
-        sunSize = computedSunSize
-        orbits = computedOrbits
-        placements = computedPlacements
+        placements = bodyPlacements.filter { $0.body.type != .star }
+        sun = bodyPlacements.first { $0.body.type == .star }
+        self.center = center
+        sunSize = sun?.bodySize ?? max(9, min(18, canvasSize * 0.095))
+        orbits = snapshot.orbitPaths.map { path in
+            let points = path.points.map(project)
+            return Orbit(
+                id: path.id,
+                bodyId: path.bodyId,
+                radius: Self.averageRadius(points: points, center: center),
+                points: points,
+                isInner: Self.innerPlanetIds.contains(path.bodyId)
+            )
+        }
     }
 
-    private static let tiltScale: CGFloat = 0.56
-    private static let pathSegments = 96
+    static func widgetBodySize(for body: ExperienceSceneBody, canvasSize: CGFloat) -> CGFloat {
+        let snapshot = LunaWidgetBodySnapshot(body: body.body)
+        return max(snapshot.displaySize, snapshot.hasRings ? 10 : 6)
+    }
+
+    static func defaultBodySize(for body: ExperienceSceneBody, canvasSize: CGFloat) -> CGFloat {
+        if body.body.type == .star {
+            return max(10, min(16, canvasSize * 0.6))
+        }
+
+        if body.body.type == .moon {
+            return max(5, min(8, canvasSize * 0.035))
+        }
+
+        let sourceSize = CGFloat(log10(max(body.body.radiusKm, 1))) * 4.2
+        return max(7, min(14, sourceSize))
+    }
+
+    private static func averageRadius(points: [CGPoint], center: CGPoint) -> CGFloat {
+        guard !points.isEmpty else { return 0 }
+
+        let total = points.reduce(CGFloat.zero) { partialResult, point in
+            let x = point.x - center.x
+            let y = point.y - center.y
+            return partialResult + sqrt(x * x + y * y)
+        }
+        return total / CGFloat(points.count)
+    }
+
+    private static func projectedY(_ point: SIMD3<Float>) -> Float {
+        point.z * tiltCosine - point.y * tiltSine
+    }
+
+    private static func rawProjection(_ point: SIMD3<Float>, bounds: ExperienceSceneBounds) -> SIMD2<Float> {
+        SIMD2<Float>(
+            point.x - bounds.center.x,
+            projectedY(point) - projectedY(bounds.center)
+        )
+    }
+
+    private static func expandedProjection(
+        _ point: SIMD3<Float>,
+        bounds: ExperienceSceneBounds,
+        projectedBounds: ProjectedBounds
+    ) -> SIMD2<Float> {
+        let rawPoint = rawProjection(point, bounds: bounds)
+        let radius = max(length(rawPoint), 0.000_001)
+        let normalizedRadius = min(max(radius / projectedBounds.rawRadius, 0), 1)
+        let expandedRadius = pow(normalizedRadius, 0.72) * projectedBounds.rawRadius
+        return rawPoint * (expandedRadius / radius)
+    }
+
+    private static func projectedBounds(for snapshot: ExperienceSceneSnapshot, bounds: ExperienceSceneBounds) -> ProjectedBounds {
+        let points = snapshot.bodies.map(\.position) + snapshot.orbitPaths.flatMap(\.points)
+        let rawPoints = points.map { rawProjection($0, bounds: bounds) }
+        let rawRadius = max(rawPoints.map(length).max() ?? 0.001, 0.001)
+        let expandedPoints = rawPoints.map { point -> SIMD2<Float> in
+            let radius = max(length(point), 0.000_001)
+            let normalizedRadius = min(max(radius / rawRadius, 0), 1)
+            let expandedRadius = pow(normalizedRadius, 0.72) * rawRadius
+            return point * (expandedRadius / radius)
+        }
+
+        guard
+            let minX = expandedPoints.map(\.x).min(),
+            let maxX = expandedPoints.map(\.x).max(),
+            let minY = expandedPoints.map(\.y).min(),
+            let maxY = expandedPoints.map(\.y).max()
+        else {
+            return ProjectedBounds(midX: 0, midY: 0, width: 1, height: 1, rawRadius: rawRadius)
+        }
+
+        return ProjectedBounds(
+            midX: (minX + maxX) / 2,
+            midY: (minY + maxY) / 2,
+            width: max(maxX - minX, 0.001),
+            height: max(maxY - minY, 0.001),
+            rawRadius: rawRadius
+        )
+    }
+
+    private static let tiltAngle = Double.pi * 0.32
+    private static let tiltCosine = Float(cos(tiltAngle))
+    private static let tiltSine = Float(sin(tiltAngle))
+    private static let innerPlanetIds: Set<String> = ["mercury", "venus", "earth", "mars"]
+
+    private struct ProjectedBounds {
+        let midX: Float
+        let midY: Float
+        let width: Float
+        let height: Float
+        let rawRadius: Float
+    }
 }

@@ -2,8 +2,10 @@ import SwiftUI
 import WidgetKit
 #if os(iOS)
 import UIKit
+private typealias PlatformWidgetImage = UIImage
 #elseif os(macOS)
 import AppKit
+private typealias PlatformWidgetImage = NSImage
 #endif
 
 struct NASAImageWidgetView: View {
@@ -170,6 +172,7 @@ struct LunaFactWidgetView: View {
             VStack(alignment: .leading, spacing: 6) {
                 LunaWidgetBodyVisual(
                     textureAssetName: entry.textureAssetName,
+                    thumbnailName: entry.thumbnailName,
                     fallbackName: entry.bodyName,
                     hasRings: entry.hasRings,
                     size: 30
@@ -194,6 +197,7 @@ struct LunaFactWidgetView: View {
             HStack(alignment: .top, spacing: 10) {
                 LunaWidgetBodyVisual(
                     textureAssetName: entry.textureAssetName,
+                    thumbnailName: entry.thumbnailName,
                     fallbackName: entry.bodyName,
                     hasRings: entry.hasRings,
                     size: 44
@@ -249,7 +253,7 @@ struct LunaSolarOverviewWidgetView: View {
                         .frame(maxWidth: .infinity, minHeight: metrics.headerHeight, alignment: .topLeading)
                         .layoutPriority(1)
 
-                    LunaWidgetOrbitView(bodies: entry.bodies)
+                    LunaWidgetOrbitView(bodies: entry.bodies, date: entry.date)
                         .padding(metrics.orbitInsets)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
@@ -305,14 +309,33 @@ struct LunaSolarOverviewWidgetView: View {
 }
 
 private struct LunaWidgetOrbitView: View {
-    let bodies: [LunaWidgetBodySnapshot]
+    let bodies: [CelestialBody]
+    let date: Date
+
+    private static let previewSettings = ExperienceSceneSettings(
+        isAREnabled: false,
+        sceneScaleProfile: .scaledRecommended,
+        distanceScaleMode: .compressed,
+        objectScaleMode: .relative,
+        distanceCompression: 12,
+        renderDetail: .balanced,
+        orbitPlaybackSpeed: .standard,
+        objectRotationSpeed: .slow,
+        showLabels: false,
+        showOrbits: true
+    )
 
     var body: some View {
         GeometryReader { proxy in
-            let layout = LunaWidgetSolarLayoutModel(
-                bodies: bodies,
+            let snapshot = ExperienceSceneEngine.snapshot(
+                for: solarSystemBodies,
+                settings: Self.previewSettings,
+                simulationDate: date
+            )
+            let layout = LunaSolarPreviewLayout(
+                snapshot: snapshot,
                 size: proxy.size,
-                date: Date()
+                bodySize: LunaSolarPreviewLayout.widgetBodySize(for:canvasSize:)
             )
 
             ZStack {
@@ -347,17 +370,31 @@ private struct LunaWidgetOrbitView: View {
                     .widgetAccentable(false)
 
                 ForEach(layout.placements) { placement in
+                    let body = LunaWidgetBodySnapshot(body: placement.body)
                     LunaWidgetBodyVisual(
-                        textureAssetName: placement.body.textureAssetName,
-                        fallbackName: placement.body.name,
-                        hasRings: placement.body.hasRings,
-                        size: placement.size
+                        textureAssetName: body.textureAssetName,
+                        thumbnailName: body.thumbnailName,
+                        fallbackName: body.name,
+                        hasRings: body.hasRings,
+                        size: placement.bodySize
                     )
                     .position(placement.position)
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
+    }
+
+    private var solarSystemBodies: [CelestialBody] {
+        bodies
+            .filter { body in
+                body.type == .star
+                    || body.type == .planet
+                    || body.type == .moon
+                    || body.type == .dwarfPlanet
+                    || body.type == .asteroid
+            }
+            .sorted { $0.displayOrder < $1.displayOrder }
     }
 }
 
@@ -378,6 +415,7 @@ struct LunaWidgetSpaceBackground: View {
 
 private struct LunaWidgetBodyVisual: View {
     let textureAssetName: String?
+    var thumbnailName: String? = nil
     let fallbackName: String
     let hasRings: Bool
     let size: CGFloat
@@ -385,11 +423,7 @@ private struct LunaWidgetBodyVisual: View {
     var body: some View {
         ZStack {
             if hasRings {
-                Ellipse()
-                    .stroke(.white.opacity(0.28), lineWidth: max(1, size * 0.08))
-                    .frame(width: size * 1.85, height: size * 0.66)
-                    .rotationEffect(.degrees(-12))
-                    .widgetAccentable(false)
+                LunaWidgetSaturnRingVisual(size: size)
             }
 
             if let textureAssetName {
@@ -399,6 +433,22 @@ private struct LunaWidgetBodyVisual: View {
                     .scaledToFill()
                     .frame(width: size, height: size)
                     .clipShape(Circle())
+            } else if let thumbnailName, let image = thumbnailImage(named: thumbnailName) {
+#if os(iOS)
+                Image(uiImage: image)
+                    .resizable()
+                    .lunaWidgetFullColorImage()
+                    .scaledToFit()
+                    .frame(width: size * 1.26, height: size)
+                    .clipShape(RoundedRectangle(cornerRadius: max(3, size * 0.14), style: .continuous))
+#elseif os(macOS)
+                Image(nsImage: image)
+                    .resizable()
+                    .lunaWidgetFullColorImage()
+                    .scaledToFit()
+                    .frame(width: size * 1.26, height: size)
+                    .clipShape(RoundedRectangle(cornerRadius: max(3, size * 0.14), style: .continuous))
+#endif
             } else {
                 Circle()
                     .fill(color)
@@ -409,8 +459,21 @@ private struct LunaWidgetBodyVisual: View {
                 .stroke(.white.opacity(0.16), lineWidth: 1)
                 .frame(width: size, height: size)
         }
-        .frame(width: hasRings ? size * 1.95 : size, height: max(size, hasRings ? size * 0.92 : size))
+        .frame(
+            width: hasRings ? size * LunaSaturnRingMetrics.outerRadiusRatio : size,
+            height: max(size, hasRings ? size * LunaSaturnRingMetrics.outerRadiusRatio * LunaSaturnRingMetrics.ellipseHeightRatio : size)
+        )
         .widgetAccentable(false)
+    }
+
+    private func thumbnailImage(named thumbnailName: String) -> PlatformWidgetImage? {
+        guard let url = LunaWidgetThumbnailResourceResolver.url(named: thumbnailName) else { return nil }
+
+#if os(iOS)
+        return PlatformWidgetImage(contentsOfFile: url.path)
+#elseif os(macOS)
+        return PlatformWidgetImage(contentsOf: url)
+#endif
     }
 
     private var color: Color {
@@ -428,6 +491,25 @@ private struct LunaWidgetBodyVisual: View {
         default:
             return .white.opacity(0.72)
         }
+    }
+}
+
+private struct LunaWidgetSaturnRingVisual: View {
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            ForEach(Array(LunaSaturnRingMetrics.bands.enumerated()), id: \.offset) { _, band in
+                Ellipse()
+                    .stroke(.white.opacity(band.opacity), lineWidth: max(0.6, size * band.lineWidthRatio))
+                    .frame(
+                        width: size * band.diameterRatio,
+                        height: size * band.diameterRatio * LunaSaturnRingMetrics.ellipseHeightRatio
+                    )
+            }
+        }
+        .rotationEffect(.degrees(-12))
+        .widgetAccentable(false)
     }
 }
 

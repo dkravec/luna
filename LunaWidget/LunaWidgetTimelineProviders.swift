@@ -108,6 +108,7 @@ struct LunaFactTimelineProvider: TimelineProvider {
             bodyType: "Moon",
             fact: "The Moon averages 384,400 km from Earth.",
             textureAssetName: "WidgetMoon",
+            thumbnailName: nil,
             hasRings: false
         )
     }
@@ -139,7 +140,7 @@ struct LunaSolarOverviewTimelineProvider: TimelineProvider {
     private let source = LunaWidgetContentSource()
 
     func placeholder(in context: Context) -> LunaSolarOverviewEntry {
-        LunaSolarOverviewEntry(date: Date(), bodies: source.solarBodies())
+        LunaSolarOverviewEntry(date: Date(), bodies: source.solarCelestialBodies())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (LunaSolarOverviewEntry) -> Void) {
@@ -153,7 +154,7 @@ struct LunaSolarOverviewTimelineProvider: TimelineProvider {
     }
 
     private func entry(for date: Date) -> LunaSolarOverviewEntry {
-        LunaSolarOverviewEntry(date: date, bodies: source.solarBodies())
+        LunaSolarOverviewEntry(date: date, bodies: source.solarCelestialBodies())
     }
 }
 
