@@ -1,3 +1,4 @@
 .DS_Store
 /AppStoreScreenshots/raw
 /AppStoreScreenshots/results
+/Configuration/NASAAPIKey.local.xcconfig

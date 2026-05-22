@@ -213,33 +213,30 @@ struct HomeView: View {
     private func scrollForGuidedTourStep(_ step: GuidedTourStep?, proxy: ScrollViewProxy) {
         guard let step else { return }
 
-        let delays: [TimeInterval] = step == .homeExplore ? [0, 0.05, 0.18, 0.45] : [0]
+        let anchor: UnitPoint?
 
-        for (index, delay) in delays.enumerated() {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                performGuidedTourScroll(for: step, proxy: proxy, animated: index != 0)
-            }
-        }
-    }
-
-    private func performGuidedTourScroll(for step: GuidedTourStep, proxy: ScrollViewProxy, animated: Bool) {
-        let scroll = {
-            switch step {
-            case .homeWelcome:
-                proxy.scrollTo(ScrollAnchor.overview, anchor: .top)
-            case .homeExplore:
-                proxy.scrollTo(ScrollAnchor.exploreAction, anchor: .center)
-            default:
-                break
-            }
+        switch step {
+        case .homeWelcome:
+            anchor = .top
+        case .homeExplore:
+            anchor = .center
+        default:
+            anchor = nil
         }
 
-        if animated {
-            withAnimation(.easeInOut(duration: 0.25), scroll)
-        } else {
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction, scroll)
+        guard let anchor else { return }
+
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                switch step {
+                case .homeWelcome:
+                    proxy.scrollTo(ScrollAnchor.overview, anchor: anchor)
+                case .homeExplore:
+                    proxy.scrollTo(ScrollAnchor.exploreAction, anchor: anchor)
+                default:
+                    break
+                }
+            }
         }
     }
 
